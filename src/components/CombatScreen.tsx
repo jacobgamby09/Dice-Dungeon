@@ -1,16 +1,9 @@
-import { useEffect, useRef } from 'react'
-import { motion, useMotionValue, useTransform, animate, useAnimate } from 'framer-motion'
+import { useEffect, useRef, useState } from 'react'
+import { motion, AnimatePresence, useMotionValue, useTransform, animate, useAnimate } from 'framer-motion'
 import { Shield, Heart, Swords } from 'lucide-react'
 import { useGameStore } from '../store/gameStore'
-import type { Die, TurnPhase } from '../store/gameStore'
-
-// ── Rarity styles ────────────────────────────────────────────────────────────
-const rarityStyle: Record<Die['rarity'], { bg: string; shadow: string; text: string }> = {
-  common:    { bg: '#d4d4d4', shadow: '#555555', text: '#1a1a2e' },
-  uncommon:  { bg: '#4ade80', shadow: '#15803d', text: '#052e16' },
-  rare:      { bg: '#3b82f6', shadow: '#1e3a8a', text: '#ffffff' },
-  legendary: { bg: '#fbbf24', shadow: '#78350f', text: '#1a1a2e' },
-}
+import type { TurnPhase } from '../store/gameStore'
+import { DieCard } from './DieCard'
 
 // ── Label ────────────────────────────────────────────────────────────────────
 function Label({ children }: { children: React.ReactNode }) {
@@ -26,23 +19,6 @@ function Label({ children }: { children: React.ReactNode }) {
     }}>
       {children}
     </span>
-  )
-}
-
-// ── Die card ─────────────────────────────────────────────────────────────────
-function DieCard({ die }: { die: Die }) {
-  const s = rarityStyle[die.rarity]
-  return (
-    <motion.div
-      key={`${die.id}-${die.currentValue}`}
-      initial={{ scale: 0.5, rotate: -20, opacity: 0.6 }}
-      animate={{ scale: 1, rotate: 0, opacity: 1 }}
-      transition={{ type: 'spring', stiffness: 500, damping: 18 }}
-      className="pixel-die"
-      style={{ background: s.bg, color: s.text, boxShadow: `4px 4px 0 ${s.shadow}` }}
-    >
-      {die.currentValue ?? '?'}
-    </motion.div>
   )
 }
 
@@ -87,15 +63,77 @@ function DamageCounter({ target }: { target: number }) {
   )
 }
 
-// ── Phase label for the button area ─────────────────────────────────────────
-const phaseText: Record<TurnPhase, string> = {
+// ── Floating effect popups ───────────────────────────────────────────────────
+// Each entry mounts as a motion.div that floats up and fades out over ~1s,
+// then gets removed from state via setTimeout after the animation finishes.
+
+type FloatItem = { id: number; label: string; color: string; shadow: string; offset: number }
+
+function FloatingEffects({
+  heal, shield, version,
+}: {
+  heal: number
+  shield: number
+  version: number
+}) {
+  const [items, setItems] = useState<FloatItem[]>([])
+  const prevVersion = useRef(version)
+
+  useEffect(() => {
+    if (version === prevVersion.current) return
+    prevVersion.current = version
+
+    const now = Date.now()
+    const next: FloatItem[] = []
+    if (heal > 0)   next.push({ id: now,     label: `♥ +${heal}`,     color: '#4ade80', shadow: '#15803d', offset: -24 })
+    if (shield > 0) next.push({ id: now + 1, label: `⬡ +${shield}`,   color: '#38bdf8', shadow: '#1e3a8a', offset:  24 })
+    if (!next.length) return
+
+    setItems((prev) => [...prev, ...next])
+    // clean up after animation duration (1.1s)
+    setTimeout(() => {
+      setItems((prev) => prev.filter((i) => !next.find((n) => n.id === i.id)))
+    }, 1150)
+  }, [version, heal, shield])
+
+  return (
+    <AnimatePresence>
+      {items.map((item) => (
+        <motion.div
+          key={item.id}
+          initial={{ opacity: 1, y: 0 }}
+          animate={{ opacity: 0, y: -44 }}
+          transition={{ duration: 1.0, ease: 'easeOut' }}
+          style={{
+            position: 'absolute',
+            left: `calc(50% + ${item.offset}px)`,
+            top: '50%',
+            transform: 'translateX(-50%)',
+            pointerEvents: 'none',
+            color: item.color,
+            fontWeight: 700,
+            fontSize: '1.15rem',
+            textShadow: `2px 2px 0 ${item.shadow}`,
+            whiteSpace: 'nowrap',
+            zIndex: 10,
+          }}
+        >
+          {item.label}
+        </motion.div>
+      ))}
+    </AnimatePresence>
+  )
+}
+
+// ── Phase labels ─────────────────────────────────────────────────────────────
+const phaseText: Record<Exclude<TurnPhase, 'loadout'>, string> = {
   idle:          '▶ ROLL DICE',
   rolling:       '⟳  ROLLING...',
   player_attack: '⚔  ATTACKING!',
   enemy_attack:  '☠  ENEMY TURN...',
 }
 
-// ── Hook: shake + flash a zone when hitVersion increments ────────────────────
+// ── Hit animation hook ────────────────────────────────────────────────────────
 function useHitAnimation(hitVersion: number, flashColor: string) {
   const [scope, animateEl] = useAnimate()
   const prevVersion = useRef(hitVersion)
@@ -115,9 +153,9 @@ function useHitAnimation(hitVersion: number, flashColor: string) {
 // ── Main screen ──────────────────────────────────────────────────────────────
 export function CombatScreen() {
   const {
-    player, enemy, dicePool,
-    totalDamage, turnPhase,
-    enemyHitVersion, playerHitVersion,
+    player, enemy, equippedDice,
+    totalDamage, lastEffects, turnPhase,
+    enemyHitVersion, playerHitVersion, playerEffectVersion,
     currentFloor, executeTurn,
   } = useGameStore()
 
@@ -125,6 +163,7 @@ export function CombatScreen() {
   const playerScope = useHitAnimation(playerHitVersion, 'rgba(220,38,38,0.45)')
 
   const isIdle = turnPhase === 'idle'
+  const phase  = turnPhase as Exclude<TurnPhase, 'loadout'>
 
   return (
     <div style={{
@@ -159,11 +198,19 @@ export function CombatScreen() {
       <div
         ref={playerScope}
         style={{
+          position: 'relative',           // anchor for floating effects
           background: '#0f0f1a', padding: '16px',
           borderBottom: '3px solid #000',
           display: 'flex', flexDirection: 'column', gap: 10,
         }}
       >
+        {/* Floating heal / shield popups */}
+        <FloatingEffects
+          heal={lastEffects.heal}
+          shield={lastEffects.shield}
+          version={playerEffectVersion}
+        />
+
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <Heart size={14} color="#f472b6" />
           <span style={{ color: '#f9a8d4', fontWeight: 600 }}>{player.hp}</span>
@@ -196,7 +243,7 @@ export function CombatScreen() {
       }}>
         <Label>Dice Hand</Label>
         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 12 }}>
-          {dicePool.map((die) => (
+          {equippedDice.map((die) => (
             <DieCard key={die.id} die={die} />
           ))}
         </div>
@@ -214,10 +261,9 @@ export function CombatScreen() {
             cursor: isIdle ? 'pointer' : 'not-allowed',
           }}
         >
-          {phaseText[turnPhase]}
+          {phaseText[phase]}
         </button>
       </div>
-
     </div>
   )
 }

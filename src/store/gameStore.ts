@@ -1,88 +1,172 @@
 import { create } from 'zustand'
 
+// ── Core types ───────────────────────────────────────────────────────────────
+
 export interface DieFace {
   type: 'damage' | 'shield' | 'heal'
   value: number
 }
 
+export type DieType = 'white' | 'blue' | 'green'
+
 export interface Die {
   id: string
+  dieType: DieType
   sides: number
   faces: DieFace[]
-  currentValue?: number
+  currentFace?: DieFace
   rarity: 'common' | 'uncommon' | 'rare' | 'legendary'
 }
 
-export type TurnPhase = 'idle' | 'rolling' | 'player_attack' | 'enemy_attack'
+export type TurnPhase = 'loadout' | 'idle' | 'rolling' | 'player_attack' | 'enemy_attack'
+
+// ── Die factory ──────────────────────────────────────────────────────────────
+// To add a new die type: add one entry here. Nothing else needs to change.
+
+const DIE_TEMPLATES: Record<DieType, { sides: number; faces: DieFace[]; rarity: Die['rarity'] }> = {
+  white: {
+    sides: 6,
+    rarity: 'common',
+    faces: [
+      { type: 'damage', value: 1 },
+      { type: 'damage', value: 2 },
+      { type: 'damage', value: 3 },
+      { type: 'damage', value: 4 },
+      { type: 'damage', value: 5 },
+      { type: 'damage', value: 6 },
+    ],
+  },
+  blue: {
+    sides: 6,
+    rarity: 'common',
+    faces: [
+      { type: 'shield', value: 1 },
+      { type: 'shield', value: 2 },
+      { type: 'shield', value: 3 },
+      { type: 'shield', value: 4 },
+      { type: 'damage', value: 1 },
+      { type: 'damage', value: 2 },
+    ],
+  },
+  green: {
+    sides: 6,
+    rarity: 'common',
+    faces: [
+      { type: 'heal', value: 1 },
+      { type: 'heal', value: 2 },
+      { type: 'heal', value: 3 },
+      { type: 'damage', value: 1 },
+      { type: 'damage', value: 2 },
+      { type: 'damage', value: 3 },
+    ],
+  },
+}
+
+function createDie(type: DieType, id: string): Die {
+  const t = DIE_TEMPLATES[type]
+  return { id, dieType: type, sides: t.sides, faces: t.faces, rarity: t.rarity }
+}
+
+function rollFace(die: Die): DieFace {
+  return die.faces[Math.floor(Math.random() * die.faces.length)]
+}
+
+// ── Store ────────────────────────────────────────────────────────────────────
 
 interface GameState {
   player: { hp: number; maxHp: number; shield: number }
   enemy: { hp: number; maxHp: number; name: string; intent: null }
-  dicePool: Die[]
+  inventory: Die[]
+  equippedDice: Die[]
   totalDamage: number
+  lastEffects: { heal: number; shield: number }
   turnPhase: TurnPhase
   enemyHitVersion: number
   playerHitVersion: number
+  playerEffectVersion: number
   currentFloor: number
   currency: number
+  equipDie: (id: string) => void
+  unequipDie: (id: string) => void
+  startCombat: () => void
   executeTurn: () => Promise<void>
 }
 
-const STANDARD_D6_FACES: DieFace[] = [
-  { type: 'damage', value: 2 },
-  { type: 'damage', value: 2 },
-  { type: 'damage', value: 3 },
-  { type: 'shield', value: 1 },
-  { type: 'shield', value: 2 },
-  { type: 'heal', value: 1 },
-]
-
-function makeD6(id: string): Die {
-  return { id, sides: 6, faces: STANDARD_D6_FACES, rarity: 'common' }
-}
-
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
-
 const ENEMY_DAMAGE = 10
 
 export const useGameStore = create<GameState>((set, get) => ({
   player: { hp: 100, maxHp: 100, shield: 0 },
   enemy: { hp: 50, maxHp: 50, name: 'Goblin', intent: null },
-  dicePool: [
-    makeD6('die-1'),
-    makeD6('die-2'),
-    makeD6('die-3'),
-    makeD6('die-4'),
-    makeD6('die-5'),
+  inventory: [
+    createDie('white', 'w1'), createDie('white', 'w2'), createDie('white', 'w3'),
+    createDie('white', 'w4'), createDie('white', 'w5'), createDie('white', 'w6'),
+    createDie('blue',  'b1'), createDie('blue',  'b2'),
+    createDie('green', 'g1'), createDie('green', 'g2'),
   ],
+  equippedDice: [],
   totalDamage: 0,
-  turnPhase: 'idle',
+  lastEffects: { heal: 0, shield: 0 },
+  turnPhase: 'loadout',
   enemyHitVersion: 0,
   playerHitVersion: 0,
+  playerEffectVersion: 0,
   currentFloor: 1,
   currency: 0,
+
+  equipDie: (id) =>
+    set((s) => {
+      if (s.equippedDice.length >= 5) return s
+      const die = s.inventory.find((d) => d.id === id)
+      if (!die) return s
+      return {
+        inventory: s.inventory.filter((d) => d.id !== id),
+        equippedDice: [...s.equippedDice, die],
+      }
+    }),
+
+  unequipDie: (id) =>
+    set((s) => {
+      const die = s.equippedDice.find((d) => d.id === id)
+      if (!die) return s
+      return {
+        equippedDice: s.equippedDice.filter((d) => d.id !== id),
+        inventory: [...s.inventory, { ...die, currentFace: undefined }],
+      }
+    }),
+
+  startCombat: () => set({ turnPhase: 'idle' }),
 
   executeTurn: async () => {
     // ── Phase: rolling ──────────────────────────────────────────────────
     set({ turnPhase: 'rolling', totalDamage: 0 })
-    await sleep(80) // let the counter snap to 0 before new values render
+    await sleep(80)
 
-    const rolled = get().dicePool.map((die) => ({
+    const rolled = get().equippedDice.map((die) => ({
       ...die,
-      currentValue: Math.ceil(Math.random() * die.sides),
+      currentFace: rollFace(die),
     }))
-    const newDamage = rolled.reduce((sum, d) => sum + (d.currentValue ?? 0), 0)
-    set({ dicePool: rolled, totalDamage: newDamage })
 
-    await sleep(1000) // wait for count-up animation
+    const totalDamage  = rolled.reduce((n, d) => n + (d.currentFace?.type === 'damage' ? d.currentFace.value : 0), 0)
+    const healAmount   = rolled.reduce((n, d) => n + (d.currentFace?.type === 'heal'   ? d.currentFace.value : 0), 0)
+    const shieldAmount = rolled.reduce((n, d) => n + (d.currentFace?.type === 'shield' ? d.currentFace.value : 0), 0)
+
+    set({ equippedDice: rolled, totalDamage, lastEffects: { heal: healAmount, shield: shieldAmount } })
+
+    await sleep(1000)
 
     // ── Phase: player_attack ────────────────────────────────────────────
-    const enemyBefore = get().enemy
-    const newEnemyHp = Math.max(0, enemyBefore.hp - newDamage)
+    const { enemy, player } = get()
+    const newEnemyHp  = Math.max(0, enemy.hp - totalDamage)
+    const newPlayerHp = Math.min(player.maxHp, player.hp + healAmount)
+    const newShield   = player.shield + shieldAmount
+
     set((s) => ({
       turnPhase: 'player_attack',
-      enemy: { ...s.enemy, hp: newEnemyHp },
+      enemy:  { ...s.enemy,  hp: newEnemyHp },
+      player: { ...s.player, hp: newPlayerHp, shield: newShield },
       enemyHitVersion: s.enemyHitVersion + 1,
+      playerEffectVersion: s.playerEffectVersion + 1,
     }))
 
     if (newEnemyHp <= 0) {
@@ -91,7 +175,8 @@ export const useGameStore = create<GameState>((set, get) => ({
         enemy: { ...s.enemy, hp: s.enemy.maxHp },
         currentFloor: s.currentFloor + 1,
         totalDamage: 0,
-        turnPhase: 'idle',
+        equippedDice: s.equippedDice.map((d) => ({ ...d, currentFace: undefined })),
+        turnPhase: 'loadout',
       }))
       return
     }
@@ -99,27 +184,42 @@ export const useGameStore = create<GameState>((set, get) => ({
     await sleep(800)
 
     // ── Phase: enemy_attack ─────────────────────────────────────────────
-    const playerBefore = get().player
-    const newPlayerHp = Math.max(0, playerBefore.hp - ENEMY_DAMAGE)
+    const currentPlayer = get().player
+    const shield = currentPlayer.shield
+    const rawDamage = ENEMY_DAMAGE
+    const absorbed = Math.min(shield, rawDamage)
+    const newEnemyPlayerHp = Math.max(0, currentPlayer.hp - (rawDamage - absorbed))
+    const newEnemyShield   = shield - absorbed
+
     set((s) => ({
       turnPhase: 'enemy_attack',
-      player: { ...s.player, hp: newPlayerHp },
+      player: { ...s.player, hp: newEnemyPlayerHp, shield: newEnemyShield },
       playerHitVersion: s.playerHitVersion + 1,
     }))
 
     await sleep(700)
 
-    if (newPlayerHp <= 0) {
-      // Lose: reset the run
+    if (newEnemyPlayerHp <= 0) {
       set((s) => ({
-        player: { ...s.player, hp: s.player.maxHp },
-        enemy: { ...s.enemy, hp: s.enemy.maxHp },
+        player: { hp: s.player.maxHp, maxHp: s.player.maxHp, shield: 0 },
+        enemy:  { ...s.enemy, hp: s.enemy.maxHp },
         currentFloor: 1,
         totalDamage: 0,
-        turnPhase: 'idle',
+        inventory: [
+          createDie('white', 'w1'), createDie('white', 'w2'), createDie('white', 'w3'),
+          createDie('white', 'w4'), createDie('white', 'w5'), createDie('white', 'w6'),
+          createDie('blue',  'b1'), createDie('blue',  'b2'),
+          createDie('green', 'g1'), createDie('green', 'g2'),
+        ],
+        equippedDice: [],
+        turnPhase: 'loadout',
       }))
     } else {
-      set({ totalDamage: 0, turnPhase: 'idle' })
+      set((s) => ({
+        totalDamage: 0,
+        equippedDice: s.equippedDice.map((d) => ({ ...d, currentFace: undefined })),
+        turnPhase: 'idle',
+      }))
     }
   },
 }))
