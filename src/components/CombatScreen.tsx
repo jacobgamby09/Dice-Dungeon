@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence, useMotionValue, useTransform, animate, useAnimate } from 'framer-motion'
 import { Shield, Heart, Swords } from 'lucide-react'
 import { useGameStore } from '../store/gameStore'
-import type { TurnPhase } from '../store/gameStore'
-import { DieCard } from './DieCard'
+import type { TurnPhase, Die } from '../store/gameStore'
+import { DieCard, faceColor, faceShadow } from './DieCard'
 
 // ── Label ────────────────────────────────────────────────────────────────────
 function Label({ children }: { children: React.ReactNode }) {
@@ -38,16 +38,18 @@ function HpBar({ hp, maxHp, color }: { hp: number; maxHp: number; color: string 
 }
 
 // ── Damage counter ───────────────────────────────────────────────────────────
-function DamageCounter({ target }: { target: number }) {
+function DamageCounter({ target, orbVersion, counterVersion }: {
+  target: number; orbVersion: number; counterVersion: number
+}) {
   const count = useMotionValue(0)
   const rounded = useTransform(count, (v) => Math.round(v))
 
+  useEffect(() => { count.set(0) }, [orbVersion])
   useEffect(() => {
-    count.set(0)
-    if (target === 0) return
+    if (counterVersion === 0) return
     const controls = animate(count, target, { duration: 0.75, ease: 'easeOut' })
     return controls.stop
-  }, [target])
+  }, [counterVersion])
 
   return (
     <motion.span style={{
@@ -60,6 +62,107 @@ function DamageCounter({ target }: { target: number }) {
     }}>
       {rounded}
     </motion.span>
+  )
+}
+
+// ── Secondary counter (heal / shield) ───────────────────────────────────────
+function SecondaryCounter({
+  target, color, icon, orbVersion, counterVersion,
+}: {
+  target: number; color: string; icon: React.ReactNode
+  orbVersion: number; counterVersion: number
+}) {
+  const count = useMotionValue(0)
+  const rounded = useTransform(count, (v) => Math.round(v))
+
+  useEffect(() => { count.set(0) }, [orbVersion])
+  useEffect(() => {
+    if (counterVersion === 0 || target === 0) return
+    const controls = animate(count, target, { duration: 0.75, ease: 'easeOut' })
+    return controls.stop
+  }, [counterVersion])
+
+  if (target === 0) return null
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+      {icon}
+      <motion.span style={{
+        fontSize: '1.4rem',
+        fontWeight: 700,
+        color,
+        fontVariantNumeric: 'tabular-nums',
+      }}>
+        {rounded}
+      </motion.span>
+    </div>
+  )
+}
+
+// ── Flying orbs ──────────────────────────────────────────────────────────────
+type Orb = { id: number; color: string; shadow: string; sx: number; sy: number; ex: number; ey: number }
+
+function OrbLayer({ equippedDice, orbVersion, damageRef, healRef, shieldRef }: {
+  equippedDice: Die[]
+  orbVersion: number
+  damageRef: React.RefObject<HTMLDivElement | null>
+  healRef: React.RefObject<HTMLDivElement | null>
+  shieldRef: React.RefObject<HTMLDivElement | null>
+}) {
+  const [orbs, setOrbs] = useState<Orb[]>([])
+  const prevVersion = useRef(orbVersion)
+
+  useEffect(() => {
+    if (orbVersion === prevVersion.current) return
+    prevVersion.current = orbVersion
+
+    const next: Orb[] = []
+    equippedDice.forEach((die, i) => {
+      if (!die.currentFace) return
+      const dieEl = document.querySelector(`[data-die-id="${die.id}"]`)
+      if (!dieEl) return
+      const dr = dieEl.getBoundingClientRect()
+      const targetRef = die.currentFace.type === 'damage' ? damageRef
+                      : die.currentFace.type === 'heal'   ? healRef
+                      : shieldRef
+      const tr = targetRef.current?.getBoundingClientRect()
+      if (!tr) return
+      next.push({
+        id: Date.now() + i,
+        color: faceColor[die.currentFace.type],
+        shadow: faceShadow[die.currentFace.type],
+        sx: dr.left + dr.width  / 2,
+        sy: dr.top  + dr.height / 2,
+        ex: tr.left + tr.width  / 2,
+        ey: tr.top  + tr.height / 2,
+      })
+    })
+
+    if (!next.length) return
+    setOrbs(next)
+    setTimeout(() => setOrbs([]), 600)
+  }, [orbVersion])
+
+  const S = 10
+  return (
+    <AnimatePresence>
+      {orbs.map((o) => (
+        <motion.div
+          key={o.id}
+          style={{
+            position: 'fixed',
+            width: S, height: S,
+            background: o.color,
+            border: '2px solid #000',
+            boxShadow: `2px 2px 0 ${o.shadow}`,
+            pointerEvents: 'none',
+          }}
+          initial={{ left: o.sx - S / 2, top: o.sy - S / 2, scale: 1 }}
+          animate={{ left: o.ex - S / 2, top: o.ey - S / 2, scale: 0.5 }}
+          transition={{ duration: 0.42, ease: 'easeIn' }}
+        />
+      ))}
+    </AnimatePresence>
   )
 }
 
@@ -156,11 +259,16 @@ export function CombatScreen() {
     player, enemy, equippedDice,
     totalDamage, lastEffects, turnPhase,
     enemyHitVersion, playerHitVersion, playerEffectVersion,
+    orbVersion, counterVersion,
     currentFloor, executeTurn,
   } = useGameStore()
 
   const enemyScope  = useHitAnimation(enemyHitVersion,  'rgba(220,38,38,0.45)')
   const playerScope = useHitAnimation(playerHitVersion, 'rgba(220,38,38,0.45)')
+
+  const damageRef = useRef<HTMLDivElement>(null)
+  const healRef   = useRef<HTMLDivElement>(null)
+  const shieldRef = useRef<HTMLDivElement>(null)
 
   const isIdle = turnPhase === 'idle'
   const phase  = turnPhase as Exclude<TurnPhase, 'loadout'>
@@ -231,9 +339,47 @@ export function CombatScreen() {
             <Swords size={12} color="#6b7280" />
             <Label>Total Damage</Label>
           </div>
-          <DamageCounter target={totalDamage} />
+          <div ref={damageRef}>
+            <DamageCounter target={totalDamage} orbVersion={orbVersion} counterVersion={counterVersion} />
+          </div>
+
+          {/* Secondary results — count up when orbs land */}
+          {(lastEffects.heal > 0 || lastEffects.shield > 0) && (
+            <div style={{
+              display: 'flex', gap: 20, marginTop: 8,
+              borderTop: '2px solid #1e1e2e', paddingTop: 8,
+            }}>
+              <div ref={healRef}>
+                <SecondaryCounter
+                  target={lastEffects.heal}
+                  color="#4ade80"
+                  icon={<Heart size={14} color="#4ade80" strokeWidth={2.5} />}
+                  orbVersion={orbVersion}
+                  counterVersion={counterVersion}
+                />
+              </div>
+              <div ref={shieldRef}>
+                <SecondaryCounter
+                  target={lastEffects.shield}
+                  color="#38bdf8"
+                  icon={<Shield size={14} color="#38bdf8" strokeWidth={2.5} />}
+                  orbVersion={orbVersion}
+                  counterVersion={counterVersion}
+                />
+              </div>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Orb overlay — fixed, spans full viewport */}
+      <OrbLayer
+        equippedDice={equippedDice}
+        orbVersion={orbVersion}
+        damageRef={damageRef}
+        healRef={healRef}
+        shieldRef={shieldRef}
+      />
 
       {/* Zone C — Dice Tray */}
       <div style={{

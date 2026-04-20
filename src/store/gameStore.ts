@@ -84,6 +84,8 @@ interface GameState {
   enemyHitVersion: number
   playerHitVersion: number
   playerEffectVersion: number
+  orbVersion: number
+  counterVersion: number
   currentFloor: number
   currency: number
   equipDie: (id: string) => void
@@ -111,6 +113,8 @@ export const useGameStore = create<GameState>((set, get) => ({
   enemyHitVersion: 0,
   playerHitVersion: 0,
   playerEffectVersion: 0,
+  orbVersion: 0,
+  counterVersion: 0,
   currentFloor: 1,
   currency: 0,
 
@@ -139,7 +143,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   executeTurn: async () => {
     // ── Phase: rolling ──────────────────────────────────────────────────
-    set({ turnPhase: 'rolling', totalDamage: 0 })
+    set({ turnPhase: 'rolling', totalDamage: 0, lastEffects: { heal: 0, shield: 0 } })
     await sleep(80)
 
     const rolled = get().equippedDice.map((die) => ({
@@ -151,9 +155,16 @@ export const useGameStore = create<GameState>((set, get) => ({
     const healAmount   = rolled.reduce((n, d) => n + (d.currentFace?.type === 'heal'   ? d.currentFace.value : 0), 0)
     const shieldAmount = rolled.reduce((n, d) => n + (d.currentFace?.type === 'shield' ? d.currentFace.value : 0), 0)
 
-    set({ equippedDice: rolled, totalDamage, lastEffects: { heal: healAmount, shield: shieldAmount } })
+    set((s) => ({
+      equippedDice: rolled, totalDamage, lastEffects: { heal: healAmount, shield: shieldAmount },
+      orbVersion: s.orbVersion + 1,
+    }))
 
-    await sleep(1000)
+    await sleep(500)  // orb flight
+
+    set((s) => ({ counterVersion: s.counterVersion + 1 }))
+
+    await sleep(480)  // counters animate before HP bars change
 
     // ── Phase: player_attack ────────────────────────────────────────────
     const { enemy, player } = get()
