@@ -1,5 +1,8 @@
+import { useState } from 'react'
 import { useGameStore } from '../store/gameStore'
-import { DieCard, EmptySlot, dieTypeStyle } from './DieCard'
+import type { DieType } from '../store/gameStore'
+import { DieCard, dieTypeStyle } from './DieCard'
+import { DiceInspectorModal } from './DiceInspectorModal'
 
 function Label({ children }: { children: React.ReactNode }) {
   return (
@@ -17,18 +20,19 @@ function Label({ children }: { children: React.ReactNode }) {
   )
 }
 
-// Small legend showing each die type and its speciality
 const TYPE_LEGEND = [
-  { type: 'white', label: 'White — Damage' },
-  { type: 'blue',  label: 'Blue — Shield' },
-  { type: 'green', label: 'Green — Heal' },
+  { type: 'white',  label: 'White — Damage' },
+  { type: 'blue',   label: 'Blue — Shield' },
+  { type: 'green',  label: 'Green — Heal' },
+  { type: 'cursed', label: 'Cursed — Skull' },
 ] as const
 
 export function LoadoutScreen() {
-  const { inventory, equippedDice, currentFloor, equipDie, unequipDie, startCombat } = useGameStore()
+  const { inventory, currentFloor, startCombat } = useGameStore()
 
-  const canStart = equippedDice.length === 5
-  const slotsLeft = 5 - equippedDice.length
+  const canStart = inventory.length > 0
+
+  const [inspectorType, setInspectorType] = useState<DieType | null>(null)
 
   return (
     <div style={{
@@ -47,76 +51,52 @@ export function LoadoutScreen() {
         <Label>Floor {currentFloor}</Label>
       </div>
 
-      {/* Die type legend */}
+      {/* Die type legend — clickable inspector buttons */}
       <div style={{
-        background: '#12121f', padding: '8px 16px',
+        background: '#12121f', padding: '10px 16px',
         borderBottom: '2px solid #000',
-        display: 'flex', justifyContent: 'center', gap: 16,
+        display: 'flex', gap: 8,
       }}>
         {TYPE_LEGEND.map(({ type, label }) => {
           const s = dieTypeStyle[type]
           return (
-            <div key={type} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <div style={{
-                width: 12, height: 12,
-                background: s.bg, border: '2px solid #000',
+            <button
+              key={type}
+              onClick={() => setInspectorType(type)}
+              style={{
+                flex: 1,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                background: '#0f0f1a',
+                border: `2px solid ${s.shadow}`,
                 boxShadow: `2px 2px 0 ${s.shadow}`,
+                padding: '7px 4px',
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >
+              <div style={{
+                width: 14, height: 14, flexShrink: 0,
+                background: s.bg, border: '2px solid #000',
+                boxShadow: `1px 1px 0 ${s.shadow}`,
               }} />
-              <span style={{ fontSize: '0.6rem', color: '#9ca3af', letterSpacing: '0.1em' }}>{label}</span>
-            </div>
+              <span style={{ fontSize: '0.6rem', color: '#d1d5db', letterSpacing: '0.08em' }}>{label}</span>
+            </button>
           )
         })}
       </div>
 
-      {/* Equipped Slots */}
-      <div style={{
-        background: '#1a1a2e', padding: '14px 16px',
-        borderBottom: '3px solid #000',
-        display: 'flex', flexDirection: 'column', gap: 10,
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Label>Equipped ({equippedDice.length}/5)</Label>
-          {equippedDice.length > 0 && (
-            <span style={{ fontSize: '0.6rem', color: '#6b7280', letterSpacing: '0.1em' }}>
-              TAP TO REMOVE
-            </span>
-          )}
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 10 }}>
-          {Array.from({ length: 5 }).map((_, i) => {
-            const die = equippedDice[i]
-            return die
-              ? <DieCard key={die.id} die={die} onClick={() => unequipDie(die.id)} />
-              : <EmptySlot key={`slot-${i}`} />
-          })}
-        </div>
-      </div>
-
-      {/* Inventory */}
+      {/* Bag */}
       <div style={{
         flex: 1, overflowY: 'auto', padding: '14px 16px',
         display: 'flex', flexDirection: 'column', gap: 10,
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Label>Inventory ({inventory.length})</Label>
-          {!canStart && (
-            <span style={{ fontSize: '0.6rem', color: '#6b7280', letterSpacing: '0.1em' }}>
-              TAP TO EQUIP
-            </span>
-          )}
-        </div>
+        <Label>Your Bag ({inventory.length} dice)</Label>
         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10 }}>
           {inventory.map((die) => (
-            <DieCard
-              key={die.id}
-              die={die}
-              onClick={canStart ? undefined : () => equipDie(die.id)}
-              dimmed={canStart}
-            />
+            <DieCard key={die.id} die={die} />
           ))}
           {inventory.length === 0 && (
             <span style={{ color: '#4b5563', fontSize: '0.8rem', padding: '20px 0' }}>
-              All dice equipped!
+              No dice in bag!
             </span>
           )}
         </div>
@@ -134,9 +114,16 @@ export function LoadoutScreen() {
             cursor: canStart ? 'pointer' : 'not-allowed',
           }}
         >
-          {canStart ? '▶ START COMBAT' : `EQUIP ${slotsLeft} MORE`}
+          ▶ START COMBAT
         </button>
       </div>
+
+      {inspectorType && (
+        <DiceInspectorModal
+          types={[inspectorType]}
+          onClose={() => setInspectorType(null)}
+        />
+      )}
     </div>
   )
 }

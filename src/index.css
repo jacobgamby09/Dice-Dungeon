@@ -2,7 +2,7 @@
 
 *, *::before, *::after {
   image-rendering: pixelated;
-  font-family: 'Pixelify Sans', monospace;
+  font-family: 'Jersey 10', monospace;
   box-sizing: border-box;
 }
 
