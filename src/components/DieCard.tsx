@@ -1,15 +1,20 @@
 import { useState, useEffect, useRef } from 'react'
-import { motion } from 'framer-motion'
-import { Swords, Shield, Heart, Skull } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Swords, Shield, Heart, Skull, Coins } from 'lucide-react'
 import type { Die, DieType, DieFace, ResolvingPhase } from '../store/gameStore'
 
 // ── Visual tables ────────────────────────────────────────────────────────────
 
 export const dieTypeStyle: Record<DieType, { bg: string; shadow: string; text: string }> = {
-  white:  { bg: '#e2e2e2', shadow: '#666666', text: '#1a1a2e' },
-  blue:   { bg: '#3b82f6', shadow: '#1e3a8a', text: '#ffffff' },
-  green:  { bg: '#4ade80', shadow: '#15803d', text: '#052e16' },
-  cursed: { bg: '#581c87', shadow: '#3b0764', text: '#f5d0fe' },
+  white:     { bg: '#e2e2e2', shadow: '#666666', text: '#1a1a2e' },
+  blue:      { bg: '#3b82f6', shadow: '#1e3a8a', text: '#ffffff' },
+  green:     { bg: '#4ade80', shadow: '#15803d', text: '#052e16' },
+  cursed:    { bg: '#581c87', shadow: '#3b0764', text: '#f5d0fe' },
+  heavy:     { bg: '#dc2626', shadow: '#7f1d1d', text: '#fee2e2' },
+  paladin:   { bg: '#d97706', shadow: '#78350f', text: '#fef3c7' },
+  gambler:   { bg: '#7c3aed', shadow: '#3b0764', text: '#f5d0fe' },
+  scavenger: { bg: '#ea580c', shadow: '#7c2d12', text: '#fff7ed' },
+  wall:      { bg: '#1e40af', shadow: '#1e3a8a', text: '#dbeafe' },
 }
 
 export const faceColor: Record<DieFace['type'], string> = {
@@ -17,6 +22,7 @@ export const faceColor: Record<DieFace['type'], string> = {
   shield: '#38bdf8',
   heal:   '#22c55e',
   skull:  '#7c3aed',
+  gold:   '#fbbf24',
 }
 
 export const faceShadow: Record<DieFace['type'], string> = {
@@ -24,6 +30,7 @@ export const faceShadow: Record<DieFace['type'], string> = {
   shield: '#1e3a8a',
   heal:   '#15803d',
   skull:  '#3b0764',
+  gold:   '#78350f',
 }
 
 // ── Type icon ────────────────────────────────────────────────────────────────
@@ -33,16 +40,18 @@ function TypeIcon({ type, size = 13 }: { type: DieFace['type']; size?: number })
   if (type === 'damage') return <Swords size={size} color={color} strokeWidth={2.5} />
   if (type === 'shield') return <Shield size={size} color={color} strokeWidth={2.5} />
   if (type === 'skull')  return <Skull  size={size} color={color} strokeWidth={2.5} />
+  if (type === 'gold')   return <Coins  size={size} color={color} strokeWidth={2.5} />
   return                        <Heart  size={size} color={color} strokeWidth={2.5} />
 }
 
 // ── DiceFace ─────────────────────────────────────────────────────────────────
 
 function DiceFace({ face, textColor }: { face: DieFace; textColor: string }) {
+  // Skull always renders icon-only regardless of numeric value
   if (face.type === 'skull') {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
-        <TypeIcon type="skull" size={28} />
+        <TypeIcon type="skull" size={32} />
       </div>
     )
   }
@@ -63,12 +72,12 @@ function DiceFace({ face, textColor }: { face: DieFace; textColor: string }) {
 // ── Particle burst ────────────────────────────────────────────────────────────
 
 function ParticleBurst({ faceType, isCrit }: { faceType: DieFace['type']; isCrit: boolean }) {
-  const count     = isCrit ? 12 : 7
-  const baseSize  = isCrit ? 7  : 4
-  const color     = isCrit ? '#fbbf24' : faceColor[faceType]
-  const shadow    = isCrit ? '#78350f' : faceShadow[faceType]
-  const baseDist  = isCrit ? 46 : 28
-  const dur       = isCrit ? 0.55 : 0.38
+  const count    = isCrit ? 12 : 7
+  const baseSize = isCrit ? 7  : 4
+  const color    = isCrit ? '#fbbf24' : faceColor[faceType]
+  const shadow   = isCrit ? '#78350f' : faceShadow[faceType]
+  const baseDist = isCrit ? 46 : 28
+  const dur      = isCrit ? 0.55 : 0.38
 
   return (
     <>
@@ -87,8 +96,7 @@ function ParticleBurst({ faceType, isCrit }: { faceType: DieFace['type']; isCrit
               border: `1px solid ${shadow}`,
               top: '50%', left: '50%',
               marginTop: -sz / 2, marginLeft: -sz / 2,
-              pointerEvents: 'none',
-              zIndex: 30,
+              pointerEvents: 'none', zIndex: 30,
             }}
             initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
             animate={{ x: Math.cos(rad) * dist, y: Math.sin(rad) * dist, opacity: 0, scale: 0.4 }}
@@ -97,6 +105,127 @@ function ParticleBurst({ faceType, isCrit }: { faceType: DieFace['type']; isCrit
         )
       })}
     </>
+  )
+}
+
+// ── Heavy: violent red impact flash ──────────────────────────────────────────
+
+function HeavyImpactFlash() {
+  return (
+    <motion.div
+      style={{
+        position: 'absolute', inset: -4,
+        border: '3px solid #dc2626',
+        pointerEvents: 'none', zIndex: 20,
+      }}
+      initial={{ boxShadow: '0 0 30px 10px #dc2626', opacity: 1 }}
+      animate={{ boxShadow: '0 0 0px 0px #dc2626',   opacity: 0 }}
+      transition={{ duration: 0.5, ease: 'easeOut' }}
+    />
+  )
+}
+
+// ── Paladin: golden aura pulse + floating holy-light particles ───────────────
+
+const PALADIN_PARTICLES = [
+  { x: -14, delay: 0    },
+  { x:   6, delay: 0.45 },
+  { x:  -4, delay: 0.9  },
+  { x:  15, delay: 1.35 },
+]
+
+function PaladinAura() {
+  return (
+    <>
+      <motion.div
+        style={{
+          position: 'absolute', inset: -3,
+          pointerEvents: 'none', zIndex: 0,
+          boxShadow: '0 0 0px 0px rgba(251,191,36,0)',
+        }}
+        animate={{
+          boxShadow: [
+            '0 0 0px 0px rgba(251,191,36,0)',
+            '0 0 16px 5px rgba(251,191,36,0.75)',
+            '0 0 0px 0px rgba(251,191,36,0)',
+          ],
+        }}
+        transition={{ duration: 1.7, repeat: Infinity, ease: 'easeInOut' }}
+      />
+      {PALADIN_PARTICLES.map((p, i) => (
+        <motion.div
+          key={i}
+          style={{
+            position: 'absolute',
+            width: 3, height: 3,
+            background: '#fbbf24',
+            left: `calc(50% + ${p.x}px)`,
+            bottom: 8,
+            pointerEvents: 'none', zIndex: 40,
+          }}
+          animate={{ y: [0, -28], opacity: [0, 0.9, 0] }}
+          transition={{ duration: 1.4, delay: p.delay, repeat: Infinity, ease: 'easeOut' }}
+        />
+      ))}
+    </>
+  )
+}
+
+// ── Gambler: jackpot colour-cycling border ────────────────────────────────────
+
+function GamblerJackpot() {
+  return (
+    <motion.div
+      style={{
+        position: 'absolute', inset: -3,
+        border: '3px solid #fbbf24',
+        pointerEvents: 'none', zIndex: 20,
+      }}
+      animate={{
+        borderColor:  ['#fbbf24', '#ffffff', '#7c3aed', '#fbbf24'],
+        boxShadow:    [
+          '0 0 8px 2px #fbbf24',
+          '0 0 14px 4px #ffffff',
+          '0 0 10px 2px #7c3aed',
+          '0 0 8px 2px #fbbf24',
+        ],
+      }}
+      transition={{ duration: 0.28, repeat: Infinity, ease: 'linear' }}
+    />
+  )
+}
+
+// ── Scavenger: snappy slide-in from the left + orange impact flash ────────────
+
+function ScavengerFlash() {
+  return (
+    <motion.div
+      style={{
+        position: 'absolute', inset: -4,
+        border: '3px solid #ea580c',
+        pointerEvents: 'none', zIndex: 20,
+      }}
+      initial={{ boxShadow: '0 0 22px 8px #ea580c', opacity: 1 }}
+      animate={{ boxShadow: '0 0 0px 0px #ea580c',  opacity: 0 }}
+      transition={{ duration: 0.45, ease: 'easeOut' }}
+    />
+  )
+}
+
+// ── Wall: heavy drop + solid blue shield-impact flash ────────────────────────
+
+function WallImpactFlash() {
+  return (
+    <motion.div
+      style={{
+        position: 'absolute', inset: -4,
+        border: '3px solid #1e40af',
+        pointerEvents: 'none', zIndex: 20,
+      }}
+      initial={{ boxShadow: '0 0 28px 10px #1e40af', opacity: 1 }}
+      animate={{ boxShadow: '0 0 0px 0px #1e40af',   opacity: 0 }}
+      transition={{ duration: 0.6, ease: 'easeOut' }}
+    />
   )
 }
 
@@ -113,15 +242,15 @@ interface DieCardProps {
 export function DieCard({
   die, onClick, dimmed = false, isResolving = false, resolvingPhase = null,
 }: DieCardProps) {
-  const s           = dieTypeStyle[die.dieType]
-  const face        = die.currentFace
-  const maxFaceVal  = Math.max(...die.faces.map(f => f.value))
-  const isCrit      = !!face && face.value === maxFaceVal
+  const s          = dieTypeStyle[die.dieType]
+  const face       = die.currentFace
+  const maxFaceVal = Math.max(...die.faces.map(f => f.value))
+  const isCrit     = !!face && face.value === maxFaceVal && maxFaceVal > 0
 
   const isSpinning = isResolving && resolvingPhase === 'spinning'
   const isLanded   = isResolving && resolvingPhase === 'landed'
 
-  // Rapidly cycle faces during spin
+  // Cycle through faces while spinning
   const [spinFace, setSpinFace] = useState<DieFace | null>(null)
   useEffect(() => {
     if (!isSpinning) { setSpinFace(null); return }
@@ -131,7 +260,7 @@ export function DieCard({
     return () => clearInterval(id)
   }, [isSpinning])
 
-  // Particle burst on impact
+  // One-shot burst on impact
   const [burst, setBurst] = useState(false)
   const prevLanded = useRef(false)
   useEffect(() => {
@@ -143,57 +272,200 @@ export function DieCard({
     prevLanded.current = isLanded
   }, [isLanded])
 
-  // Outer wrapper: lift (spin) → slam (land) → rest
-  const outerAnimate = isSpinning
-    ? { y: -54, filter: 'blur(2.5px)', rotateY: 360, scale: 1 }
-    : isLanded
-    ? { y: 0,   filter: 'blur(0px)',   rotateY: 0,   scale: [0.78, 1.18, 1] as number[] }
-    : { y: 0,   filter: 'blur(0px)',   rotateY: 0,   scale: 1 }
+  // ── Per-die outer animation (spin state) ────────────────────────────────────
+  let outerSpinAnimate: Record<string, unknown>
+  let outerSpinTransition: Record<string, unknown>
 
-  const outerTransition = isSpinning
-    ? {
-        y:       { duration: 0.22, ease: 'easeOut' },
-        filter:  { duration: 0.15 },
-        rotateY: { duration: 0.22, repeat: Infinity, ease: 'linear' },
-        scale:   { duration: 0.12 },
-      }
-    : isLanded
-    ? {
-        y:       { type: 'spring', stiffness: 900, damping: 22 },
-        scale:   { duration: 0.32, ease: [0.15, 0, 0.1, 1.9] },
-        filter:  { duration: 0.08 },
-        rotateY: { duration: 0.12 },
-      }
-    : { duration: 0.22 }
+  if (die.dieType === 'heavy') {
+    outerSpinAnimate   = { y: -150, scale: 2, rotate: -15, filter: 'blur(1px)' }
+    outerSpinTransition = {
+      y:      { duration: 0.18, ease: 'easeOut' },
+      scale:  { duration: 0.18 },
+      rotate: { duration: 0.18 },
+      filter: { duration: 0.1 },
+    }
+  } else if (die.dieType === 'paladin') {
+    outerSpinAnimate   = { y: -80, opacity: 0.1, filter: 'blur(0.5px)', scale: 1 }
+    outerSpinTransition = {
+      y:       { duration: 0.25, ease: 'easeOut' },
+      opacity: { duration: 0.2 },
+      filter:  { duration: 0.15 },
+    }
+  } else if (die.dieType === 'gambler') {
+    outerSpinAnimate   = { y: -100, filter: 'blur(2px)', rotateY: 360, scale: 1 }
+    outerSpinTransition = {
+      y:       { duration: 0.2, ease: 'easeOut' },
+      filter:  { duration: 0.15 },
+      rotateY: { duration: 0.1, repeat: Infinity, ease: 'linear' },
+      scale:   { duration: 0.1 },
+    }
+  } else if (die.dieType === 'scavenger') {
+    outerSpinAnimate   = { x: -100, rotateZ: -90, opacity: 0, filter: 'blur(1px)', scale: 1 }
+    outerSpinTransition = {
+      x:       { duration: 0.18, ease: 'easeOut' },
+      rotateZ: { duration: 0.18 },
+      opacity: { duration: 0.12 },
+      filter:  { duration: 0.1 },
+    }
+  } else if (die.dieType === 'wall') {
+    outerSpinAnimate   = { y: -100, scale: 1.2, filter: 'blur(1px)' }
+    outerSpinTransition = {
+      y:      { duration: 0.16, ease: 'easeOut' },
+      scale:  { duration: 0.16 },
+      filter: { duration: 0.1 },
+    }
+  } else {
+    outerSpinAnimate   = { y: -54, filter: 'blur(2.5px)', rotateY: 360, scale: 1 }
+    outerSpinTransition = {
+      y:       { duration: 0.22, ease: 'easeOut' },
+      filter:  { duration: 0.15 },
+      rotateY: { duration: 0.22, repeat: Infinity, ease: 'linear' },
+      scale:   { duration: 0.12 },
+    }
+  }
 
-  // Inner die: bouncy spring on land (natural overshoot = flair)
-  const innerInitial = isLanded
-    ? { scale: 0.35, rotate: -6, opacity: 0.7 }
-    : { scale: 0.6,  rotate: -15, opacity: 0.5 }
+  // ── Per-die outer animation (land state) ────────────────────────────────────
+  let outerLandAnimate: Record<string, unknown>
+  let outerLandTransition: Record<string, unknown>
 
-  const innerTransition = isLanded
-    ? { type: 'spring', stiffness: 360, damping: 9, mass: 0.55 } as const
-    : { type: 'spring', stiffness: 500, damping: 18 } as const
+  if (die.dieType === 'heavy') {
+    outerLandAnimate   = { y: 0, scale: 1, rotate: 0, filter: 'blur(0px)' }
+    outerLandTransition = {
+      y:      { type: 'spring', stiffness: 400, damping: 10 },
+      scale:  { type: 'spring', stiffness: 400, damping: 10 },
+      rotate: { type: 'spring', stiffness: 400, damping: 10 },
+      filter: { duration: 0.08 },
+    }
+  } else if (die.dieType === 'paladin') {
+    outerLandAnimate   = { y: 0, opacity: 1, filter: 'blur(0px)', scale: 1 }
+    outerLandTransition = {
+      y:       { type: 'spring', stiffness: 100, damping: 15 },
+      opacity: { duration: 0.35 },
+      filter:  { duration: 0.2 },
+      scale:   { duration: 0.2 },
+    }
+  } else if (die.dieType === 'gambler') {
+    outerLandAnimate   = { y: 0, rotateY: 0, filter: 'blur(0px)', scale: [0.78, 1.18, 1] as number[] }
+    outerLandTransition = {
+      y:       { type: 'spring', stiffness: 300, damping: 15 },
+      rotateY: { type: 'spring', stiffness: 300, damping: 15 },
+      scale:   { duration: 0.32, ease: [0.15, 0, 0.1, 1.9] },
+      filter:  { duration: 0.08 },
+    }
+  } else if (die.dieType === 'scavenger') {
+    outerLandAnimate   = { x: 0, rotateZ: 0, opacity: 1, filter: 'blur(0px)', scale: 1 }
+    outerLandTransition = {
+      x:       { type: 'spring', stiffness: 500, damping: 30 },
+      rotateZ: { type: 'spring', stiffness: 500, damping: 30 },
+      opacity: { duration: 0.15 },
+      filter:  { duration: 0.08 },
+    }
+  } else if (die.dieType === 'wall') {
+    outerLandAnimate   = { y: 0, scale: 1, filter: 'blur(0px)' }
+    outerLandTransition = {
+      y:      { type: 'spring', stiffness: 500, damping: 40 },
+      scale:  { type: 'spring', stiffness: 500, damping: 40 },
+      filter: { duration: 0.08 },
+    }
+  } else {
+    outerLandAnimate   = { y: 0, filter: 'blur(0px)', rotateY: 0, scale: [0.78, 1.18, 1] as number[] }
+    outerLandTransition = {
+      y:       { type: 'spring', stiffness: 900, damping: 22 },
+      scale:   { duration: 0.32, ease: [0.15, 0, 0.1, 1.9] },
+      filter:  { duration: 0.08 },
+      rotateY: { duration: 0.12 },
+    }
+  }
+
+  // Idle — restore any props animated during spin (opacity, x, rotateZ)
+  let outerIdleAnimate: Record<string, unknown>
+  if (die.dieType === 'paladin') {
+    outerIdleAnimate = { y: 0, filter: 'blur(0px)', rotateY: 0, scale: 1, opacity: 1 }
+  } else if (die.dieType === 'scavenger') {
+    outerIdleAnimate = { x: 0, rotateZ: 0, opacity: 1, filter: 'blur(0px)', scale: 1 }
+  } else {
+    outerIdleAnimate = { y: 0, filter: 'blur(0px)', rotateY: 0, scale: 1 }
+  }
+
+  const outerAnimate    = isSpinning ? outerSpinAnimate    : isLanded ? outerLandAnimate    : outerIdleAnimate
+  const outerTransition = isSpinning ? outerSpinTransition : isLanded ? outerLandTransition : { duration: 0.22 }
+
+  // ── Per-die inner die body init/transition ──────────────────────────────────
+  let innerInitial: Record<string, unknown>
+  let innerTransition: Record<string, unknown>
+
+  if (!isLanded) {
+    innerInitial    = { scale: 0.6, rotate: -15, opacity: 0.5 }
+    innerTransition = { type: 'spring', stiffness: 500, damping: 18 }
+  } else if (die.dieType === 'heavy') {
+    innerInitial    = { scale: 0.2, rotate: -22, opacity: 0.6 }
+    innerTransition = { type: 'spring', stiffness: 500, damping: 8, mass: 0.6 }
+  } else if (die.dieType === 'paladin') {
+    innerInitial    = { scale: 0.9, rotate: 0, opacity: 0 }
+    innerTransition = { type: 'spring', stiffness: 80, damping: 12 }
+  } else if (die.dieType === 'gambler') {
+    innerInitial    = { scale: 0.4, rotate: 18, opacity: 0.6 }
+    innerTransition = { type: 'spring', stiffness: 350, damping: 10, mass: 0.7 }
+  } else if (die.dieType === 'scavenger') {
+    innerInitial    = { scale: 0.7, rotate: 12, opacity: 0.5 }
+    innerTransition = { type: 'spring', stiffness: 500, damping: 22 }
+  } else if (die.dieType === 'wall') {
+    innerInitial    = { scale: 0.55, rotate: 0, opacity: 0.8 }
+    innerTransition = { type: 'spring', stiffness: 500, damping: 40 }
+  } else {
+    innerInitial    = { scale: 0.35, rotate: -6, opacity: 0.7 }
+    innerTransition = { type: 'spring', stiffness: 360, damping: 9, mass: 0.55 }
+  }
 
   const displayFace = isSpinning ? spinFace : face
 
+  // Continuous effects only visible once the face is revealed
+  const showPersistentEffects = !!face && !isSpinning
+
+  // ── CSS background pattern (Heavy, Gambler, Wall) ───────────────────────────
+  const patternClass =
+    die.dieType === 'heavy'   ? 'pattern-heavy'  :
+    die.dieType === 'gambler' ? 'pattern-gambler' :
+    die.dieType === 'wall'    ? 'pattern-wall'    : ''
+
+  // ── Idle loop wrapper (Paladin float, Gambler jitter) ───────────────────────
+  const showIdleLoop = !!face && !isSpinning
+  let idleLoopAnimate: Record<string, unknown>
+  let idleLoopTransition: Record<string, unknown>
+
+  if (showIdleLoop && die.dieType === 'paladin') {
+    idleLoopAnimate    = { y: [0, -4, 0] }
+    idleLoopTransition = { repeat: Infinity, duration: 2, ease: 'easeInOut' }
+  } else if (showIdleLoop && die.dieType === 'gambler') {
+    idleLoopAnimate    = { x: [0, -2, 2, -2, 2, 0] }
+    idleLoopTransition = { repeat: Infinity, duration: 0.4, repeatDelay: 2.5 }
+  } else {
+    idleLoopAnimate    = { y: 0, x: 0 }
+    idleLoopTransition = { duration: 0.2 }
+  }
+
   return (
+    <motion.div
+      style={{ display: 'inline-block', position: 'relative' }}
+      animate={idleLoopAnimate as never}
+      transition={idleLoopTransition as never}
+    >
     <motion.div
       data-die-id={die.id}
       style={{ display: 'inline-block', position: 'relative', transformPerspective: 600 }}
-      animate={outerAnimate}
-      transition={outerTransition}
+      animate={outerAnimate as never}
+      transition={outerTransition as never}
     >
       <motion.div
         key={`${die.id}-${face?.type ?? 'none'}-${face?.value ?? 0}`}
-        initial={innerInitial}
+        initial={innerInitial as never}
         animate={{ scale: 1, rotate: 0, opacity: dimmed ? 0.45 : 1 }}
-        transition={innerTransition}
-        className="pixel-die"
+        transition={innerTransition as never}
+        className={`pixel-die${patternClass ? ` ${patternClass}` : ''}`}
         onClick={onClick}
         style={{
           position: 'relative',
-          background: s.bg,
+          backgroundColor: s.bg,
           boxShadow: `4px 4px 0 ${s.shadow}`,
           cursor: onClick ? 'pointer' : 'default',
           flexDirection: 'column',
@@ -204,8 +476,8 @@ export function DieCard({
           : <span style={{ fontSize: '1.5rem', fontWeight: 700, color: s.text }}>?</span>
         }
 
-        {/* Crit pulsing border */}
-        {isCrit && !isSpinning && (
+        {/* Crit pulsing border — skipped for Paladin (aura takes over) */}
+        {isCrit && !isSpinning && die.dieType !== 'paladin' && (
           <motion.div
             style={{
               position: 'absolute', inset: -3,
@@ -231,9 +503,31 @@ export function DieCard({
           />
         )}
 
-        {/* Impact particle burst */}
+        {/* Impact particle burst — all dice */}
         {burst && face && <ParticleBurst faceType={face.type} isCrit={isCrit} />}
+
+        {/* Heavy — violent red flash on impact */}
+        <AnimatePresence>
+          {die.dieType === 'heavy' && burst && <HeavyImpactFlash key="heavy-flash" />}
+        </AnimatePresence>
+
+        {/* Paladin — continuous golden aura + holy particles */}
+        {die.dieType === 'paladin' && showPersistentEffects && <PaladinAura />}
+
+        {/* Gambler — jackpot border flash when 8 is rolled */}
+        {die.dieType === 'gambler' && showPersistentEffects && face?.value === 8 && <GamblerJackpot />}
+
+        {/* Scavenger — orange impact flash */}
+        <AnimatePresence>
+          {die.dieType === 'scavenger' && burst && <ScavengerFlash key="scavenger-flash" />}
+        </AnimatePresence>
+
+        {/* Wall — blue shield-impact flash */}
+        <AnimatePresence>
+          {die.dieType === 'wall' && burst && <WallImpactFlash key="wall-flash" />}
+        </AnimatePresence>
       </motion.div>
+    </motion.div>
     </motion.div>
   )
 }

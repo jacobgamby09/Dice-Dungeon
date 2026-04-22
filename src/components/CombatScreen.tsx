@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence, useMotionValue, useTransform, animate, useAnimate } from 'framer-motion'
-import { Shield, Heart, Swords, Library, Skull } from 'lucide-react'
+import { Shield, Heart, Swords, Library, Skull, Coins } from 'lucide-react'
 import { useGameStore } from '../store/gameStore'
 import type { Die, EnemyIntent, ResolvingPhase, DieType } from '../store/gameStore'
 import { DieCard, faceColor, faceShadow } from './DieCard'
@@ -67,7 +67,7 @@ function DamageCounter({ target, rollStartVersion, counterVersion }: {
   )
 }
 
-// ── Stat badge (heal / shield secondary counter) ─────────────────────────────
+// ── Stat badge (heal / shield / gold secondary counter) ──────────────────────
 function StatBadge({
   target, color, shadow, icon, rollStartVersion, counterVersion,
 }: {
@@ -193,7 +193,7 @@ function SkullJumpscareOverlay({ skullRolledVersion }: { skullRolledVersion: num
 // ── Flying orbs ──────────────────────────────────────────────────────────────
 type Orb = { id: number; color: string; shadow: string; sx: number; sy: number; ex: number; ey: number }
 
-function OrbLayer({ playedDice, orbVersion, resolvingDieIndex, damageRef, healRef, shieldRef, skullRef }: {
+function OrbLayer({ playedDice, orbVersion, resolvingDieIndex, damageRef, healRef, shieldRef, skullRef, goldRef }: {
   playedDice: Die[]
   orbVersion: number
   resolvingDieIndex: number | null
@@ -201,6 +201,7 @@ function OrbLayer({ playedDice, orbVersion, resolvingDieIndex, damageRef, healRe
   healRef: React.RefObject<HTMLDivElement | null>
   shieldRef: React.RefObject<HTMLDivElement | null>
   skullRef: React.RefObject<HTMLDivElement | null>
+  goldRef: React.RefObject<HTMLDivElement | null>
 }) {
   const [orbs, setOrbs] = useState<Orb[]>([])
   const prevVersion = useRef(orbVersion)
@@ -221,6 +222,7 @@ function OrbLayer({ playedDice, orbVersion, resolvingDieIndex, damageRef, healRe
     const targetRef = faceType === 'damage' ? damageRef
                     : faceType === 'heal'   ? healRef
                     : faceType === 'shield' ? shieldRef
+                    : faceType === 'gold'   ? goldRef
                     : skullRef
     const tr = targetRef.current?.getBoundingClientRect()
     if (!tr) return
@@ -317,8 +319,8 @@ function EnemyOrbLayer({ enemyAttackVersion, enemyEl, playerHpRef }: {
 function IntentBadge({ intent }: { intent: EnemyIntent }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-      <Swords size={13} color="#f87171" strokeWidth={2.5} />
-      <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f87171',
+      <Swords size={18} color="#f87171" strokeWidth={2.5} />
+      <span style={{ fontSize: '1.3rem', fontWeight: 700, color: '#f87171',
                      textShadow: '1px 1px 0 #000' }}>
         {intent.value}
       </span>
@@ -329,7 +331,7 @@ function IntentBadge({ intent }: { intent: EnemyIntent }) {
 // ── Floating effect popups ───────────────────────────────────────────────────
 type FloatItem = { id: number; label: string; color: string; shadow: string; offset: number }
 
-function FloatingEffects({ heal, shield, version }: { heal: number; shield: number; version: number }) {
+function FloatingEffects({ heal, shield, gold, version }: { heal: number; shield: number; gold: number; version: number }) {
   const [items, setItems] = useState<FloatItem[]>([])
   const prevVersion = useRef(version)
 
@@ -339,15 +341,16 @@ function FloatingEffects({ heal, shield, version }: { heal: number; shield: numb
 
     const now = Date.now()
     const next: FloatItem[] = []
-    if (heal > 0)   next.push({ id: now,     label: `♥ +${heal}`,   color: '#4ade80', shadow: '#15803d', offset: -24 })
-    if (shield > 0) next.push({ id: now + 1, label: `⬡ +${shield}`, color: '#38bdf8', shadow: '#1e3a8a', offset:  24 })
+    if (heal > 0)   next.push({ id: now,     label: `♥ +${heal}`,   color: '#4ade80', shadow: '#15803d', offset: -36 })
+    if (shield > 0) next.push({ id: now + 1, label: `⬡ +${shield}`, color: '#38bdf8', shadow: '#1e3a8a', offset:   0 })
+    if (gold > 0)   next.push({ id: now + 2, label: `$ +${gold}`,   color: '#fbbf24', shadow: '#78350f', offset:  36 })
     if (!next.length) return
 
     setItems((prev) => [...prev, ...next])
     setTimeout(() => {
       setItems((prev) => prev.filter((i) => !next.find((n) => n.id === i.id)))
     }, 1150)
-  }, [version, heal, shield])
+  }, [version, heal, shield, gold])
 
   return (
     <AnimatePresence>
@@ -400,7 +403,7 @@ export function CombatScreen() {
   const {
     player, enemy,
     drawPile, playedDice, skullCount, skullRolledVersion,
-    totalDamage, totalHeal, totalShield,
+    totalDamage, totalHeal, totalShield, totalGold,
     lastEffects, turnPhase,
     enemyHitVersion, playerHitVersion, playerEffectVersion,
     orbVersion, counterVersion, rollStartVersion, resolvingDieIndex, resolvingPhase, enemyAttackVersion,
@@ -422,6 +425,7 @@ export function CombatScreen() {
   const healRef     = useRef<HTMLDivElement>(null)
   const shieldRef   = useRef<HTMLDivElement>(null)
   const skullRef    = useRef<HTMLDivElement>(null)
+  const goldRef     = useRef<HTMLDivElement>(null)
   const playerHpRef = useRef<HTMLDivElement>(null)
 
   // Screen shake on every die slam
@@ -493,7 +497,7 @@ export function CombatScreen() {
               </span>
               <IntentBadge intent={enemy.intent} />
             </div>
-            <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{enemy.hp} / {enemy.maxHp} HP</span>
+            <span style={{ fontSize: '1rem', fontWeight: 700, color: '#d1d5db' }}>{enemy.hp} / {enemy.maxHp} HP</span>
             <HpBar hp={enemy.hp} maxHp={enemy.maxHp} color={enemy.isBoss ? '#b91c1c' : '#ef4444'} />
           </div>
         </motion.div>
@@ -509,7 +513,12 @@ export function CombatScreen() {
           display: 'flex', flexDirection: 'column', gap: 10,
         }}
       >
-        <FloatingEffects heal={lastEffects.heal} shield={lastEffects.shield} version={playerEffectVersion} />
+        <FloatingEffects
+          heal={lastEffects.heal}
+          shield={lastEffects.shield}
+          gold={lastEffects.gold}
+          version={playerEffectVersion}
+        />
 
         <div ref={playerHpRef} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <Heart size={14} color="#f472b6" />
@@ -563,6 +572,15 @@ export function CombatScreen() {
                 counterVersion={counterVersion}
               />
             </div>
+            <div ref={goldRef}>
+              <StatBadge
+                target={totalGold}
+                color="#fbbf24" shadow="#78350f"
+                icon={<Coins size={14} color="#fbbf24" strokeWidth={2.5} />}
+                rollStartVersion={rollStartVersion}
+                counterVersion={counterVersion}
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -583,6 +601,7 @@ export function CombatScreen() {
         healRef={healRef}
         shieldRef={shieldRef}
         skullRef={skullRef}
+        goldRef={goldRef}
       />
 
       {/* Zone C — Played Dice Tray */}

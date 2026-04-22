@@ -57,3 +57,31 @@ body {
   transform: translateY(5px);
   box-shadow: 0 1px 0 #000;
 }
+
+/* Diagonal hazard scratches — Heavy */
+.pattern-heavy {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent, transparent 4px,
+    rgba(0,0,0,0.15) 4px, rgba(0,0,0,0.15) 6px
+  );
+}
+
+/* 8px checkerboard — Gambler */
+.pattern-gambler {
+  background-image:
+    linear-gradient(45deg,  rgba(0,0,0,0.12) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(0,0,0,0.12) 25%, transparent 25%),
+    linear-gradient(45deg,  transparent 75%, rgba(0,0,0,0.12) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(0,0,0,0.12) 75%);
+  background-size: 8px 8px;
+  background-position: 0 0, 0 4px, 4px -4px, -4px 0px;
+}
+
+/* Horizontal brick lines — Wall */
+.pattern-wall {
+  background-image: repeating-linear-gradient(
+    transparent, transparent 6px,
+    rgba(0,0,0,0.2) 6px, rgba(0,0,0,0.2) 8px
+  );
+}

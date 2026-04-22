@@ -1,14 +1,19 @@
 import { useState } from 'react'
-import { X, Swords, Shield, Heart, Skull } from 'lucide-react'
+import { X, Swords, Shield, Heart, Skull, Coins } from 'lucide-react'
 import type { DieType, DieFace } from '../store/gameStore'
 import { DIE_TEMPLATES } from '../store/gameStore'
 import { dieTypeStyle, faceColor } from './DieCard'
 
 const TYPE_LABEL: Record<DieType, string> = {
-  white:  'WHITE',
-  blue:   'BLUE',
-  green:  'GREEN',
-  cursed: 'CURSED',
+  white:     'WHITE',
+  blue:      'BLUE',
+  green:     'GREEN',
+  cursed:    'CURSED',
+  heavy:     'HEAVY',
+  paladin:   'PALADIN',
+  gambler:   'GAMBLER',
+  scavenger: 'SCAVENGER',
+  wall:      'WALL',
 }
 
 function FaceIcon({ type, size = 13 }: { type: DieFace['type']; size?: number }) {
@@ -16,6 +21,7 @@ function FaceIcon({ type, size = 13 }: { type: DieFace['type']; size?: number })
   if (type === 'damage') return <Swords size={size} color={color} strokeWidth={2.5} />
   if (type === 'shield') return <Shield size={size} color={color} strokeWidth={2.5} />
   if (type === 'skull')  return <Skull  size={size} color={color} strokeWidth={2.5} />
+  if (type === 'gold')   return <Coins  size={size} color={color} strokeWidth={2.5} />
   return <Heart size={size} color={color} strokeWidth={2.5} />
 }
 
@@ -68,7 +74,7 @@ export function DiceInspectorModal({ types, initialType, onClose }: Props) {
 
         {/* Type tabs */}
         {types.length > 1 && (
-          <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+          <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
             {types.map((t) => {
               const ts = dieTypeStyle[t]
               const active = t === selected
@@ -86,6 +92,7 @@ export function DiceInspectorModal({ types, initialType, onClose }: Props) {
                     fontSize: '0.6rem', letterSpacing: '0.15em',
                     textTransform: 'uppercase',
                     cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700,
+                    minWidth: 48,
                   }}
                 >
                   {TYPE_LABEL[t]}
