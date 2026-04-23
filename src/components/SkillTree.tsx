@@ -1,0 +1,250 @@
+import { useState } from 'react'
+import { motion, useMotionValue } from 'framer-motion'
+import { Flame, X, Check } from 'lucide-react'
+import { useGameStore, SKILL_TREE_NODES } from '../store/gameStore'
+import type { SkillNode } from '../store/gameStore'
+
+const CANVAS_W = 1300
+const CANVAS_H = 700
+const NODE_W   = 130
+const NODE_H   = 80
+const OFFSET_X = 250
+const OFFSET_Y = 300
+
+function nodeCenter(node: SkillNode) {
+  return { x: node.x + OFFSET_X + NODE_W / 2, y: node.y + OFFSET_Y + NODE_H / 2 }
+}
+
+function isEligible(node: SkillNode, unlocked: string[]) {
+  return node.requires.length === 0 || node.requires.every((r) => unlocked.includes(r))
+}
+
+export function SkillTree({ onClose }: { onClose: () => void }) {
+  const metaSouls    = useGameStore((s) => s.metaSouls)
+  const unlockedNodes = useGameStore((s) => s.unlockedNodes)
+  const unlockNode   = useGameStore((s) => s.unlockNode)
+
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const selectedNode = selectedId ? SKILL_TREE_NODES.find((n) => n.id === selectedId) ?? null : null
+
+  const [scale, setScale] = useState(1)
+  const clampScale = (v: number) => Math.min(2, Math.max(0.5, v))
+
+  const dragX = useMotionValue(384 / 2 - (OFFSET_X + NODE_W / 2))
+  const dragY = useMotionValue(300 - (OFFSET_Y + NODE_H / 2))
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 40,
+      maxWidth: 384, margin: '0 auto',
+      display: 'flex', flexDirection: 'column',
+      background: '#0a0a14',
+    }}>
+      {/* Header */}
+      <div style={{
+        background: '#1a1a2e', padding: '12px 16px',
+        borderBottom: '3px solid #000',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        flexShrink: 0,
+      }}>
+        <span style={{ fontWeight: 700, fontSize: '1rem', color: '#c4b5fd', letterSpacing: '0.15em' }}>
+          ✦ TALENTS
+        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Flame size={14} color="#a855f7" strokeWidth={2.5} />
+          <span style={{ color: '#a855f7', fontWeight: 700, fontSize: '0.9rem' }}>{metaSouls}</span>
+          <button
+            onClick={onClose}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#9ca3af' }}
+          >
+            <X size={18} />
+          </button>
+        </div>
+      </div>
+
+      {/* Draggable canvas area */}
+      <div
+        style={{ flex: 1, overflow: 'hidden', position: 'relative', cursor: 'grab' }}
+        onClick={() => setSelectedId(null)}
+        onWheel={(e) => { e.preventDefault(); setScale((p) => clampScale(p - e.deltaY * 0.001)) }}
+      >
+        {/* Zoom buttons */}
+        <div style={{
+          position: 'absolute', bottom: 10, right: 10, zIndex: 10,
+          display: 'flex', flexDirection: 'column', gap: 4,
+        }}>
+          {(['+', '−'] as const).map((label) => (
+            <button
+              key={label}
+              onClick={(e) => { e.stopPropagation(); setScale((p) => clampScale(p + (label === '+' ? 0.15 : -0.15))) }}
+              style={{
+                width: 32, height: 32,
+                background: '#1a1a2e', border: '2px solid #4c1d95',
+                boxShadow: '2px 2px 0 #000', color: '#c4b5fd',
+                fontSize: '1.1rem', fontWeight: 700, cursor: 'pointer',
+                fontFamily: 'inherit', lineHeight: 1,
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        <motion.div
+          drag
+          dragMomentum={false}
+          style={{ x: dragX, y: dragY, scale, width: CANVAS_W, height: CANVAS_H, position: 'relative', transformOrigin: '0 0' }}
+        >
+          {/* SVG connections */}
+          <svg
+            style={{ position: 'absolute', inset: 0, width: CANVAS_W, height: CANVAS_H, pointerEvents: 'none' }}
+          >
+            {SKILL_TREE_NODES.flatMap((node) =>
+              node.requires.map((reqId) => {
+                const req = SKILL_TREE_NODES.find((n) => n.id === reqId)
+                if (!req) return null
+                const from = nodeCenter(req)
+                const to   = nodeCenter(node)
+                const bothUnlocked = unlockedNodes.includes(node.id) && unlockedNodes.includes(reqId)
+                return (
+                  <line
+                    key={`${reqId}-${node.id}`}
+                    x1={from.x} y1={from.y}
+                    x2={to.x}   y2={to.y}
+                    stroke={bothUnlocked ? '#7c3aed' : '#3b2d6b'}
+                    strokeWidth={4}
+                    strokeDasharray={bothUnlocked ? undefined : '6 4'}
+                  />
+                )
+              })
+            )}
+          </svg>
+
+          {/* Nodes */}
+          {SKILL_TREE_NODES.map((node) => {
+            const unlocked   = unlockedNodes.includes(node.id)
+            const eligible   = isEligible(node, unlockedNodes)
+            const affordable = metaSouls >= node.cost
+            const selected   = selectedId === node.id
+
+            const borderColor = unlocked          ? '#facc15'
+                              : selected          ? '#c4b5fd'
+                              : eligible && affordable ? '#7c3aed'
+                              : eligible          ? '#4c1d95'
+                              : '#374151'
+            const shadow = unlocked
+              ? '3px 3px 0 #78350f, 0 0 12px 2px rgba(250,204,21,0.35)'
+              : selected
+              ? '3px 3px 0 #4c1d95, 0 0 10px 2px rgba(196,181,253,0.3)'
+              : '3px 3px 0 #000'
+
+            const left = node.x + OFFSET_X
+            const top  = node.y + OFFSET_Y
+
+            return (
+              <button
+                key={node.id}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setSelectedId(selectedId === node.id ? null : node.id)
+                }}
+                style={{
+                  position: 'absolute',
+                  left, top,
+                  width: NODE_W, height: NODE_H,
+                  background: unlocked ? '#1c1607' : '#12121f',
+                  border: `3px solid ${borderColor}`,
+                  boxShadow: shadow,
+                  cursor: 'pointer',
+                  display: 'flex', flexDirection: 'column',
+                  alignItems: 'center', justifyContent: 'center', gap: 4,
+                  padding: 6,
+                  fontFamily: 'inherit',
+                  opacity: !unlocked && !eligible ? 0.45 : 1,
+                  filter: !unlocked && !eligible ? 'grayscale(0.7)' : 'none',
+                }}
+              >
+                {unlocked && (
+                  <Check size={22} color="#facc15" strokeWidth={3} style={{ flexShrink: 0 }} />
+                )}
+                {!unlocked && !eligible && (
+                  <span style={{ fontSize: '0.85rem', lineHeight: 1, flexShrink: 0 }}>🔒</span>
+                )}
+                <span style={{
+                  fontSize: '0.75rem', fontWeight: 700,
+                  color: unlocked ? '#facc15' : eligible ? '#c4b5fd' : '#6b7280',
+                  textAlign: 'center', lineHeight: 1.3, letterSpacing: '0.05em',
+                  textTransform: 'uppercase',
+                }}>
+                  {node.name}
+                </span>
+                {!unlocked && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                    <Flame size={13} color={eligible && affordable ? '#a855f7' : '#6b7280'} strokeWidth={2.5} />
+                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: eligible && affordable ? '#a855f7' : '#6b7280' }}>
+                      {node.cost}
+                    </span>
+                  </div>
+                )}
+              </button>
+            )
+          })}
+        </motion.div>
+      </div>
+
+      {/* Selected node panel */}
+      {selectedNode && (() => {
+        const owned     = unlockedNodes.includes(selectedNode.id)
+        const eligible  = isEligible(selectedNode, unlockedNodes)
+        const canAfford = metaSouls >= selectedNode.cost
+        const canBuy    = eligible && canAfford
+        return (
+          <div style={{
+            background: '#1a1a2e', borderTop: `3px solid ${owned ? '#facc15' : eligible ? '#7c3aed' : '#374151'}`,
+            padding: '14px 16px', flexShrink: 0,
+          }}>
+            <p style={{ margin: '0 0 6px', fontWeight: 700, color: owned ? '#facc15' : eligible ? '#c4b5fd' : '#6b7280', fontSize: '1.4rem' }}>
+              {selectedNode.name}
+            </p>
+            <p style={{ margin: '0 0 12px', color: '#9ca3af', fontSize: '1rem' }}>
+              {selectedNode.description}
+            </p>
+            {!eligible && (
+              <p style={{ margin: '0 0 8px', color: '#ef4444', fontSize: '0.75rem', letterSpacing: '0.05em' }}>
+                🔒 Requires unlocking a prerequisite node first
+              </p>
+            )}
+            {owned ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Check size={20} color="#22c55e" strokeWidth={3} />
+                <span style={{ color: '#22c55e', fontWeight: 700, fontSize: '1rem', letterSpacing: '0.1em' }}>
+                  ALREADY OWNED
+                </span>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Flame size={18} color={eligible ? '#a855f7' : '#6b7280'} strokeWidth={2.5} />
+                <span style={{ color: eligible ? '#a855f7' : '#6b7280', fontWeight: 700, fontSize: '1.2rem' }}>
+                  {selectedNode.cost} Souls
+                </span>
+                <button
+                  disabled={!canBuy}
+                  onClick={() => { unlockNode(selectedNode.id); setSelectedId(null) }}
+                  className="pixel-btn"
+                  style={{
+                    marginLeft: 'auto',
+                    background: canBuy ? '#6d28d9' : '#374151',
+                    opacity: canBuy ? 1 : 0.6,
+                    cursor: canBuy ? 'pointer' : 'not-allowed',
+                  }}
+                >
+                  BUY
+                </button>
+              </div>
+            )}
+          </div>
+        )
+      })()}
+    </div>
+  )
+}

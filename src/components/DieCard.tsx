@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Swords, Shield, Heart, Skull, Coins } from 'lucide-react'
+import { Swords, Shield, Heart, Skull, Coins, Droplets } from 'lucide-react'
 import type { Die, DieType, DieFace, ResolvingPhase } from '../store/gameStore'
 
 // ── Visual tables ────────────────────────────────────────────────────────────
@@ -10,48 +10,60 @@ export const dieTypeStyle: Record<DieType, { bg: string; shadow: string; text: s
   blue:      { bg: '#3b82f6', shadow: '#1e3a8a', text: '#ffffff' },
   green:     { bg: '#4ade80', shadow: '#15803d', text: '#052e16' },
   cursed:    { bg: '#581c87', shadow: '#3b0764', text: '#f5d0fe' },
-  heavy:     { bg: '#dc2626', shadow: '#7f1d1d', text: '#fee2e2' },
-  paladin:   { bg: '#d97706', shadow: '#78350f', text: '#fef3c7' },
-  gambler:   { bg: '#7c3aed', shadow: '#3b0764', text: '#f5d0fe' },
-  scavenger: { bg: '#ea580c', shadow: '#7c2d12', text: '#fff7ed' },
-  wall:      { bg: '#1e40af', shadow: '#1e3a8a', text: '#dbeafe' },
+  heavy:     { bg: '#fecaca', shadow: '#991b1b', text: '#7f1d1d' },
+  paladin:   { bg: '#fef3c7', shadow: '#92400e', text: '#78350f' },
+  gambler:   { bg: '#e9d5ff', shadow: '#6d28d9', text: '#4c1d95' },
+  scavenger: { bg: '#fed7aa', shadow: '#c2410c', text: '#7c2d12' },
+  wall:      { bg: '#bfdbfe', shadow: '#1d4ed8', text: '#1e3a8a' },
+  curse:     { bg: '#0c0c1a', shadow: '#4c0070', text: '#c084fc' },
+  jackpot:   { bg: '#fbbf24', shadow: '#78350f', text: '#1c0a00' },
+  vampire:   { bg: '#7f1d1d', shadow: '#450a0a', text: '#fca5a5' },
 }
 
+// Custom loot dice use their die text color for all face content (monochrome)
+const CUSTOM_LOOT_DIES = new Set<DieType>(['heavy', 'paladin', 'gambler', 'scavenger', 'wall', 'curse', 'jackpot', 'vampire'])
+
 export const faceColor: Record<DieFace['type'], string> = {
-  damage: '#dc2626',
-  shield: '#38bdf8',
-  heal:   '#22c55e',
-  skull:  '#7c3aed',
-  gold:   '#fbbf24',
+  damage:    '#dc2626',
+  shield:    '#38bdf8',
+  heal:      '#22c55e',
+  skull:     '#7c3aed',
+  gold:      '#fbbf24',
+  lifesteal: '#e879f9',
 }
 
 export const faceShadow: Record<DieFace['type'], string> = {
-  damage: '#7f1d1d',
-  shield: '#1e3a8a',
-  heal:   '#15803d',
-  skull:  '#3b0764',
-  gold:   '#78350f',
+  damage:    '#7f1d1d',
+  shield:    '#1e3a8a',
+  heal:      '#15803d',
+  skull:     '#3b0764',
+  gold:      '#78350f',
+  lifesteal: '#701a75',
 }
 
 // ── Type icon ────────────────────────────────────────────────────────────────
 
-function TypeIcon({ type, size = 13 }: { type: DieFace['type']; size?: number }) {
-  const color = faceColor[type]
-  if (type === 'damage') return <Swords size={size} color={color} strokeWidth={2.5} />
-  if (type === 'shield') return <Shield size={size} color={color} strokeWidth={2.5} />
-  if (type === 'skull')  return <Skull  size={size} color={color} strokeWidth={2.5} />
-  if (type === 'gold')   return <Coins  size={size} color={color} strokeWidth={2.5} />
-  return                        <Heart  size={size} color={color} strokeWidth={2.5} />
+function TypeIcon({ type, size = 13, forceColor }: { type: DieFace['type']; size?: number; forceColor?: string }) {
+  const color = forceColor ?? faceColor[type]
+  if (type === 'damage')    return <Swords   size={size} color={color} strokeWidth={2.5} />
+  if (type === 'shield')    return <Shield   size={size} color={color} strokeWidth={2.5} />
+  if (type === 'skull')     return <Skull    size={size} color={color} strokeWidth={2.5} />
+  if (type === 'gold')      return <Coins    size={size} color={color} strokeWidth={2.5} />
+  if (type === 'lifesteal') return <Droplets size={size} color={color} strokeWidth={2.5} />
+  return                           <Heart    size={size} color={color} strokeWidth={2.5} />
 }
 
 // ── DiceFace ─────────────────────────────────────────────────────────────────
 
-function DiceFace({ face, textColor }: { face: DieFace; textColor: string }) {
+function DiceFace({ face, textColor, dieType }: { face: DieFace; textColor: string; dieType: DieType }) {
+  // Custom loot dice use their die text color for all icons (monochrome palette)
+  const iconColor = CUSTOM_LOOT_DIES.has(dieType) ? textColor : undefined
+
   // Skull always renders icon-only regardless of numeric value
   if (face.type === 'skull') {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
-        <TypeIcon type="skull" size={32} />
+        <TypeIcon type="skull" size={32} forceColor={iconColor} />
       </div>
     )
   }
@@ -64,7 +76,7 @@ function DiceFace({ face, textColor }: { face: DieFace; textColor: string }) {
       <span style={{ fontSize: '1.6rem', fontWeight: 700, lineHeight: 1, color: textColor }}>
         {face.value}
       </span>
-      <TypeIcon type={face.type} size={16} />
+      <TypeIcon type={face.type} size={16} forceColor={iconColor} />
     </div>
   )
 }
@@ -422,12 +434,6 @@ export function DieCard({
   // Continuous effects only visible once the face is revealed
   const showPersistentEffects = !!face && !isSpinning
 
-  // ── CSS background pattern (Heavy, Gambler, Wall) ───────────────────────────
-  const patternClass =
-    die.dieType === 'heavy'   ? 'pattern-heavy'  :
-    die.dieType === 'gambler' ? 'pattern-gambler' :
-    die.dieType === 'wall'    ? 'pattern-wall'    : ''
-
   // ── Idle loop wrapper (Paladin float, Gambler jitter) ───────────────────────
   const showIdleLoop = !!face && !isSpinning
   let idleLoopAnimate: Record<string, unknown>
@@ -461,18 +467,21 @@ export function DieCard({
         initial={innerInitial as never}
         animate={{ scale: 1, rotate: 0, opacity: dimmed ? 0.45 : 1 }}
         transition={innerTransition as never}
-        className={`pixel-die${patternClass ? ` ${patternClass}` : ''}`}
+        className="pixel-die"
         onClick={onClick}
         style={{
           position: 'relative',
-          backgroundColor: s.bg,
-          boxShadow: `4px 4px 0 ${s.shadow}`,
+          background: s.bg,
+          boxShadow: die.isMerged
+            ? `4px 4px 0 ${s.shadow}, 0 0 0 3px #facc15, 0 0 18px 4px rgba(250,204,21,0.55)`
+            : `4px 4px 0 ${s.shadow}`,
+          border: die.isMerged ? '3px solid #facc15' : undefined,
           cursor: onClick ? 'pointer' : 'default',
           flexDirection: 'column',
         }}
       >
         {displayFace
-          ? <DiceFace face={displayFace} textColor={s.text} />
+          ? <DiceFace face={displayFace} textColor={s.text} dieType={die.dieType} />
           : <span style={{ fontSize: '1.5rem', fontWeight: 700, color: s.text }}>?</span>
         }
 

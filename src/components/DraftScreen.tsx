@@ -1,4 +1,4 @@
-import { Coins, Swords, Shield, Heart, Skull } from 'lucide-react'
+import { Coins, Swords, Shield, Heart, Skull, Droplets } from 'lucide-react'
 import { useGameStore, DIE_TEMPLATES } from '../store/gameStore'
 import { dieTypeStyle, faceColor } from './DieCard'
 import type { DieType, DieFace } from '../store/gameStore'
@@ -11,16 +11,19 @@ const DIE_NAMES: Partial<Record<DieType, string>> = {
   gambler:   'THE GAMBLER',
   scavenger: 'THE SCAVENGER',
   wall:      'THE WALL',
+  jackpot:   'THE JACKPOT',
+  vampire:   'THE VAMPIRE',
 }
 
 // ── Face icon ─────────────────────────────────────────────────────────────────
 
 function FaceIcon({ type, size = 13 }: { type: DieFace['type']; size?: number }) {
   const color = faceColor[type]
-  if (type === 'damage') return <Swords size={size} color={color} strokeWidth={2.5} />
-  if (type === 'shield') return <Shield size={size} color={color} strokeWidth={2.5} />
-  if (type === 'skull')  return <Skull  size={size} color={color} strokeWidth={2.5} />
-  if (type === 'gold')   return <Coins  size={size} color={color} strokeWidth={2.5} />
+  if (type === 'damage')    return <Swords   size={size} color={color} strokeWidth={2.5} />
+  if (type === 'shield')    return <Shield   size={size} color={color} strokeWidth={2.5} />
+  if (type === 'skull')     return <Skull    size={size} color={color} strokeWidth={2.5} />
+  if (type === 'gold')      return <Coins    size={size} color={color} strokeWidth={2.5} />
+  if (type === 'lifesteal') return <Droplets size={size} color={color} strokeWidth={2.5} />
   return <Heart size={size} color={color} strokeWidth={2.5} />
 }
 
@@ -35,7 +38,7 @@ const RARITY_COLOR: Record<string, string> = {
 
 // ── Single die choice card ────────────────────────────────────────────────────
 
-function DieChoiceCard({ dieType, dieId, onSelect }: { dieType: DieType; dieId: string; onSelect: () => void }) {
+function DieChoiceCard({ dieType, onSelect }: { dieType: DieType; dieId: string; onSelect: () => void }) {
   const template = DIE_TEMPLATES[dieType]
   const s = dieTypeStyle[dieType]
   const name = DIE_NAMES[dieType] ?? dieType.toUpperCase()
@@ -105,7 +108,7 @@ function DieChoiceCard({ dieType, dieId, onSelect }: { dieType: DieType; dieId: 
       <button
         onClick={onSelect}
         className="pixel-btn"
-        style={{ background: s.shadow, color: s.text }}
+        style={{ background: s.shadow, color: '#fff', textShadow: '1px 1px 0 #000', letterSpacing: '0.2em' }}
       >
         SELECT
       </button>
@@ -116,7 +119,7 @@ function DieChoiceCard({ dieType, dieId, onSelect }: { dieType: DieType; dieId: 
 // ── Draft screen ──────────────────────────────────────────────────────────────
 
 export function DraftScreen() {
-  const { draftChoices, lastGoldEarned, selectDraftDie } = useGameStore()
+  const { draftChoices, lastGoldEarned, selectDraftDie, skipDraft } = useGameStore()
 
   return (
     <div style={{
@@ -176,6 +179,18 @@ export function DraftScreen() {
             onSelect={() => selectDraftDie(die.id)}
           />
         ))}
+      </div>
+
+      {/* Skip footer */}
+      <div style={{ background: '#1a1a2e', padding: '12px 16px', borderTop: '3px solid #000' }}>
+        <button
+          onClick={skipDraft}
+          className="pixel-btn"
+          style={{ background: '#374151', color: '#fbbf24', textShadow: '1px 1px 0 #000' }}
+        >
+          <Coins size={13} strokeWidth={2.5} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6 }} />
+          SKIP DRAFT (+3 Gold)
+        </button>
       </div>
     </div>
   )

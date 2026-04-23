@@ -1,14 +1,16 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 
 // ── Core types ───────────────────────────────────────────────────────────────
 
 export interface DieFace {
-  type: 'damage' | 'shield' | 'heal' | 'skull' | 'gold'
+  type: 'damage' | 'shield' | 'heal' | 'skull' | 'gold' | 'lifesteal'
   value: number
 }
 
 export type DieType = 'white' | 'blue' | 'green' | 'cursed'
                     | 'heavy' | 'paladin' | 'gambler' | 'scavenger' | 'wall'
+                    | 'curse' | 'jackpot' | 'vampire'
 
 export interface Die {
   id: string
@@ -17,6 +19,17 @@ export interface Die {
   faces: DieFace[]
   currentFace?: DieFace
   rarity: 'common' | 'uncommon' | 'rare' | 'legendary'
+  isMerged?: boolean
+}
+
+export interface SkillNode {
+  id: string
+  name: string
+  description: string
+  cost: number
+  x: number
+  y: number
+  requires: string[]
 }
 
 export type TurnPhase = 'loadout' | 'idle' | 'drawing' | 'player_attack' | 'enemy_attack' | 'draft' | 'shop'
@@ -133,6 +146,42 @@ export const DIE_TEMPLATES: Record<DieType, { sides: number; faces: DieFace[]; r
       { type: 'shield', value: 6 },
     ],
   },
+  curse: {
+    sides: 6,
+    rarity: 'rare',
+    faces: [
+      { type: 'skull',  value: 1 },
+      { type: 'skull',  value: 1 },
+      { type: 'skull',  value: 1 },
+      { type: 'skull',  value: 1 },
+      { type: 'damage', value: 0 },
+      { type: 'damage', value: 0 },
+    ],
+  },
+  jackpot: {
+    sides: 6,
+    rarity: 'legendary',
+    faces: [
+      { type: 'damage', value: 30 },
+      { type: 'skull',  value: 1  },
+      { type: 'skull',  value: 1  },
+      { type: 'skull',  value: 1  },
+      { type: 'damage', value: 0  },
+      { type: 'damage', value: 0  },
+    ],
+  },
+  vampire: {
+    sides: 6,
+    rarity: 'legendary',
+    faces: [
+      { type: 'lifesteal', value: 1 },
+      { type: 'lifesteal', value: 2 },
+      { type: 'lifesteal', value: 2 },
+      { type: 'lifesteal', value: 3 },
+      { type: 'lifesteal', value: 4 },
+      { type: 'skull',     value: 1 },
+    ],
+  },
 }
 
 function createDie(type: DieType, id: string): Die {
@@ -189,12 +238,22 @@ interface GameState {
   gold: number
   draftChoices: Die[]
   lastGoldEarned: number
+  metaSouls: number
+  unlockedNodes: string[]
+  selectedClass: string
+  playerAttackAnimTier: 1 | 2 | 3 | null
+  usedSecondWind: boolean
+  firstAttackThisEncounter: boolean
   startCombat: () => void
   drawAndRoll: () => Promise<void>
   bankAndAttack: () => Promise<void>
   selectDraftDie: (dieId: string) => void
+  skipDraft: () => void
   shopHeal: (cost: number, amount: number) => void
   shopModifyFace: (dieId: string, faceIndex: number, newFace: DieFace, cost: number) => void
+  shopMergeDice: (die1Id: string, die2Id: string, cost: number) => void
+  unlockNode: (nodeId: string) => void
+  setSelectedClass: (cls: string) => void
   leaveShop: () => void
 }
 
@@ -207,30 +266,71 @@ interface EnemyTemplate {
   intentMin: number; intentMax: number; isBoss: boolean
 }
 
+export const SKILL_TREE_NODES: SkillNode[] = [
+  { id: 'sflz4yv3', name: 'The Awakening',        description: 'Your journey begins.',                              cost: 0,    x: -0.75,       y: -1,   requires: [] },
+  { id: 'c295l2dd', name: "Gambler's Pouch",       description: 'Unlocks the Gambler start class.',                 cost: 500,  x: -184.40625,  y: -134, requires: ['sflz4yv3'] },
+  { id: '6ts7gvct', name: 'Scavenger Pouch',       description: 'Unlocks the Scavenger start class.',               cost: 500,  x: -208.234375, y: -31,  requires: ['sflz4yv3'] },
+  { id: 'tqo6xv7r', name: 'Pocket Change',         description: 'Start each run with 10 Gold.',                     cost: 100,  x: 202.703125,  y: -94,  requires: ['sflz4yv3'] },
+  { id: 'fyuwvmzq', name: 'Vitality I',            description: '+10 Max HP.',                                      cost: 100,  x: 208.078125,  y: 71,   requires: ['sflz4yv3'] },
+  { id: 'g1atjka6', name: 'First Blood',           description: 'First attack each encounter gives +1 damage.',     cost: 100,  x: 3.84375,     y: 141,  requires: ['sflz4yv3'] },
+  { id: 'kec9ybn2', name: 'New Dice: The Jackpot', description: 'Adds The Jackpot to the dice loot pool.',          cost: 700,  x: -43.828125,  y: -236, requires: ['sflz4yv3'] },
+  { id: '60vc1fvg', name: 'New Dice: The Vampire', description: 'Adds The Vampire to the dice loot pool.',          cost: 700,  x: 122.875,     y: -237, requires: ['sflz4yv3'] },
+  { id: '7jutuf9h', name: 'Haggler',               description: 'Rest costs 5 Gold instead of 10.',                 cost: 300,  x: 310.171875,  y: -223, requires: ['tqo6xv7r'] },
+  { id: 'r9v5wdgh', name: 'Bounty Hunter',         description: 'Bosses drop 10 extra Gold.',                       cost: 200,  x: 423.171875,  y: -98,  requires: ['tqo6xv7r'] },
+  { id: 'aw2b29dw', name: 'Thick Skin',            description: 'Heal 15% of max HP after defeating a boss.',       cost: 150,  x: 394.40625,   y: 14,   requires: ['fyuwvmzq'] },
+  { id: 'hnwdjqof', name: 'Sharpened Edges',       description: 'White dice: 1-damage faces become 2-damage.',      cost: 500,  x: 9.046875,    y: 250,  requires: ['g1atjka6'] },
+  { id: 'm1hjf9ac', name: 'Forge Master',          description: 'Merge costs 25 Gold instead of 40.',               cost: 1000, x: 613.875,     y: -101, requires: ['r9v5wdgh'] },
+  { id: 'co2xusrh', name: 'Vitality II',           description: '+15 Max HP.',                                      cost: 300,  x: 594.46875,   y: 11,   requires: ['aw2b29dw'] },
+  { id: '7nescabs', name: 'Second Wind',           description: 'Once per run, revive with 20 HP instead of dying.', cost: 1000, x: 776.84375,  y: 13,   requires: ['co2xusrh'] },
+  { id: 'zmumocry', name: 'Scouting',              description: 'You can always see what dice are left in your bag.', cost: 500,  x: -194.9375,  y: 123,  requires: ['sflz4yv3'] },
+  { id: 'w6bsuulh', name: 'Auto Roll',             description: 'Auto-draws dice until you reach 2 skulls.',          cost: 500,  x: -375.9375,  y: 211,  requires: ['zmumocry'] },
+]
+
+export function getClassPreviewDice(cls: string): Die[] {
+  if (cls === 'gambler') {
+    return [
+      createDie('gambler', 'pv-g1'), createDie('gambler', 'pv-g2'),
+      createDie('white',   'pv-w1'), createDie('white',   'pv-w2'),
+      createDie('blue',    'pv-b1'), createDie('blue',    'pv-b2'),
+      createDie('green',   'pv-gr1'),
+      createDie('cursed',  'pv-c1'), createDie('cursed',  'pv-c2'), createDie('cursed', 'pv-c3'),
+    ]
+  }
+  if (cls === 'scavenger') {
+    return [
+      createDie('scavenger', 'pv-s1'), createDie('scavenger', 'pv-s2'),
+      createDie('white',     'pv-w1'), createDie('white',     'pv-w2'), createDie('white', 'pv-w3'),
+      createDie('blue',      'pv-b1'),
+      createDie('green',     'pv-gr1'),
+      createDie('cursed',    'pv-c1'), createDie('cursed',    'pv-c2'), createDie('cursed', 'pv-c3'),
+    ]
+  }
+  return [
+    createDie('white',  'pv-w1'), createDie('white',  'pv-w2'), createDie('white',  'pv-w3'), createDie('white', 'pv-w4'),
+    createDie('blue',   'pv-b1'), createDie('blue',   'pv-b2'),
+    createDie('green',  'pv-gr1'),
+    createDie('cursed', 'pv-c1'), createDie('cursed', 'pv-c2'), createDie('cursed', 'pv-c3'),
+  ]
+}
+
 const BESTIARY: EnemyTemplate[] = [
   { name: 'Slime',    baseHp: 28,  intentMin: 3,  intentMax: 5,  isBoss: false },
   { name: 'Goblin',   baseHp: 42,  intentMin: 5,  intentMax: 8,  isBoss: false },
   { name: 'Skeleton', baseHp: 50,  intentMin: 4,  intentMax: 10, isBoss: false },
   { name: 'Orc',      baseHp: 60,  intentMin: 8,  intentMax: 12, isBoss: false },
-  { name: 'Demon',    baseHp: 150, intentMin: 20, intentMax: 30, isBoss: true  },
+  { name: 'Demon',    baseHp: 70,  intentMin: 8,  intentMax: 12, isBoss: true  },
 ]
 
-function rollIntent(template: EnemyTemplate, loop: number): EnemyIntent {
+function rollIntent(template: EnemyTemplate, floor: number): EnemyIntent {
   const base = template.intentMin + Math.floor(Math.random() * (template.intentMax - template.intentMin + 1))
-  // Flat +1 per floor in loop 0 (floors 1-5); steeper scaling only after the shop
-  const scale = loop === 0 ? 1 : 1 + (loop - 1) * 0.25 + 0.25
-  return { type: 'attack', value: Math.round(base * scale) }
+  return { type: 'attack', value: base + (floor - 1) }
 }
 
 function spawnEnemy(floor: number): Enemy {
   const isBossFloor = floor % 5 === 0
-  const loop        = Math.floor((floor - 1) / 5)
   const template    = isBossFloor ? BESTIARY[4] : BESTIARY[(floor - 1) % 4]
-  // Loop 0 (floors 1-5): flat base HP, no multiplier. Loop 1+ scales by 30% per loop.
-  const hp = loop === 0
-    ? template.baseHp
-    : Math.round(template.baseHp * (1 + loop * 0.3))
-  return { hp, maxHp: hp, name: template.name, intent: rollIntent(template, loop), isBoss: template.isBoss }
+  const hp          = template.baseHp + (floor - 1) * 3
+  return { hp, maxHp: hp, name: template.name, intent: rollIntent(template, floor), isBoss: template.isBoss }
 }
 
 const INITIAL_INVENTORY: Die[] = [
@@ -241,9 +341,16 @@ const INITIAL_INVENTORY: Die[] = [
   createDie('cursed', 'c1'), createDie('cursed', 'c2'), createDie('cursed', 'c3'),
 ]
 
-const DICE_LOOT_POOL: DieType[] = ['heavy', 'paladin', 'gambler', 'scavenger', 'wall']
+function getDiceLootPool(unlockedNodes: string[]): DieType[] {
+  const pool: DieType[] = ['heavy', 'paladin', 'gambler', 'scavenger', 'wall']
+  if (unlockedNodes.includes('kec9ybn2')) pool.push('jackpot')
+  if (unlockedNodes.includes('60vc1fvg')) pool.push('vampire')
+  return pool
+}
 
-export const useGameStore = create<GameState>((set, get) => ({
+export const useGameStore = create<GameState>()(
+  persist(
+    (set, get) => ({
   player: { hp: 100, maxHp: 100, shield: 0 },
   enemy: spawnEnemy(1),
   inventory: INITIAL_INVENTORY.map((d) => ({ ...d })),
@@ -270,18 +377,82 @@ export const useGameStore = create<GameState>((set, get) => ({
   gold: 0,
   draftChoices: [],
   lastGoldEarned: 0,
+  metaSouls: 0,
+  unlockedNodes: ['sflz4yv3'],
+  selectedClass: 'standard',
+  playerAttackAnimTier: null,
+  usedSecondWind: false,
+  firstAttackThisEncounter: true,
 
-  startCombat: () => set((s) => ({
-    turnPhase: 'idle',
-    drawPile: shuffleArray([...s.inventory]),
-    playedDice: [],
-    skullCount: 0,
-    totalDamage: 0, totalHeal: 0, totalShield: 0, totalGold: 0,
-    lastEffects: { heal: 0, shield: 0, gold: 0 },
-    rollStartVersion: s.rollStartVersion + 1,
-    resolvingDieIndex: null, resolvingPhase: null,
-    draftChoices: [], lastGoldEarned: 0,
-  })),
+  startCombat: () => {
+    const { unlockedNodes, selectedClass } = get()
+
+    const vitI  = unlockedNodes.includes('fyuwvmzq') ? 10 : 0
+    const vitII = unlockedNodes.includes('co2xusrh') ? 15 : 0
+
+    let startInventory: Die[]
+    let baseHp: number
+
+    if (selectedClass === 'gambler') {
+      startInventory = [
+        createDie('gambler', uid()), createDie('gambler', uid()),
+        createDie('white',   uid()), createDie('white',   uid()),
+        createDie('blue',    uid()), createDie('blue',    uid()),
+        createDie('green',   uid()),
+        createDie('cursed',  uid()), createDie('cursed',  uid()), createDie('cursed', uid()),
+      ]
+      baseHp = 80 + vitI + vitII
+    } else if (selectedClass === 'scavenger') {
+      startInventory = [
+        createDie('scavenger', uid()), createDie('scavenger', uid()),
+        createDie('white',     uid()), createDie('white',     uid()), createDie('white', uid()),
+        createDie('blue',      uid()),
+        createDie('green',     uid()),
+        createDie('cursed',    uid()), createDie('cursed',    uid()), createDie('cursed', uid()),
+      ]
+      baseHp = 100 + vitI + vitII
+    } else {
+      startInventory = [
+        createDie('white',  uid()), createDie('white',  uid()), createDie('white',  uid()), createDie('white', uid()),
+        createDie('blue',   uid()), createDie('blue',   uid()),
+        createDie('green',  uid()),
+        createDie('cursed', uid()), createDie('cursed', uid()), createDie('cursed', uid()),
+      ]
+      baseHp = 100 + vitI + vitII
+    }
+
+    if (unlockedNodes.includes('hnwdjqof')) {
+      startInventory = startInventory.map((d) =>
+        d.dieType !== 'white' ? d : {
+          ...d,
+          faces: d.faces.map((f) =>
+            f.type === 'damage' && f.value === 1 ? { ...f, value: 2 } : f
+          ),
+        }
+      )
+    }
+
+    const startGold = unlockedNodes.includes('tqo6xv7r') ? 10 : 0
+
+    set((s) => ({
+      turnPhase:    'idle',
+      player:       { hp: baseHp, maxHp: baseHp, shield: 0 },
+      inventory:    startInventory,
+      gold:         startGold,
+      currentFloor: 1,
+      enemy:        spawnEnemy(1),
+      drawPile:     shuffleArray([...startInventory]),
+      playedDice:   [],
+      skullCount:   0,
+      totalDamage: 0, totalHeal: 0, totalShield: 0, totalGold: 0,
+      lastEffects:  { heal: 0, shield: 0, gold: 0 },
+      rollStartVersion: s.rollStartVersion + 1,
+      resolvingDieIndex: null, resolvingPhase: null,
+      draftChoices: [], lastGoldEarned: 0,
+      usedSecondWind: false,
+      firstAttackThisEncounter: true,
+    }))
+  },
 
   drawAndRoll: async () => {
     const s = get()
@@ -323,12 +494,13 @@ export const useGameStore = create<GameState>((set, get) => ({
     await sleep(150)
 
     // Stage 4 — Tally
-    const isSkull     = face.type === 'skull'
+    const isSkull       = face.type === 'skull'
     const newSkullCount = s.skullCount + (isSkull ? 1 : 0)
-    const healGain    = face.type === 'heal'   ? face.value : 0
-    const shieldGain  = face.type === 'shield' ? face.value : 0
-    const damageGain  = face.type === 'damage' ? face.value : 0
-    const goldGain    = face.type === 'gold'   ? face.value : 0
+    const lifestealGain = face.type === 'lifesteal' ? face.value : 0
+    const healGain      = face.type === 'heal'      ? face.value : lifestealGain
+    const shieldGain    = face.type === 'shield'    ? face.value : 0
+    const damageGain    = (face.type === 'damage' || face.type === 'lifesteal') ? face.value : 0
+    const goldGain      = face.type === 'gold'      ? face.value : 0
 
     set((st) => ({
       totalDamage: st.totalDamage + damageGain,
@@ -376,30 +548,66 @@ export const useGameStore = create<GameState>((set, get) => ({
   bankAndAttack: async () => {
     if (get().turnPhase !== 'idle') return
 
-    const { totalDamage, totalHeal, totalShield, totalGold, enemy, player, currentFloor } = get()
-    const newEnemyHp  = Math.max(0, enemy.hp - totalDamage)
+    const { totalDamage, totalHeal, totalShield, totalGold, enemy, player,
+            currentFloor, inventory, unlockedNodes, firstAttackThisEncounter } = get()
+
+    // First Blood: +1 damage on first bank of each encounter
+    const firstBloodBonus = (unlockedNodes.includes('g1atjka6') && firstAttackThisEncounter) ? 1 : 0
+    const effectiveDamage = totalDamage + firstBloodBonus
+    if (firstAttackThisEncounter) set({ firstAttackThisEncounter: false })
+
+    // Calculate max potential damage for animation tier
+    let maxPotentialDamage = 0
+    for (const die of inventory) {
+      const maxDmg = die.faces
+        .filter((f) => f.type === 'damage' || f.type === 'lifesteal')
+        .reduce((m, f) => Math.max(m, f.value), 0)
+      maxPotentialDamage += maxDmg
+    }
+    let tier: 1 | 2 | 3 = 1
+    if (maxPotentialDamage > 0) {
+      const pct = (effectiveDamage / maxPotentialDamage) * 100
+      if (pct > 70) tier = 3
+      else if (pct > 30) tier = 2
+    }
+
+    // Start attack animation phase — damage is NOT applied yet
+    set({ turnPhase: 'player_attack', playerAttackAnimTier: tier })
+    await sleep(800)
+
+    // Apply damage after animation window
+    const newEnemyHp  = Math.max(0, enemy.hp - effectiveDamage)
     const newPlayerHp = Math.min(player.maxHp, player.hp + totalHeal)
     const newShield   = player.shield + totalShield
 
     set((st) => ({
-      turnPhase: 'player_attack',
+      playerAttackAnimTier: null,
       enemy:  { ...st.enemy,  hp: newEnemyHp },
       player: { ...st.player, hp: newPlayerHp, shield: newShield },
-      enemyHitVersion: st.enemyHitVersion + 1,
       playerEffectVersion: st.playerEffectVersion + 1,
     }))
 
     if (newEnemyHp <= 0) {
       await sleep(450)
 
-      const earned      = currentFloor * 5 + totalGold
       const isBossFloor = currentFloor % 5 === 0
+      const bountyBonus = (unlockedNodes.includes('r9v5wdgh') && isBossFloor) ? 10 : 0
+      const earned      = currentFloor * 5 + totalGold + bountyBonus
+      const soulsGained = currentFloor * 2 + (isBossFloor ? 25 : 0)
+
+      // Thick Skin: heal 15% of max HP after defeating a boss
+      const thickSkinHeal = (isBossFloor && unlockedNodes.includes('aw2b29dw'))
+        ? Math.floor(player.maxHp * 0.15) : 0
 
       if (isBossFloor) {
+        const curseId = uid()
         set((st) => ({
+          inventory: [...st.inventory, createDie('curse', curseId)],
           gold: st.gold + earned,
           lastGoldEarned: earned,
+          metaSouls: st.metaSouls + soulsGained,
           turnPhase: 'shop',
+          player: { ...st.player, hp: Math.min(st.player.maxHp, st.player.hp + thickSkinHeal) },
           totalDamage: 0, totalHeal: 0, totalShield: 0, totalGold: 0,
           skullCount: 0,
           drawPile: [], playedDice: [],
@@ -407,12 +615,14 @@ export const useGameStore = create<GameState>((set, get) => ({
           resolvingDieIndex: null, resolvingPhase: null,
         }))
       } else {
-        const choices = shuffleArray([...DICE_LOOT_POOL])
+        const pool    = getDiceLootPool(unlockedNodes)
+        const choices = shuffleArray([...pool])
                           .slice(0, 3)
                           .map((t) => createDie(t, uid()))
         set((st) => ({
           gold: st.gold + earned,
           lastGoldEarned: earned,
+          metaSouls: st.metaSouls + soulsGained,
           draftChoices: choices,
           turnPhase: 'draft',
           totalDamage: 0, totalHeal: 0, totalShield: 0, totalGold: 0,
@@ -449,6 +659,29 @@ export const useGameStore = create<GameState>((set, get) => ({
       lastEffects:  { heal: 0, shield: 0, gold: 0 },
       resolvingDieIndex: null, resolvingPhase: null,
       rollStartVersion: s.rollStartVersion + 1,
+      firstAttackThisEncounter: true,
+      turnPhase:    'idle',
+    }))
+  },
+
+  skipDraft: () => {
+    const { inventory, currentFloor } = get()
+    const nextFloor = currentFloor + 1
+    const newEnemy  = spawnEnemy(nextFloor)
+    set((s) => ({
+      gold:         s.gold + 3,
+      currentFloor: nextFloor,
+      enemy:        newEnemy,
+      player:       { ...s.player, shield: 0 },
+      draftChoices: [],
+      drawPile:     shuffleArray([...inventory]),
+      playedDice:   [],
+      skullCount:   0,
+      totalDamage: 0, totalHeal: 0, totalShield: 0, totalGold: 0,
+      lastEffects:  { heal: 0, shield: 0, gold: 0 },
+      resolvingDieIndex: null, resolvingPhase: null,
+      rollStartVersion: s.rollStartVersion + 1,
+      firstAttackThisEncounter: true,
       turnPhase:    'idle',
     }))
   },
@@ -474,6 +707,37 @@ export const useGameStore = create<GameState>((set, get) => ({
     })
   },
 
+  shopMergeDice: (die1Id, die2Id, cost) => {
+    set((s) => {
+      if (s.gold < cost) return {}
+      const newInventory = s.inventory
+        .filter((d) => d.id !== die2Id)
+        .map((d) => {
+          if (d.id !== die1Id) return d
+          return {
+            ...d,
+            isMerged: true,
+            faces: d.faces.map((f) =>
+              f.type === 'skull' ? f : { ...f, value: f.value * 3 }
+            ),
+          }
+        })
+      return { gold: s.gold - cost, inventory: newInventory }
+    })
+  },
+
+  setSelectedClass: (cls) => set({ selectedClass: cls }),
+
+  unlockNode: (nodeId) => {
+    const { metaSouls, unlockedNodes } = get()
+    const node = SKILL_TREE_NODES.find((n) => n.id === nodeId)
+    if (!node || metaSouls < node.cost || unlockedNodes.includes(nodeId)) return
+    set((s) => ({
+      metaSouls:     s.metaSouls - node.cost,
+      unlockedNodes: [...s.unlockedNodes, nodeId],
+    }))
+  },
+
   leaveShop: () => {
     const { currentFloor } = get()
     const nextFloor = currentFloor + 1
@@ -489,10 +753,17 @@ export const useGameStore = create<GameState>((set, get) => ({
       lastEffects:  { heal: 0, shield: 0, gold: 0 },
       resolvingDieIndex: null, resolvingPhase: null,
       rollStartVersion: s.rollStartVersion + 1,
+      firstAttackThisEncounter: true,
       turnPhase:    'idle',
     }))
   },
-}))
+    }),
+    {
+      name: 'dice-dungeon-save',
+      partialize: (state) => ({ metaSouls: state.metaSouls, unlockedNodes: state.unlockedNodes, selectedClass: state.selectedClass }),
+    }
+  )
+)
 
 // Extracted enemy phase — shared by bankAndAttack and bust
 async function runEnemyPhase() {
@@ -520,6 +791,27 @@ async function runEnemyPhase() {
   await sleep(210)
 
   if (postHp <= 0) {
+    const snap = useGameStore.getState()
+    if (snap.unlockedNodes.includes('7nescabs') && !snap.usedSecondWind) {
+      useGameStore.setState((st) => ({
+        player: { ...st.player, hp: 20, shield: 0 },
+        usedSecondWind: true,
+        turnPhase: 'idle',
+        totalDamage: 0, totalHeal: 0, totalShield: 0, totalGold: 0,
+        skullCount: 0,
+        drawPile: shuffleArray([...st.inventory]),
+        playedDice: [],
+        lastEffects: { heal: 0, shield: 0, gold: 0 },
+        resolvingDieIndex: null, resolvingPhase: null,
+        rollStartVersion: st.rollStartVersion + 1,
+        firstAttackThisEncounter: true,
+        enemy: { ...st.enemy, intent: rollIntent(
+          BESTIARY.find((t) => t.name === st.enemy.name) ?? BESTIARY[1],
+          st.currentFloor,
+        )},
+      }))
+      return
+    }
     useGameStore.setState({
       player: { hp: 100, maxHp: 100, shield: 0 },
       enemy: spawnEnemy(1),
@@ -546,10 +838,11 @@ async function runEnemyPhase() {
         ...s.enemy,
         intent: rollIntent(
           BESTIARY.find((t) => t.name === s.enemy.name) ?? BESTIARY[1],
-          Math.floor((currentFloor - 1) / 5)
+          currentFloor
         ),
       },
       rollStartVersion: s.rollStartVersion + 1,
+      firstAttackThisEncounter: true,
       resolvingDieIndex: null, resolvingPhase: null,
     }))
   }

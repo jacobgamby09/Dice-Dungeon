@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Coins, Heart, Shield, Swords, Skull, Flame, ArrowLeft } from 'lucide-react'
+import { Coins, Heart, Shield, Swords, Skull, Flame, ArrowLeft, Droplets } from 'lucide-react'
 import { useGameStore } from '../store/gameStore'
 import { dieTypeStyle, faceColor } from './DieCard'
 import type { Die, DieFace } from '../store/gameStore'
@@ -9,23 +9,25 @@ import type { Die, DieFace } from '../store/gameStore'
 const DIE_NAMES: Record<string, string> = {
   white: 'BASIC', blue: 'GUARD', green: 'MENDER', cursed: 'CURSED',
   heavy: 'HEAVY', paladin: 'PALADIN', gambler: 'GAMBLER',
-  scavenger: 'SCAVENGER', wall: 'WALL',
+  scavenger: 'SCAVENGER', wall: 'WALL', curse: 'THE CURSE',
+  jackpot: 'THE JACKPOT', vampire: 'THE VAMPIRE',
 }
 
 // ── Face icon ─────────────────────────────────────────────────────────────────
 
 function FaceIcon({ type, size = 13 }: { type: DieFace['type']; size?: number }) {
   const color = faceColor[type]
-  if (type === 'damage') return <Swords size={size} color={color} strokeWidth={2.5} />
-  if (type === 'shield') return <Shield size={size} color={color} strokeWidth={2.5} />
-  if (type === 'skull')  return <Skull  size={size} color={color} strokeWidth={2.5} />
-  if (type === 'gold')   return <Coins  size={size} color={color} strokeWidth={2.5} />
+  if (type === 'damage')    return <Swords   size={size} color={color} strokeWidth={2.5} />
+  if (type === 'shield')    return <Shield   size={size} color={color} strokeWidth={2.5} />
+  if (type === 'skull')     return <Skull    size={size} color={color} strokeWidth={2.5} />
+  if (type === 'gold')      return <Coins    size={size} color={color} strokeWidth={2.5} />
+  if (type === 'lifesteal') return <Droplets size={size} color={color} strokeWidth={2.5} />
   return <Heart size={size} color={color} strokeWidth={2.5} />
 }
 
 // ── Shop action type ──────────────────────────────────────────────────────────
 
-type ShopAction = 'purify' | 'empower' | null
+type ShopAction = 'purify' | 'empower' | 'merge' | null
 
 // ── Action card ───────────────────────────────────────────────────────────────
 
@@ -73,14 +75,20 @@ function ActionCard({
 
 // ── Die picker row ────────────────────────────────────────────────────────────
 
-function DiePickerRow({ die, onClick }: { die: Die; onClick: () => void }) {
+function DiePickerRow({ die, isHighlighted, onClick }: { die: Die; isHighlighted?: boolean; onClick: () => void }) {
   const s    = dieTypeStyle[die.dieType]
   const name = DIE_NAMES[die.dieType] ?? die.dieType.toUpperCase()
   return (
     <button
       onClick={onClick}
       style={{
-        background: '#1a1a2e', border: '3px solid #000', boxShadow: '4px 4px 0 #000',
+        background: '#1a1a2e',
+        border: `3px solid ${isHighlighted ? '#d97706' : die.isMerged ? '#facc15' : '#000'}`,
+        boxShadow: isHighlighted
+          ? '4px 4px 0 #d97706'
+          : die.isMerged
+            ? '4px 4px 0 #facc15, 0 0 12px 2px rgba(250,204,21,0.4)'
+            : '4px 4px 0 #000',
         padding: '10px 14px', width: '100%', cursor: 'pointer', color: '#fff',
         display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left',
       }}
@@ -90,6 +98,11 @@ function DiePickerRow({ die, onClick }: { die: Die; onClick: () => void }) {
         backgroundColor: s.bg, border: '2px solid #000', boxShadow: `2px 2px 0 ${s.shadow}`,
       }} />
       <span style={{ fontWeight: 700, fontSize: '0.85rem', color: s.bg }}>{name}</span>
+      {die.isMerged && (
+        <span style={{ fontSize: '0.55rem', color: '#facc15', fontWeight: 700, letterSpacing: '0.15em' }}>
+          MERGED
+        </span>
+      )}
       <span style={{ marginLeft: 'auto', fontSize: '0.6rem', color: '#6b7280', letterSpacing: '0.1em' }}>
         SELECT
       </span>
@@ -157,11 +170,16 @@ function FacePickerGrid({
 export function ShopScreen() {
   const {
     player, gold, inventory, lastGoldEarned,
-    shopHeal, shopModifyFace, leaveShop,
+    shopHeal, shopModifyFace, shopMergeDice, leaveShop,
   } = useGameStore()
+  const unlockedNodes = useGameStore((s) => s.unlockedNodes)
+  const healCost  = unlockedNodes.includes('7jutuf9h') ? 5  : 10
+  const mergeCost = unlockedNodes.includes('m1hjf9ac') ? 25 : 40
 
   const [activeAction, setActiveAction]   = useState<ShopAction>(null)
   const [selectedDieId, setSelectedDieId] = useState<string | null>(null)
+  const [firstMergeId, setFirstMergeId]   = useState<string | null>(null)
+  const [mergeError, setMergeError]       = useState(false)
 
   const selectedDie = selectedDieId
     ? inventory.find((d) => d.id === selectedDieId) ?? null
@@ -178,16 +196,49 @@ export function ShopScreen() {
     setSelectedDieId(null)
   }
 
-  function handleBack() {
-    if (selectedDieId) setSelectedDieId(null)
-    else setActiveAction(null)
+  function handleMergeSelect(dieId: string) {
+    if (firstMergeId === null) {
+      setFirstMergeId(dieId)
+      setMergeError(false)
+      return
+    }
+    if (dieId === firstMergeId) {
+      setFirstMergeId(null)
+      return
+    }
+    const die1 = inventory.find((d) => d.id === firstMergeId)
+    const die2 = inventory.find((d) => d.id === dieId)
+    if (!die1 || !die2 || die1.dieType !== die2.dieType) {
+      setMergeError(true)
+      setTimeout(() => setMergeError(false), 1200)
+      return
+    }
+    shopMergeDice(firstMergeId, dieId, mergeCost)
+    setActiveAction(null)
+    setFirstMergeId(null)
+    setMergeError(false)
   }
 
+  function handleBack() {
+    if (activeAction === 'merge' && firstMergeId !== null) {
+      setFirstMergeId(null); setMergeError(false)
+    } else if (selectedDieId) {
+      setSelectedDieId(null)
+    } else {
+      setActiveAction(null); setFirstMergeId(null)
+    }
+  }
+
+  const canMerge = gold >= mergeCost &&
+    inventory.some((d, i) => inventory.some((d2, j) => i !== j && d.dieType === d2.dieType))
+
   const subheaderText =
-    activeAction === null        ? 'Choose a service'               :
+    activeAction === null        ? 'Choose a service'                        :
+    activeAction === 'merge' && firstMergeId === null ? 'Select first die to merge'      :
+    activeAction === 'merge' && firstMergeId !== null ? 'Select an identical die to merge' :
     selectedDieId === null
-      ? (activeAction === 'purify' ? 'Select a die to purify'       : 'Select a die to empower')
-      : (activeAction === 'purify' ? 'Select a skull face'          : 'Select a face to empower')
+      ? (activeAction === 'purify' ? 'Select a die to purify'  : 'Select a die to empower')
+      : (activeAction === 'purify' ? 'Select a skull face'     : 'Select a face to empower')
 
   return (
     <div style={{
@@ -272,11 +323,11 @@ export function ShopScreen() {
           <>
             <ActionCard
               label="REST"
-              cost={10}
+              cost={healCost}
               description={`Recover 30 HP. You currently have ${player.hp}/${player.maxHp} HP.`}
-              disabled={gold < 10 || player.hp >= player.maxHp}
+              disabled={gold < healCost || player.hp >= player.maxHp}
               accentColor="#22c55e"
-              onSelect={() => shopHeal(10, 30)}
+              onSelect={() => shopHeal(healCost, 30)}
             />
             <ActionCard
               label="PURIFY"
@@ -294,16 +345,46 @@ export function ShopScreen() {
               accentColor="#dc2626"
               onSelect={() => { setActiveAction('empower'); setSelectedDieId(null) }}
             />
+            <ActionCard
+              label="MERGE"
+              cost={mergeCost}
+              description="Combine 2 identical dice into 1. All non-skull face values are ×3."
+              disabled={!canMerge}
+              accentColor="#d97706"
+              onSelect={() => { setActiveAction('merge'); setFirstMergeId(null) }}
+            />
           </>
         )}
 
-        {/* Die selection view */}
-        {activeAction !== null && selectedDieId === null && inventory.map((die) => (
+        {/* Die selection view — purify / empower */}
+        {(activeAction === 'purify' || activeAction === 'empower') && selectedDieId === null && inventory.map((die) => (
           <DiePickerRow key={die.id} die={die} onClick={() => setSelectedDieId(die.id)} />
         ))}
 
-        {/* Face selection view */}
-        {activeAction !== null && selectedDie !== null && (
+        {/* Die selection view — merge */}
+        {activeAction === 'merge' && (
+          <>
+            {inventory.map((die) => (
+              <DiePickerRow
+                key={die.id}
+                die={die}
+                isHighlighted={die.id === firstMergeId}
+                onClick={() => handleMergeSelect(die.id)}
+              />
+            ))}
+            {mergeError && (
+              <p style={{
+                fontSize: '0.65rem', color: '#ef4444',
+                textAlign: 'center', margin: 0, letterSpacing: '0.05em',
+              }}>
+                Dice must be of the same type to merge
+              </p>
+            )}
+          </>
+        )}
+
+        {/* Face selection view — purify / empower */}
+        {(activeAction === 'purify' || activeAction === 'empower') && selectedDie !== null && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{
               display: 'flex', alignItems: 'center', gap: 8,

@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence, useMotionValue, useTransform, animate, useAnimate } from 'framer-motion'
-import { Shield, Heart, Swords, Library, Skull, Coins } from 'lucide-react'
+
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
+import { Shield, Heart, Swords, Library, Skull, Coins, Flame } from 'lucide-react'
 import { useGameStore } from '../store/gameStore'
 import type { Die, EnemyIntent, ResolvingPhase, DieType } from '../store/gameStore'
-import { DieCard, faceColor, faceShadow } from './DieCard'
+import { DieCard, faceColor, faceShadow, dieTypeStyle } from './DieCard'
 import { EnemySprite } from './EnemySprite'
 import { DiceInspectorModal } from './DiceInspectorModal'
 
@@ -40,11 +42,13 @@ function HpBar({ hp, maxHp, color }: { hp: number; maxHp: number; color: string 
 }
 
 // ── Damage counter ───────────────────────────────────────────────────────────
-function DamageCounter({ target, rollStartVersion, counterVersion }: {
+function DamageCounter({ target, rollStartVersion, counterVersion, attackTier }: {
   target: number; rollStartVersion: number; counterVersion: number
+  attackTier: 1 | 2 | 3 | null
 }) {
   const count = useMotionValue(0)
   const rounded = useTransform(count, (v) => Math.round(v))
+  const [spanScope, animateSpan] = useAnimate()
 
   useEffect(() => { count.set(0) }, [rollStartVersion])
   useEffect(() => {
@@ -53,8 +57,20 @@ function DamageCounter({ target, rollStartVersion, counterVersion }: {
     return controls.stop
   }, [counterVersion])
 
+  useEffect(() => {
+    if (!spanScope.current || attackTier === null) return
+    if (attackTier === 2) {
+      animateSpan(spanScope.current, { color: ['#fbbf24', '#f97316', '#fbbf24'] }, { duration: 0.5 })
+    } else if (attackTier === 3) {
+      animateSpan(spanScope.current, {
+        scale: [1, 1.5, 1],
+        color: ['#fbbf24', '#ef4444', '#fbbf24'],
+      }, { duration: 0.6 })
+    }
+  }, [attackTier])
+
   return (
-    <motion.span style={{
+    <motion.span ref={spanScope} style={{
       fontSize: '5rem',
       fontWeight: 700,
       color: '#fbbf24',
@@ -219,10 +235,11 @@ function OrbLayer({ playedDice, orbVersion, resolvingDieIndex, damageRef, healRe
     const dr = dieEl.getBoundingClientRect()
 
     const faceType = die.currentFace.type
-    const targetRef = faceType === 'damage' ? damageRef
-                    : faceType === 'heal'   ? healRef
-                    : faceType === 'shield' ? shieldRef
-                    : faceType === 'gold'   ? goldRef
+    const targetRef = faceType === 'damage'    ? damageRef
+                    : faceType === 'lifesteal' ? damageRef
+                    : faceType === 'heal'      ? healRef
+                    : faceType === 'shield'    ? shieldRef
+                    : faceType === 'gold'      ? goldRef
                     : skullRef
     const tr = targetRef.current?.getBoundingClientRect()
     if (!tr) return
@@ -319,8 +336,8 @@ function EnemyOrbLayer({ enemyAttackVersion, enemyEl, playerHpRef }: {
 function IntentBadge({ intent }: { intent: EnemyIntent }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-      <Swords size={18} color="#f87171" strokeWidth={2.5} />
-      <span style={{ fontSize: '1.3rem', fontWeight: 700, color: '#f87171',
+      <Swords size={22} color="#f87171" strokeWidth={2.5} />
+      <span style={{ fontSize: '1.6rem', fontWeight: 700, color: '#f87171',
                      textShadow: '1px 1px 0 #000' }}>
         {intent.value}
       </span>
@@ -398,17 +415,204 @@ function useHitAnimation(hitVersion: number, flashColor: string) {
   return scope
 }
 
+// ── Jackpot overlay ──────────────────────────────────────────────────────────
+function JackpotOverlay({ version }: { version: number }) {
+  const [key, setKey] = useState(0)
+  const [visible, setVisible] = useState(false)
+  const prevVersion = useRef(version)
+
+  useEffect(() => {
+    if (version === prevVersion.current) return
+    prevVersion.current = version
+    setKey((k) => k + 1)
+    setVisible(true)
+    const t = setTimeout(() => setVisible(false), 1200)
+    return () => clearTimeout(t)
+  }, [version])
+
+  return (
+    <AnimatePresence>
+      {visible && (
+        <motion.div
+          key={key}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 200,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            pointerEvents: 'none',
+            maxWidth: 384, margin: '0 auto',
+          }}
+          initial={{ opacity: 1 }}
+          animate={{ opacity: 0 }}
+          transition={{ duration: 1.0, ease: 'easeOut' }}
+        >
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(251,191,36,0.22)' }} />
+          <motion.span
+            style={{
+              position: 'relative',
+              fontSize: '3rem', fontWeight: 900, color: '#fbbf24',
+              textShadow: '3px 3px 0 #78350f, 0 0 30px #fbbf24, 0 0 60px rgba(251,191,36,0.5)',
+              letterSpacing: '0.1em',
+            }}
+            initial={{ scale: 0.3, y: 0 }}
+            animate={{ scale: 1.8, y: -50 }}
+            transition={{ duration: 0.8, ease: 'easeOut' }}
+          >
+            JACKPOT!
+          </motion.span>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
+}
+
+// ── Lifesteal blood particle ──────────────────────────────────────────────────
+function LifestealOrbLayer({ version, enemyEl, playerHpRef }: {
+  version: number
+  enemyEl: HTMLElement | null
+  playerHpRef: React.RefObject<HTMLDivElement | null>
+}) {
+  const [orb, setOrb] = useState<Orb | null>(null)
+  const prevVersion = useRef(version)
+
+  useEffect(() => {
+    if (version === prevVersion.current) return
+    prevVersion.current = version
+    const sr = enemyEl?.getBoundingClientRect()
+    const tr = playerHpRef.current?.getBoundingClientRect()
+    if (!sr || !tr) return
+    setOrb({
+      id: Date.now(),
+      color: '#e879f9', shadow: '#701a75',
+      sx: sr.left + sr.width / 2,
+      sy: sr.top  + sr.height / 2,
+      ex: tr.left + tr.width / 2,
+      ey: tr.top  + tr.height / 2,
+    })
+    setTimeout(() => setOrb(null), 400)
+  }, [version])
+
+  const S = 12
+  return (
+    <AnimatePresence>
+      {orb && (
+        <motion.div
+          key={orb.id}
+          style={{
+            position: 'fixed',
+            width: S, height: S,
+            background: orb.color,
+            border: '2px solid #000',
+            boxShadow: `2px 2px 0 ${orb.shadow}, 0 0 8px ${orb.color}`,
+            pointerEvents: 'none',
+            zIndex: 100,
+          }}
+          initial={{ left: orb.sx - S / 2, top: orb.sy - S / 2, scale: 1.5 }}
+          animate={{ left: orb.ex - S / 2, top: orb.ey - S / 2, scale: 0.5 }}
+          transition={{ duration: 0.35, ease: 'easeIn' }}
+        />
+      )}
+    </AnimatePresence>
+  )
+}
+
+// ── Scout modal ──────────────────────────────────────────────────────────────
+function ScoutModal({ drawPile, onClose }: { drawPile: import('../store/gameStore').Die[]; onClose: () => void }) {
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 50,
+        maxWidth: 384, margin: '0 auto',
+        background: 'rgba(0,0,0,0.75)',
+        display: 'flex', flexDirection: 'column',
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          marginTop: 'auto',
+          background: '#0a0a14',
+          borderTop: '3px solid #4c1d95',
+          maxHeight: '70dvh',
+          display: 'flex', flexDirection: 'column',
+        }}
+      >
+        <div style={{
+          background: '#1a1a2e', padding: '10px 16px',
+          borderBottom: '3px solid #000',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          flexShrink: 0,
+        }}>
+          <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#c4b5fd', letterSpacing: '0.15em' }}>
+            BAG CONTENTS ({drawPile.length} left)
+          </span>
+          <button
+            onClick={onClose}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: 4 }}
+          >
+            ✕
+          </button>
+        </div>
+        <div style={{ overflowY: 'auto', padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {drawPile.length === 0 ? (
+            <span style={{ color: '#6b7280', fontSize: '0.8rem', textAlign: 'center', padding: '12px 0' }}>
+              Bag is empty
+            </span>
+          ) : (
+            drawPile.map((die) => {
+              const s = dieTypeStyle[die.dieType]
+              return (
+                <div key={die.id} style={{
+                  background: '#12121f', border: '2px solid #000',
+                  boxShadow: `3px 3px 0 ${s.shadow}`,
+                  padding: '8px 10px',
+                  display: 'flex', alignItems: 'center', gap: 10,
+                }}>
+                  <div style={{
+                    width: 14, height: 14, flexShrink: 0,
+                    background: s.bg, border: '2px solid #000',
+                    boxShadow: `1px 1px 0 ${s.shadow}`,
+                  }} />
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: s.bg, flex: 1, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    {die.dieType}
+                  </span>
+                  <div style={{ display: 'flex', gap: 3 }}>
+                    {die.faces.map((face, i) => (
+                      <div key={i} style={{
+                        width: 28, height: 28,
+                        background: s.bg, border: '2px solid #000',
+                        boxShadow: `1px 1px 0 ${s.shadow}`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '0.65rem', fontWeight: 700,
+                        color: face.type === 'skull' ? faceColor.skull : s.text,
+                      }}>
+                        {face.type === 'skull' ? '💀' : face.value}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            })
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Main screen ──────────────────────────────────────────────────────────────
 export function CombatScreen() {
   const {
     player, enemy,
     drawPile, playedDice, skullCount, skullRolledVersion,
     totalDamage, totalHeal, totalShield, totalGold,
-    lastEffects, turnPhase,
+    lastEffects, turnPhase, playerAttackAnimTier,
     enemyHitVersion, playerHitVersion, playerEffectVersion,
     orbVersion, counterVersion, rollStartVersion, resolvingDieIndex, resolvingPhase, enemyAttackVersion,
-    currentFloor, drawAndRoll, bankAndAttack,
+    currentFloor, gold, drawAndRoll, bankAndAttack, unlockedNodes,
   } = useGameStore()
+
+  const metaSouls = useGameStore((s) => s.metaSouls)
 
   const enemyScope  = useHitAnimation(enemyHitVersion,  'rgba(220,38,38,0.45)')
   const playerScope = useHitAnimation(playerHitVersion, 'rgba(220,38,38,0.45)')
@@ -420,6 +624,36 @@ export function CombatScreen() {
     prevAttackVersion.current = enemyAttackVersion
     animateLunge(lungeScope.current, { y: [0, 22, 0] }, { duration: 0.35, ease: 'easeOut' })
   }, [enemyAttackVersion])
+
+  const [zoneBScope, animateZoneB] = useAnimate()
+
+  useEffect(() => {
+    if (playerAttackAnimTier === null || !zoneBScope.current) return
+    const doAnim = async () => {
+      if (playerAttackAnimTier === 1) {
+        const anim = animateZoneB(zoneBScope.current, { y: [0, -30, 0] }, { duration: 0.2, ease: 'easeInOut' })
+        await sleep(100)
+        useGameStore.setState((s) => ({ enemyHitVersion: s.enemyHitVersion + 1 }))
+        await anim
+      } else if (playerAttackAnimTier === 2) {
+        const anim = animateZoneB(zoneBScope.current, { y: [0, 15, -60, 0] }, { duration: 0.35, ease: 'easeInOut' })
+        await sleep(233)
+        useGameStore.setState((s) => ({ enemyHitVersion: s.enemyHitVersion + 1 }))
+        await anim
+      } else {
+        await animateZoneB(zoneBScope.current, { x: [-5, 5, -5, 5, -5, 5, 0] }, { duration: 0.2, ease: 'easeOut' })
+        const anim = animateZoneB(zoneBScope.current, {
+          y: [0, 20, -100, 0],
+          boxShadow: ['0px 0px 0px rgba(220,38,38,0)', '0px 0px 40px rgba(220,38,38,0.8)', '0px 0px 0px rgba(220,38,38,0)'],
+        }, { duration: 0.3, ease: 'easeInOut' })
+        await sleep(150)
+        useGameStore.setState((s) => ({ enemyHitVersion: s.enemyHitVersion + 1 }))
+        await anim
+      }
+      animateZoneB(zoneBScope.current, { y: 0, x: 0 }, { duration: 0 })
+    }
+    doAnim()
+  }, [playerAttackAnimTier])
 
   const damageRef   = useRef<HTMLDivElement>(null)
   const healRef     = useRef<HTMLDivElement>(null)
@@ -438,11 +672,51 @@ export function CombatScreen() {
     prevPhase.current = resolvingPhase
   }, [resolvingPhase])
 
+  const prevResPhase = useRef<ResolvingPhase>(null)
+  useEffect(() => {
+    if (resolvingPhase === 'landed' && prevResPhase.current === 'spinning' && resolvingDieIndex !== null) {
+      const die = playedDice[resolvingDieIndex]
+      if (die?.currentFace) {
+        if (die.dieType === 'jackpot' && die.currentFace.type === 'damage' && die.currentFace.value === 30) {
+          setJackpotVersion((v) => v + 1)
+        }
+        if (die.currentFace.type === 'lifesteal') {
+          setLifesteelOrbVersion((v) => v + 1)
+        }
+      }
+    }
+    prevResPhase.current = resolvingPhase
+  }, [resolvingPhase])
+
   const isIdle = turnPhase === 'idle'
   const canDraw = isIdle && drawPile.length > 0
   const canBank = isIdle && playedDice.length > 0
 
   const [inspectorOpen, setInspectorOpen] = useState(false)
+  const [jackpotVersion, setJackpotVersion] = useState(0)
+  const [lifesteelOrbVersion, setLifesteelOrbVersion] = useState(0)
+  const [showScout, setShowScout] = useState(false)
+  const [isAutoRolling, setIsAutoRolling] = useState(false)
+  const autoRollRef = useRef(false)
+
+  const hasScouting = unlockedNodes.includes('zmumocry')
+  const hasAutoRoll = unlockedNodes.includes('w6bsuulh')
+
+  const startAutoRoll = async () => {
+    autoRollRef.current = true
+    setIsAutoRolling(true)
+    while (autoRollRef.current) {
+      const s = useGameStore.getState()
+      if (s.skullCount >= 2 || s.drawPile.length === 0 || s.turnPhase !== 'idle') break
+      await drawAndRoll()
+      await new Promise<void>((r) => setTimeout(r, 100))
+    }
+    autoRollRef.current = false
+    setIsAutoRolling(false)
+  }
+
+  const stopAutoRoll = () => { autoRollRef.current = false }
+
   const bagTypes = [...new Set([...drawPile, ...playedDice].map((d) => d.dieType))] as DieType[]
 
   const drawButtonLabel =
@@ -457,6 +731,35 @@ export function CombatScreen() {
       display: 'flex', flexDirection: 'column',
       background: '#0f0f1a', color: '#fff', overflow: 'hidden',
     }}>
+
+      {/* Meta HUD */}
+      <div style={{
+        background: '#12121f',
+        borderBottom: '2px solid #000',
+        padding: '4px 14px',
+        display: 'flex', alignItems: 'center', gap: 10,
+      }}>
+        <Coins size={15} color="#fbbf24" strokeWidth={2.5} />
+        <span style={{ fontSize: '1.1rem', fontWeight: 900, color: '#fbbf24', lineHeight: 1 }}>
+          {gold}
+        </span>
+        <span style={{ fontSize: '0.6rem', color: '#92400e', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
+          Gold
+        </span>
+        <span style={{ color: '#374151', fontSize: '0.7rem', margin: '0 2px' }}>|</span>
+        <Flame size={15} color="#a855f7" strokeWidth={2.5} />
+        <motion.span
+          key={metaSouls}
+          animate={{ scale: [1, 1.3, 1] }}
+          transition={{ duration: 0.3 }}
+          style={{ fontSize: '1.1rem', fontWeight: 900, color: '#a855f7', lineHeight: 1 }}
+        >
+          {metaSouls}
+        </motion.span>
+        <span style={{ fontSize: '0.6rem', color: '#7c3aed', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
+          Souls
+        </span>
+      </div>
 
       {/* Shake container wraps Zones A–C */}
       <div ref={shakeRef} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
@@ -489,7 +792,7 @@ export function CombatScreen() {
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{
-                fontSize: '1.1rem', fontWeight: 700,
+                fontSize: '1.6rem', fontWeight: 700,
                 color: enemy.isBoss ? '#fca5a5' : '#f87171',
                 textShadow: enemy.isBoss ? '2px 2px 0 #7f1d1d' : '2px 2px 0 #000',
               }}>
@@ -497,13 +800,14 @@ export function CombatScreen() {
               </span>
               <IntentBadge intent={enemy.intent} />
             </div>
-            <span style={{ fontSize: '1rem', fontWeight: 700, color: '#d1d5db' }}>{enemy.hp} / {enemy.maxHp} HP</span>
+            <span style={{ fontSize: '1.25rem', fontWeight: 700, color: '#d1d5db' }}>{enemy.hp} / {enemy.maxHp} HP</span>
             <HpBar hp={enemy.hp} maxHp={enemy.maxHp} color={enemy.isBoss ? '#b91c1c' : '#ef4444'} />
           </div>
         </motion.div>
       </div>
 
       {/* Zone B — Player / Total Damage */}
+      <motion.div ref={zoneBScope}>
       <div
         ref={playerScope}
         style={{
@@ -546,7 +850,7 @@ export function CombatScreen() {
             </div>
           </div>
           <div ref={damageRef}>
-            <DamageCounter target={totalDamage} rollStartVersion={rollStartVersion} counterVersion={counterVersion} />
+            <DamageCounter target={totalDamage} rollStartVersion={rollStartVersion} counterVersion={counterVersion} attackTier={playerAttackAnimTier} />
           </div>
 
           {/* Stat badges — always reserve space to prevent layout shift */}
@@ -584,6 +888,7 @@ export function CombatScreen() {
           </div>
         </div>
       </div>
+      </motion.div>
 
       {/* Enemy attack orb overlay */}
       <EnemyOrbLayer
@@ -633,21 +938,36 @@ export function CombatScreen() {
       {/* Zone D — Actions */}
       <div style={{
         background: '#1a1a2e', padding: '16px', borderTop: '3px solid #000',
-        display: 'flex', gap: 10,
+        display: 'flex', gap: 8,
       }}>
         <button
           onClick={drawAndRoll}
-          disabled={!canDraw}
+          disabled={!canDraw || isAutoRolling}
           className="pixel-btn"
           style={{
             flex: 1,
             background: canDraw ? '#4f46e5' : '#374151',
-            opacity: !isIdle ? 0.75 : canDraw ? 1 : 0.5,
-            cursor: canDraw ? 'pointer' : 'not-allowed',
+            opacity: !isIdle || isAutoRolling ? 0.75 : canDraw ? 1 : 0.5,
+            cursor: canDraw && !isAutoRolling ? 'pointer' : 'not-allowed',
           }}
         >
           {drawButtonLabel}
         </button>
+        {hasAutoRoll && (
+          <button
+            onClick={isAutoRolling ? stopAutoRoll : startAutoRoll}
+            disabled={!isAutoRolling && !canDraw}
+            className="pixel-btn"
+            style={{
+              flex: 1,
+              background: isAutoRolling ? '#7f1d1d' : canDraw ? '#4338ca' : '#374151',
+              opacity: (!isAutoRolling && !canDraw) ? 0.5 : 1,
+              cursor: isAutoRolling || canDraw ? 'pointer' : 'not-allowed',
+            }}
+          >
+            {isAutoRolling ? '■ STOP' : '⚡ AUTO'}
+          </button>
+        )}
         <button
           onClick={bankAndAttack}
           disabled={!canBank}
@@ -661,6 +981,20 @@ export function CombatScreen() {
         >
           ATTACK!
         </button>
+        {hasScouting && (
+          <button
+            onClick={() => setShowScout(true)}
+            className="pixel-btn"
+            style={{
+              width: 48, flexShrink: 0,
+              background: '#1e293b',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: 0, fontSize: '1.1rem',
+            }}
+          >
+            🔎
+          </button>
+        )}
         <button
           onClick={() => setInspectorOpen(true)}
           disabled={bagTypes.length === 0}
@@ -684,8 +1018,17 @@ export function CombatScreen() {
           onClose={() => setInspectorOpen(false)}
         />
       )}
+      {showScout && (
+        <ScoutModal drawPile={drawPile} onClose={() => setShowScout(false)} />
+      )}
 
       <SkullJumpscareOverlay skullRolledVersion={skullRolledVersion} />
+      <JackpotOverlay version={jackpotVersion} />
+      <LifestealOrbLayer
+        version={lifesteelOrbVersion}
+        enemyEl={enemyScope.current}
+        playerHpRef={playerHpRef}
+      />
     </div>
   )
 }
