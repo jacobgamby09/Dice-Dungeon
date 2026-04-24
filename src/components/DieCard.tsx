@@ -19,7 +19,7 @@ export const dieTypeStyle: Record<DieType, { bg: string; shadow: string; text: s
   jackpot:       { bg: '#fbbf24', shadow: '#78350f',  text: '#1c0a00' },
   vampire:       { bg: '#7f1d1d', shadow: '#450a0a',  text: '#fca5a5' },
   priest:        { bg: '#fef9c3', shadow: '#a16207',  text: '#713f12' },
-  fortune_teller:{ bg: '#1e1b4b', shadow: '#0f0c2e',  text: '#c7d2fe' },
+  fortune_teller:{ bg: '#6366f1', shadow: '#1e1b4b',  text: '#e0e7ff' },
 }
 
 // Custom loot dice use their die text color for all face content (monochrome)
@@ -246,6 +246,47 @@ function WallImpactFlash() {
   )
 }
 
+// ── Priest: holy beam + rising gold particles ─────────────────────────────────
+
+const PRIEST_PARTICLES = [
+  { left: '22%', delay: 0    },
+  { left: '45%', delay: 0.07 },
+  { left: '68%', delay: 0.14 },
+  { left: '35%', delay: 0.04 },
+]
+
+function PriestBeam() {
+  return (
+    <>
+      <motion.div
+        style={{
+          position: 'absolute', left: '50%', top: -18,
+          width: 22, height: 'calc(100% + 36px)', marginLeft: -11,
+          background: 'rgba(251,191,36,0.32)',
+          pointerEvents: 'none', zIndex: 20,
+        }}
+        initial={{ opacity: 0, scaleX: 0 }}
+        animate={{ opacity: [0, 1, 0], scaleX: [0, 1, 0] }}
+        transition={{ duration: 0.48, ease: 'easeOut' }}
+      />
+      {PRIEST_PARTICLES.map((p, i) => (
+        <motion.div
+          key={i}
+          style={{
+            position: 'absolute', width: 4, height: 4,
+            background: '#fbbf24', border: '1px solid #92400e',
+            left: p.left, top: '45%',
+            pointerEvents: 'none', zIndex: 40,
+          }}
+          initial={{ y: 0, opacity: 1, scale: 1 }}
+          animate={{ y: -36, opacity: 0, scale: 0.5 }}
+          transition={{ duration: 0.6, delay: p.delay, ease: 'easeOut' }}
+        />
+      ))}
+    </>
+  )
+}
+
 // ── DieCard ──────────────────────────────────────────────────────────────────
 
 interface DieCardProps {
@@ -294,22 +335,22 @@ export function DieCard({
   let outerSpinTransition: Record<string, unknown>
 
   if (die.dieType === 'heavy') {
-    outerSpinAnimate   = { y: -150, scale: 2, rotate: -15, filter: 'blur(1px)' }
+    outerSpinAnimate   = { y: -70, scale: 2, rotate: -15, filter: 'blur(1px)' }
     outerSpinTransition = {
       y:      { duration: 0.18, ease: 'easeOut' },
       scale:  { duration: 0.18 },
       rotate: { duration: 0.18 },
       filter: { duration: 0.1 },
     }
-  } else if (die.dieType === 'paladin') {
-    outerSpinAnimate   = { y: -80, opacity: 0.1, filter: 'blur(0.5px)', scale: 1 }
+  } else if (die.dieType === 'paladin' || die.dieType === 'priest') {
+    outerSpinAnimate   = { y: -40, opacity: 0.1, filter: 'blur(0.5px)', scale: 1 }
     outerSpinTransition = {
       y:       { duration: 0.25, ease: 'easeOut' },
       opacity: { duration: 0.2 },
       filter:  { duration: 0.15 },
     }
   } else if (die.dieType === 'gambler') {
-    outerSpinAnimate   = { y: -100, filter: 'blur(2px)', rotateY: 360, scale: 1 }
+    outerSpinAnimate   = { y: -50, filter: 'blur(2px)', rotateY: 360, scale: 1 }
     outerSpinTransition = {
       y:       { duration: 0.2, ease: 'easeOut' },
       filter:  { duration: 0.15 },
@@ -325,14 +366,14 @@ export function DieCard({
       filter:  { duration: 0.1 },
     }
   } else if (die.dieType === 'wall') {
-    outerSpinAnimate   = { y: -100, scale: 1.2, filter: 'blur(1px)' }
+    outerSpinAnimate   = { y: -50, scale: 1.2, filter: 'blur(1px)' }
     outerSpinTransition = {
       y:      { duration: 0.16, ease: 'easeOut' },
       scale:  { duration: 0.16 },
       filter: { duration: 0.1 },
     }
   } else {
-    outerSpinAnimate   = { y: -54, filter: 'blur(2.5px)', rotateY: 360, scale: 1 }
+    outerSpinAnimate   = { y: -28, filter: 'blur(2.5px)', rotateY: 360, scale: 1 }
     outerSpinTransition = {
       y:       { duration: 0.22, ease: 'easeOut' },
       filter:  { duration: 0.15 },
@@ -353,7 +394,7 @@ export function DieCard({
       rotate: { type: 'spring', stiffness: 400, damping: 10 },
       filter: { duration: 0.08 },
     }
-  } else if (die.dieType === 'paladin') {
+  } else if (die.dieType === 'paladin' || die.dieType === 'priest') {
     outerLandAnimate   = { y: 0, opacity: 1, filter: 'blur(0px)', scale: 1 }
     outerLandTransition = {
       y:       { type: 'spring', stiffness: 100, damping: 15 },
@@ -396,7 +437,7 @@ export function DieCard({
 
   // Idle — restore any props animated during spin (opacity, x, rotateZ)
   let outerIdleAnimate: Record<string, unknown>
-  if (die.dieType === 'paladin') {
+  if (die.dieType === 'paladin' || die.dieType === 'priest') {
     outerIdleAnimate = { y: 0, filter: 'blur(0px)', rotateY: 0, scale: 1, opacity: 1 }
   } else if (die.dieType === 'scavenger') {
     outerIdleAnimate = { x: 0, rotateZ: 0, opacity: 1, filter: 'blur(0px)', scale: 1 }
@@ -539,6 +580,13 @@ export function DieCard({
         {/* Wall — blue shield-impact flash */}
         <AnimatePresence>
           {die.dieType === 'wall' && burst && <WallImpactFlash key="wall-flash" />}
+        </AnimatePresence>
+
+        {/* Priest — holy beam + rising particles on heal */}
+        <AnimatePresence>
+          {die.dieType === 'priest' && burst && face?.type === 'heal' && (
+            <PriestBeam key="priest-beam" />
+          )}
         </AnimatePresence>
       </motion.div>
     </motion.div>
