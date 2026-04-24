@@ -1,23 +1,25 @@
-import { X, Swords, Shield, Heart, Skull, Coins, Droplets } from 'lucide-react'
+import { X, Swords, Shield, Heart, Skull, Coins, Droplets, Star } from 'lucide-react'
 import { DIE_TEMPLATES } from '../store/gameStore'
 import type { DieType, DieFace } from '../store/gameStore'
 import { dieTypeStyle, faceColor } from './DieCard'
 
-const LIBRARY_TYPES: DieType[] = ['white', 'blue', 'green', 'cursed', 'heavy', 'paladin', 'gambler', 'scavenger', 'wall', 'jackpot', 'vampire']
+const LIBRARY_TYPES: DieType[] = ['white', 'blue', 'green', 'cursed', 'heavy', 'paladin', 'gambler', 'scavenger', 'wall', 'jackpot', 'vampire', 'priest', 'fortune_teller']
 
 const DIE_NAMES: Record<DieType, string> = {
-  white:     'Standard',
-  blue:      'Guard',
-  green:     'Mender',
-  cursed:    'Cursed',
-  heavy:     'The Heavy',
-  paladin:   'The Paladin',
-  gambler:   'The Gambler',
-  scavenger: 'The Scavenger',
-  wall:      'The Wall',
-  curse:     'The Curse',
-  jackpot:   'The Jackpot',
-  vampire:   'The Vampire',
+  white:          'Standard',
+  blue:           'Guard',
+  green:          'Mender',
+  cursed:         'Cursed',
+  heavy:          'The Heavy',
+  paladin:        'The Paladin',
+  gambler:        'The Gambler',
+  scavenger:      'The Scavenger',
+  wall:           'The Wall',
+  curse:          'The Curse',
+  jackpot:        'The Jackpot',
+  vampire:        'The Vampire',
+  priest:         'The Priest',
+  fortune_teller: 'The Fortune Teller',
 }
 
 function FaceIcon({ type, size = 11 }: { type: DieFace['type']; size?: number }) {
@@ -26,7 +28,8 @@ function FaceIcon({ type, size = 11 }: { type: DieFace['type']; size?: number })
   if (type === 'shield')    return <Shield   size={size} color={color} strokeWidth={2.5} />
   if (type === 'skull')     return <Skull    size={size} color={color} strokeWidth={2.5} />
   if (type === 'gold')      return <Coins    size={size} color={color} strokeWidth={2.5} />
-  if (type === 'lifesteal') return <Droplets size={size} color={color} strokeWidth={2.5} />
+  if (type === 'lifesteal')   return <Droplets size={size} color={color} strokeWidth={2.5} />
+  if (type === 'choose_next') return <Star     size={size} color={color} strokeWidth={2.5} />
   return <Heart size={size} color={color} strokeWidth={2.5} />
 }
 
@@ -104,8 +107,8 @@ export function DiceLibrary({ onClose }: { onClose: () => void }) {
                       alignItems: 'center', justifyContent: 'center', gap: 2,
                     }}
                   >
-                    {face.type === 'skull' ? (
-                      <FaceIcon type="skull" size={14} />
+                    {face.type === 'skull' || face.type === 'choose_next' ? (
+                      <FaceIcon type={face.type} size={14} />
                     ) : (
                       <>
                         <span style={{ fontSize: '0.75rem', fontWeight: 700, color: s.text, lineHeight: 1 }}>

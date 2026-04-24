@@ -235,6 +235,7 @@ function OrbLayer({ playedDice, orbVersion, resolvingDieIndex, damageRef, healRe
     const dr = dieEl.getBoundingClientRect()
 
     const faceType = die.currentFace.type
+    if (faceType === 'choose_next') return
     const targetRef = faceType === 'damage'    ? damageRef
                     : faceType === 'lifesteal' ? damageRef
                     : faceType === 'heal'      ? healRef
@@ -515,6 +516,98 @@ function LifestealOrbLayer({ version, enemyEl, playerHpRef }: {
   )
 }
 
+// ── Fortune Teller modal ─────────────────────────────────────────────────────
+function FortuneTellerModal({ drawPile }: { drawPile: import('../store/gameStore').Die[] }) {
+  const drawSpecificDie = useGameStore((s) => s.drawSpecificDie)
+
+  return (
+    <div
+      style={{
+        position: 'fixed', inset: 0, zIndex: 60,
+        maxWidth: 384, margin: '0 auto',
+        background: 'rgba(0,0,0,0.85)',
+        display: 'flex', flexDirection: 'column',
+      }}
+    >
+      <div
+        style={{
+          marginTop: 'auto',
+          background: '#0a0a14',
+          borderTop: '3px solid #4338ca',
+          maxHeight: '75dvh',
+          display: 'flex', flexDirection: 'column',
+        }}
+      >
+        <div style={{
+          background: '#1e1b4b', padding: '10px 16px',
+          borderBottom: '3px solid #000',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          flexShrink: 0,
+        }}>
+          <span style={{ fontWeight: 700, fontSize: '0.85rem', color: '#c7d2fe', letterSpacing: '0.12em' }}>
+            ✦ FORTUNE TELLER — Choose Your Next Die
+          </span>
+          <button
+            onClick={() => useGameStore.setState({ isChoosingNextDie: false })}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: 4 }}
+          >
+            ✕
+          </button>
+        </div>
+        <div style={{ overflowY: 'auto', padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {drawPile.length === 0 ? (
+            <span style={{ color: '#6b7280', fontSize: '0.8rem', textAlign: 'center', padding: '12px 0' }}>
+              Bag is empty
+            </span>
+          ) : (
+            drawPile.map((die) => {
+              const s = dieTypeStyle[die.dieType]
+              return (
+                <button
+                  key={die.id}
+                  onClick={() => drawSpecificDie(die.id)}
+                  style={{
+                    background: '#12121f', border: `2px solid ${s.shadow}`,
+                    boxShadow: `3px 3px 0 ${s.shadow}`,
+                    padding: '8px 10px', cursor: 'pointer', fontFamily: 'inherit',
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    transition: 'background 0.1s',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = '#1a1a2e')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = '#12121f')}
+                >
+                  <div style={{
+                    width: 14, height: 14, flexShrink: 0,
+                    background: s.bg, border: '2px solid #000',
+                    boxShadow: `1px 1px 0 ${s.shadow}`,
+                  }} />
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: s.bg, flex: 1, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    {die.dieType.replace('_', ' ')}
+                  </span>
+                  <div style={{ display: 'flex', gap: 3 }}>
+                    {die.faces.map((face, i) => (
+                      <div key={i} style={{
+                        width: 28, height: 28,
+                        background: s.bg, border: '2px solid #000',
+                        boxShadow: `1px 1px 0 ${s.shadow}`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '0.65rem', fontWeight: 700,
+                        color: face.type === 'skull' ? faceColor.skull : s.text,
+                      }}>
+                        {face.type === 'skull' ? '💀' : face.type === 'choose_next' ? '✦' : face.value}
+                      </div>
+                    ))}
+                  </div>
+                </button>
+              )
+            })
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Scout modal ──────────────────────────────────────────────────────────────
 function ScoutModal({ drawPile, onClose }: { drawPile: import('../store/gameStore').Die[]; onClose: () => void }) {
   return (
@@ -609,7 +702,7 @@ export function CombatScreen() {
     lastEffects, turnPhase, playerAttackAnimTier,
     enemyHitVersion, playerHitVersion, playerEffectVersion,
     orbVersion, counterVersion, rollStartVersion, resolvingDieIndex, resolvingPhase, enemyAttackVersion,
-    currentFloor, gold, drawAndRoll, bankAndAttack, unlockedNodes,
+    currentFloor, gold, drawAndRoll, bankAndAttack, unlockedNodes, isChoosingNextDie,
   } = useGameStore()
 
   const metaSouls = useGameStore((s) => s.metaSouls)
@@ -689,7 +782,7 @@ export function CombatScreen() {
   }, [resolvingPhase])
 
   const isIdle = turnPhase === 'idle'
-  const canDraw = isIdle && drawPile.length > 0
+  const canDraw = isIdle && drawPile.length > 0 && !isChoosingNextDie
   const canBank = isIdle && playedDice.length > 0
 
   const [inspectorOpen, setInspectorOpen] = useState(false)
@@ -707,7 +800,7 @@ export function CombatScreen() {
     setIsAutoRolling(true)
     while (autoRollRef.current) {
       const s = useGameStore.getState()
-      if (s.skullCount >= 2 || s.drawPile.length === 0 || s.turnPhase !== 'idle') break
+      if (s.skullCount >= 2 || s.drawPile.length === 0 || s.turnPhase !== 'idle' || s.isChoosingNextDie) break
       await drawAndRoll()
       await new Promise<void>((r) => setTimeout(r, 100))
     }
@@ -1017,6 +1110,9 @@ export function CombatScreen() {
           types={bagTypes}
           onClose={() => setInspectorOpen(false)}
         />
+      )}
+      {isChoosingNextDie && (
+        <FortuneTellerModal drawPile={drawPile} />
       )}
       {showScout && (
         <ScoutModal drawPile={drawPile} onClose={() => setShowScout(false)} />

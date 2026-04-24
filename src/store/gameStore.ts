@@ -4,13 +4,13 @@ import { persist } from 'zustand/middleware'
 // ── Core types ───────────────────────────────────────────────────────────────
 
 export interface DieFace {
-  type: 'damage' | 'shield' | 'heal' | 'skull' | 'gold' | 'lifesteal'
+  type: 'damage' | 'shield' | 'heal' | 'skull' | 'gold' | 'lifesteal' | 'choose_next'
   value: number
 }
 
 export type DieType = 'white' | 'blue' | 'green' | 'cursed'
                     | 'heavy' | 'paladin' | 'gambler' | 'scavenger' | 'wall'
-                    | 'curse' | 'jackpot' | 'vampire'
+                    | 'curse' | 'jackpot' | 'vampire' | 'priest' | 'fortune_teller'
 
 export interface Die {
   id: string
@@ -182,6 +182,30 @@ export const DIE_TEMPLATES: Record<DieType, { sides: number; faces: DieFace[]; r
       { type: 'skull',     value: 1 },
     ],
   },
+  priest: {
+    sides: 6,
+    rarity: 'legendary',
+    faces: [
+      { type: 'heal', value: 1 },
+      { type: 'heal', value: 2 },
+      { type: 'heal', value: 2 },
+      { type: 'heal', value: 3 },
+      { type: 'heal', value: 3 },
+      { type: 'heal', value: 4 },
+    ],
+  },
+  fortune_teller: {
+    sides: 6,
+    rarity: 'legendary',
+    faces: [
+      { type: 'choose_next', value: 0 },
+      { type: 'choose_next', value: 0 },
+      { type: 'choose_next', value: 0 },
+      { type: 'choose_next', value: 0 },
+      { type: 'skull',       value: 1 },
+      { type: 'skull',       value: 1 },
+    ],
+  },
 }
 
 function createDie(type: DieType, id: string): Die {
@@ -242,10 +266,12 @@ interface GameState {
   unlockedNodes: string[]
   selectedClass: string
   playerAttackAnimTier: 1 | 2 | 3 | null
+  isChoosingNextDie: boolean
   usedSecondWind: boolean
   firstAttackThisEncounter: boolean
   startCombat: () => void
   drawAndRoll: () => Promise<void>
+  drawSpecificDie: (dieId: string) => Promise<void>
   bankAndAttack: () => Promise<void>
   selectDraftDie: (dieId: string) => void
   skipDraft: () => void
@@ -274,7 +300,7 @@ export const SKILL_TREE_NODES: SkillNode[] = [
   { id: 'fyuwvmzq', name: 'Vitality I',            description: '+10 Max HP.',                                      cost: 100,  x: 208.078125,  y: 71,   requires: ['sflz4yv3'] },
   { id: 'g1atjka6', name: 'First Blood',           description: 'First attack each encounter gives +1 damage.',     cost: 100,  x: 3.84375,     y: 141,  requires: ['sflz4yv3'] },
   { id: 'kec9ybn2', name: 'New Dice: The Jackpot', description: 'Adds The Jackpot to the dice loot pool.',          cost: 700,  x: -43.828125,  y: -236, requires: ['sflz4yv3'] },
-  { id: '60vc1fvg', name: 'New Dice: The Vampire', description: 'Adds The Vampire to the dice loot pool.',          cost: 700,  x: 122.875,     y: -237, requires: ['sflz4yv3'] },
+  { id: '60vc1fvg', name: 'New Dice: The Vampire', description: 'Adds The Vampire to the dice loot pool.',          cost: 700,  x: 145.847,     y: -358, requires: ['dx6jq5y5'] },
   { id: '7jutuf9h', name: 'Haggler',               description: 'Rest costs 5 Gold instead of 10.',                 cost: 300,  x: 310.171875,  y: -223, requires: ['tqo6xv7r'] },
   { id: 'r9v5wdgh', name: 'Bounty Hunter',         description: 'Bosses drop 10 extra Gold.',                       cost: 200,  x: 423.171875,  y: -98,  requires: ['tqo6xv7r'] },
   { id: 'aw2b29dw', name: 'Thick Skin',            description: 'Heal 15% of max HP after defeating a boss.',       cost: 150,  x: 394.40625,   y: 14,   requires: ['fyuwvmzq'] },
@@ -284,6 +310,8 @@ export const SKILL_TREE_NODES: SkillNode[] = [
   { id: '7nescabs', name: 'Second Wind',           description: 'Once per run, revive with 20 HP instead of dying.', cost: 1000, x: 776.84375,  y: 13,   requires: ['co2xusrh'] },
   { id: 'zmumocry', name: 'Scouting',              description: 'You can always see what dice are left in your bag.', cost: 500,  x: -194.9375,  y: 123,  requires: ['sflz4yv3'] },
   { id: 'w6bsuulh', name: 'Auto Roll',             description: 'Auto-draws dice until you reach 2 skulls.',          cost: 500,  x: -375.9375,  y: 211,  requires: ['zmumocry'] },
+  { id: 'dx6jq5y5', name: 'New Dice: The Priest',          description: 'Adds The Priest to the dice loot pool.',          cost: 700,  x: 139.167,    y: -246, requires: ['sflz4yv3'] },
+  { id: 'qevchxm7', name: 'New Dice: The Fortune Teller',  description: 'Adds The Fortune Teller to the dice loot pool.', cost: 700,  x: -40.724,    y: -347, requires: ['kec9ybn2'] },
 ]
 
 export function getClassPreviewDice(cls: string): Die[] {
@@ -314,16 +342,16 @@ export function getClassPreviewDice(cls: string): Die[] {
 }
 
 const BESTIARY: EnemyTemplate[] = [
-  { name: 'Slime',    baseHp: 28,  intentMin: 3,  intentMax: 5,  isBoss: false },
-  { name: 'Goblin',   baseHp: 42,  intentMin: 5,  intentMax: 8,  isBoss: false },
-  { name: 'Skeleton', baseHp: 50,  intentMin: 4,  intentMax: 10, isBoss: false },
-  { name: 'Orc',      baseHp: 60,  intentMin: 8,  intentMax: 12, isBoss: false },
-  { name: 'Demon',    baseHp: 70,  intentMin: 8,  intentMax: 12, isBoss: true  },
+  { name: 'Slime',    baseHp: 28,  intentMin: 2,  intentMax: 4,  isBoss: false },
+  { name: 'Goblin',   baseHp: 42,  intentMin: 4,  intentMax: 6,  isBoss: false },
+  { name: 'Skeleton', baseHp: 50,  intentMin: 3,  intentMax: 7,  isBoss: false },
+  { name: 'Orc',      baseHp: 60,  intentMin: 6,  intentMax: 9,  isBoss: false },
+  { name: 'Demon',    baseHp: 70,  intentMin: 4,  intentMax: 7,  isBoss: true  },
 ]
 
 function rollIntent(template: EnemyTemplate, floor: number): EnemyIntent {
   const base = template.intentMin + Math.floor(Math.random() * (template.intentMax - template.intentMin + 1))
-  return { type: 'attack', value: base + (floor - 1) }
+  return { type: 'attack', value: base + Math.floor((floor - 1) * 0.5) }
 }
 
 function spawnEnemy(floor: number): Enemy {
@@ -345,6 +373,8 @@ function getDiceLootPool(unlockedNodes: string[]): DieType[] {
   const pool: DieType[] = ['heavy', 'paladin', 'gambler', 'scavenger', 'wall']
   if (unlockedNodes.includes('kec9ybn2')) pool.push('jackpot')
   if (unlockedNodes.includes('60vc1fvg')) pool.push('vampire')
+  if (unlockedNodes.includes('dx6jq5y5')) pool.push('priest')
+  if (unlockedNodes.includes('qevchxm7')) pool.push('fortune_teller')
   return pool
 }
 
@@ -381,6 +411,7 @@ export const useGameStore = create<GameState>()(
   unlockedNodes: ['sflz4yv3'],
   selectedClass: 'standard',
   playerAttackAnimTier: null,
+  isChoosingNextDie: false,
   usedSecondWind: false,
   firstAttackThisEncounter: true,
 
@@ -449,6 +480,7 @@ export const useGameStore = create<GameState>()(
       rollStartVersion: s.rollStartVersion + 1,
       resolvingDieIndex: null, resolvingPhase: null,
       draftChoices: [], lastGoldEarned: 0,
+      isChoosingNextDie: false,
       usedSecondWind: false,
       firstAttackThisEncounter: true,
     }))
@@ -542,6 +574,94 @@ export const useGameStore = create<GameState>()(
       return
     }
 
+    // Fortune Teller: open the choose-next modal if draw pile has dice remaining
+    if (face.type === 'choose_next' && get().drawPile.length > 0) {
+      set({ turnPhase: 'idle', isChoosingNextDie: true })
+    } else {
+      set({ turnPhase: 'idle' })
+    }
+  },
+
+  drawSpecificDie: async (dieId: string) => {
+    const s = get()
+    if (s.turnPhase !== 'idle') return
+
+    const dieIdx = s.drawPile.findIndex((d) => d.id === dieId)
+    if (dieIdx === -1) return
+
+    const drawn     = s.drawPile[dieIdx]
+    const face      = rollFace(drawn)
+    const nextIndex = s.playedDice.length
+
+    set((st) => ({
+      isChoosingNextDie: false,
+      turnPhase: 'drawing',
+      drawPile: st.drawPile.filter((_, i) => i !== dieIdx),
+      resolvingDieIndex: nextIndex,
+      resolvingPhase: null,
+    }))
+    await sleep(40)
+
+    set((st) => ({
+      playedDice: [...st.playedDice, { ...drawn, currentFace: undefined }],
+      resolvingPhase: 'spinning',
+    }))
+    await sleep(300)
+
+    set((st) => ({
+      playedDice: st.playedDice.map((d, i) =>
+        i === nextIndex ? { ...d, currentFace: face } : d
+      ),
+      resolvingPhase: 'landed',
+    }))
+    await sleep(100)
+
+    set((st) => ({ orbVersion: st.orbVersion + 1 }))
+    await sleep(150)
+
+    const isSkull       = face.type === 'skull'
+    const newSkullCount = s.skullCount + (isSkull ? 1 : 0)
+    const lifestealGain = face.type === 'lifesteal' ? face.value : 0
+    const healGain      = face.type === 'heal'      ? face.value : lifestealGain
+    const shieldGain    = face.type === 'shield'    ? face.value : 0
+    const damageGain    = (face.type === 'damage' || face.type === 'lifesteal') ? face.value : 0
+    const goldGain      = face.type === 'gold'      ? face.value : 0
+
+    set((st) => ({
+      totalDamage: st.totalDamage + damageGain,
+      totalHeal:   st.totalHeal   + healGain,
+      totalShield: st.totalShield + shieldGain,
+      totalGold:   st.totalGold   + goldGain,
+      skullCount:  newSkullCount,
+      counterVersion: st.counterVersion + 1,
+      lastEffects: { heal: healGain, shield: shieldGain, gold: goldGain },
+      ...(isSkull ? { skullRolledVersion: st.skullRolledVersion + 1 } : {}),
+      ...(healGain > 0 || shieldGain > 0 || goldGain > 0
+        ? { playerEffectVersion: st.playerEffectVersion + 1 }
+        : {}),
+    }))
+    await sleep(75)
+
+    set({ resolvingDieIndex: null, resolvingPhase: null })
+
+    if (newSkullCount >= 3) {
+      set((st) => ({
+        totalDamage: 0, totalHeal: 0, totalGold: 0,
+        counterVersion: st.counterVersion + 1,
+      }))
+      await sleep(300)
+
+      const bustShield = get().totalShield
+      set((st) => ({
+        turnPhase: 'player_attack',
+        player: { ...st.player, shield: st.player.shield + bustShield },
+      }))
+      await sleep(400)
+
+      await runEnemyPhase()
+      return
+    }
+
     set({ turnPhase: 'idle' })
   },
 
@@ -572,7 +692,7 @@ export const useGameStore = create<GameState>()(
     }
 
     // Start attack animation phase — damage is NOT applied yet
-    set({ turnPhase: 'player_attack', playerAttackAnimTier: tier })
+    set({ turnPhase: 'player_attack', playerAttackAnimTier: tier, isChoosingNextDie: false })
     await sleep(800)
 
     // Apply damage after animation window
@@ -659,6 +779,7 @@ export const useGameStore = create<GameState>()(
       lastEffects:  { heal: 0, shield: 0, gold: 0 },
       resolvingDieIndex: null, resolvingPhase: null,
       rollStartVersion: s.rollStartVersion + 1,
+      isChoosingNextDie: false,
       firstAttackThisEncounter: true,
       turnPhase:    'idle',
     }))
@@ -681,6 +802,7 @@ export const useGameStore = create<GameState>()(
       lastEffects:  { heal: 0, shield: 0, gold: 0 },
       resolvingDieIndex: null, resolvingPhase: null,
       rollStartVersion: s.rollStartVersion + 1,
+      isChoosingNextDie: false,
       firstAttackThisEncounter: true,
       turnPhase:    'idle',
     }))
@@ -753,6 +875,7 @@ export const useGameStore = create<GameState>()(
       lastEffects:  { heal: 0, shield: 0, gold: 0 },
       resolvingDieIndex: null, resolvingPhase: null,
       rollStartVersion: s.rollStartVersion + 1,
+      isChoosingNextDie: false,
       firstAttackThisEncounter: true,
       turnPhase:    'idle',
     }))
@@ -804,6 +927,7 @@ async function runEnemyPhase() {
         lastEffects: { heal: 0, shield: 0, gold: 0 },
         resolvingDieIndex: null, resolvingPhase: null,
         rollStartVersion: st.rollStartVersion + 1,
+        isChoosingNextDie: false,
         firstAttackThisEncounter: true,
         enemy: { ...st.enemy, intent: rollIntent(
           BESTIARY.find((t) => t.name === st.enemy.name) ?? BESTIARY[1],
@@ -823,6 +947,7 @@ async function runEnemyPhase() {
       lastEffects: { heal: 0, shield: 0, gold: 0 },
       resolvingDieIndex: null, resolvingPhase: null,
       draftChoices: [], lastGoldEarned: 0,
+      isChoosingNextDie: false,
       turnPhase: 'loadout',
     })
   } else {
@@ -842,6 +967,7 @@ async function runEnemyPhase() {
         ),
       },
       rollStartVersion: s.rollStartVersion + 1,
+      isChoosingNextDie: false,
       firstAttackThisEncounter: true,
       resolvingDieIndex: null, resolvingPhase: null,
     }))

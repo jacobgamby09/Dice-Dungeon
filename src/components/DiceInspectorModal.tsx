@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { X, Swords, Shield, Heart, Skull, Coins, Droplets } from 'lucide-react'
+import { X, Swords, Shield, Heart, Skull, Coins, Droplets, Star } from 'lucide-react'
 import type { DieType, DieFace } from '../store/gameStore'
 import { DIE_TEMPLATES } from '../store/gameStore'
 import { dieTypeStyle, faceColor } from './DieCard'
@@ -14,9 +14,11 @@ const TYPE_LABEL: Record<DieType, string> = {
   gambler:   'GAMBLER',
   scavenger: 'SCAVENGER',
   wall:      'WALL',
-  curse:     'CURSE',
-  jackpot:   'JACKPOT',
-  vampire:   'VAMPIRE',
+  curse:          'CURSE',
+  jackpot:        'JACKPOT',
+  vampire:        'VAMPIRE',
+  priest:         'PRIEST',
+  fortune_teller: 'FORTUNE TELLER',
 }
 
 function FaceIcon({ type, size = 13 }: { type: DieFace['type']; size?: number }) {
@@ -25,7 +27,8 @@ function FaceIcon({ type, size = 13 }: { type: DieFace['type']; size?: number })
   if (type === 'shield')    return <Shield   size={size} color={color} strokeWidth={2.5} />
   if (type === 'skull')     return <Skull    size={size} color={color} strokeWidth={2.5} />
   if (type === 'gold')      return <Coins    size={size} color={color} strokeWidth={2.5} />
-  if (type === 'lifesteal') return <Droplets size={size} color={color} strokeWidth={2.5} />
+  if (type === 'lifesteal')   return <Droplets size={size} color={color} strokeWidth={2.5} />
+  if (type === 'choose_next') return <Star     size={size} color={color} strokeWidth={2.5} />
   return <Heart size={size} color={color} strokeWidth={2.5} />
 }
 
