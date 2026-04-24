@@ -71,7 +71,7 @@ function DamageCounter({ target, rollStartVersion, counterVersion, attackTier }:
 
   return (
     <motion.span ref={spanScope} style={{
-      fontSize: '5rem',
+      fontSize: '3.8rem',
       fontWeight: 700,
       color: '#fbbf24',
       lineHeight: 1,
@@ -884,14 +884,14 @@ export function CombatScreen() {
         ref={enemyScope}
         style={{
           background: enemy.isBoss ? '#1a0505' : '#1a1a2e',
-          padding: '10px 16px 12px',
+          padding: '6px 16px 8px',
           borderBottom: `3px solid ${enemy.isBoss ? '#7f1d1d' : '#000'}`,
-          flex: '0 0 33.33%',
+          flex: '0 0 auto',
           display: 'flex', flexDirection: 'column',
           overflow: 'hidden',
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
           <Label>Floor {currentFloor}</Label>
           {enemy.isBoss
             ? <span style={{ fontSize: '0.6rem', color: '#ef4444', letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 700 }}>⚠ BOSS</span>
@@ -899,15 +899,15 @@ export function CombatScreen() {
           }
         </div>
 
-        <motion.div ref={lungeScope} style={{ display: 'flex', gap: 14, flex: 1, minHeight: 0, alignItems: 'center' }}>
+        <motion.div ref={lungeScope} style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <EnemySprite enemyName={enemy.name} size={enemy.isBoss ? 7 : 6} />
+            <EnemySprite enemyName={enemy.name} size={enemy.isBoss ? 6 : 5} />
           </div>
 
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{
-                fontSize: '1.6rem', fontWeight: 700,
+                fontSize: '1.3rem', fontWeight: 700,
                 color: enemy.isBoss ? '#fca5a5' : '#f87171',
                 textShadow: enemy.isBoss ? '2px 2px 0 #7f1d1d' : '2px 2px 0 #000',
               }}>
@@ -915,7 +915,7 @@ export function CombatScreen() {
               </span>
               <IntentBadge intent={enemy.intent} />
             </div>
-            <span style={{ fontSize: '1.25rem', fontWeight: 700, color: '#d1d5db' }}>{enemy.hp} / {enemy.maxHp} HP</span>
+            <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#d1d5db' }}>{enemy.hp} / {enemy.maxHp} HP</span>
             <HpBar hp={enemy.hp} maxHp={enemy.maxHp} color={enemy.isBoss ? '#b91c1c' : '#ef4444'} />
           </div>
         </motion.div>
@@ -927,9 +927,9 @@ export function CombatScreen() {
         ref={playerScope}
         style={{
           position: 'relative',
-          background: '#0f0f1a', padding: '16px',
+          background: '#0f0f1a', padding: '8px 16px',
           borderBottom: '3px solid #000',
-          display: 'flex', flexDirection: 'column', gap: 10,
+          display: 'flex', flexDirection: 'column', gap: 6,
         }}
       >
         <FloatingEffects
@@ -954,8 +954,8 @@ export function CombatScreen() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 4 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 2 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <Swords size={12} color="#6b7280" />
               <Label>Total Damage</Label>
@@ -970,7 +970,7 @@ export function CombatScreen() {
 
           {/* Stat badges — always reserve space to prevent layout shift */}
           <div style={{
-            display: 'flex', gap: 8, marginTop: 8, minHeight: 36,
+            display: 'flex', gap: 8, marginTop: 4, minHeight: 30,
             alignItems: 'center', justifyContent: 'center',
           }}>
             <div ref={healRef}>
@@ -1026,16 +1026,17 @@ export function CombatScreen() {
 
       {/* Zone C — Played Dice Tray */}
       <div style={{
-        flex: '0 0 40%', display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center',
-        gap: 8, padding: '12px 16px', background: '#12121f',
-        overflow: 'auto',
+        flex: 1, minHeight: 175,
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'flex-start',
+        gap: 8, padding: '10px 16px', background: '#12121f',
+        overflowY: 'auto',
       }}>
-        <span style={{ fontSize: '0.55rem', color: '#374151', letterSpacing: '0.3em', textTransform: 'uppercase' }}>played dice</span>
+        <span style={{ fontSize: '0.55rem', color: '#374151', letterSpacing: '0.3em', textTransform: 'uppercase', flexShrink: 0 }}>played dice</span>
         {playedDice.length === 0 ? (
           <span style={{ color: '#374151', fontSize: '0.75rem' }}>Draw a die to start!</span>
         ) : (
-          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', alignContent: 'flex-start', gap: 8 }}>
             {playedDice.map((die, i) => (
               <DieCard
                 key={die.id}
@@ -1052,79 +1053,89 @@ export function CombatScreen() {
 
       {/* Zone D — Actions */}
       <div style={{
-        background: '#1a1a2e', padding: '16px', borderTop: '3px solid #000',
-        display: 'flex', gap: 8,
+        background: '#1a1a2e', padding: '10px 16px 14px', borderTop: '3px solid #000',
+        display: 'flex', flexDirection: 'column', gap: 8,
       }}>
-        <button
-          onClick={drawAndRoll}
-          disabled={!canDraw || isAutoRolling}
-          className="pixel-btn"
-          style={{
-            flex: 1,
-            background: canDraw ? '#4f46e5' : '#374151',
-            opacity: !isIdle || isAutoRolling ? 0.75 : canDraw ? 1 : 0.5,
-            cursor: canDraw && !isAutoRolling ? 'pointer' : 'not-allowed',
-          }}
-        >
-          {drawButtonLabel}
-        </button>
-        {hasAutoRoll && (
+        {/* Top row — utility buttons (only shown if any are available) */}
+        {(hasAutoRoll || hasScouting || true) && (
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 8 }}>
+            {hasAutoRoll && (
+              <button
+                onClick={isAutoRolling ? stopAutoRoll : startAutoRoll}
+                disabled={!isAutoRolling && !canDraw}
+                className="pixel-btn"
+                style={{
+                  height: 38, padding: '0 18px',
+                  background: isAutoRolling ? '#7f1d1d' : canDraw ? '#4338ca' : '#374151',
+                  opacity: (!isAutoRolling && !canDraw) ? 0.5 : 1,
+                  cursor: isAutoRolling || canDraw ? 'pointer' : 'not-allowed',
+                  fontSize: '0.75rem',
+                }}
+              >
+                {isAutoRolling ? '■ STOP' : '⚡ AUTO'}
+              </button>
+            )}
+            {hasScouting && (
+              <button
+                onClick={() => setShowScout(true)}
+                className="pixel-btn"
+                style={{
+                  width: 48, height: 38,
+                  background: '#1e293b',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  padding: 0, fontSize: '1.1rem',
+                }}
+              >
+                🔎
+              </button>
+            )}
+            <button
+              onClick={() => setInspectorOpen(true)}
+              disabled={bagTypes.length === 0}
+              className="pixel-btn"
+              style={{
+                width: 48, height: 38,
+                background: '#1e293b',
+                opacity: bagTypes.length > 0 ? 1 : 0.4,
+                cursor: bagTypes.length > 0 ? 'pointer' : 'not-allowed',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                padding: 0,
+              }}
+            >
+              <Library size={18} color="#9ca3af" />
+            </button>
+          </div>
+        )}
+
+        {/* Bottom row — primary action buttons */}
+        <div style={{ display: 'flex', gap: 10, width: '100%' }}>
           <button
-            onClick={isAutoRolling ? stopAutoRoll : startAutoRoll}
-            disabled={!isAutoRolling && !canDraw}
+            onClick={drawAndRoll}
+            disabled={!canDraw || isAutoRolling}
             className="pixel-btn"
             style={{
-              flex: 1,
-              background: isAutoRolling ? '#7f1d1d' : canDraw ? '#4338ca' : '#374151',
-              opacity: (!isAutoRolling && !canDraw) ? 0.5 : 1,
-              cursor: isAutoRolling || canDraw ? 'pointer' : 'not-allowed',
+              flex: 1, height: 60, fontSize: '1rem', fontWeight: 700,
+              background: canDraw ? '#4f46e5' : '#374151',
+              opacity: !isIdle || isAutoRolling ? 0.75 : canDraw ? 1 : 0.5,
+              cursor: canDraw && !isAutoRolling ? 'pointer' : 'not-allowed',
             }}
           >
-            {isAutoRolling ? '■ STOP' : '⚡ AUTO'}
+            {drawButtonLabel}
           </button>
-        )}
-        <button
-          onClick={bankAndAttack}
-          disabled={!canBank}
-          className="pixel-btn"
-          style={{
-            flex: 1,
-            background: canBank ? '#b45309' : '#374151',
-            opacity: canBank ? 1 : 0.5,
-            cursor: canBank ? 'pointer' : 'not-allowed',
-          }}
-        >
-          ATTACK!
-        </button>
-        {hasScouting && (
           <button
-            onClick={() => setShowScout(true)}
+            onClick={bankAndAttack}
+            disabled={!canBank}
             className="pixel-btn"
             style={{
-              width: 48, flexShrink: 0,
-              background: '#1e293b',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              padding: 0, fontSize: '1.1rem',
+              flex: 1, height: 60, fontSize: '1rem', fontWeight: 700,
+              background: canBank ? '#b45309' : '#374151',
+              opacity: canBank ? 1 : 0.5,
+              cursor: canBank ? 'pointer' : 'not-allowed',
             }}
           >
-            🔎
+            ATTACK!
           </button>
-        )}
-        <button
-          onClick={() => setInspectorOpen(true)}
-          disabled={bagTypes.length === 0}
-          className="pixel-btn"
-          style={{
-            width: 48, flexShrink: 0,
-            background: '#1e293b',
-            opacity: bagTypes.length > 0 ? 1 : 0.4,
-            cursor: bagTypes.length > 0 ? 'pointer' : 'not-allowed',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: 0,
-          }}
-        >
-          <Library size={18} color="#9ca3af" />
-        </button>
+        </div>
       </div>
 
       {inspectorOpen && bagTypes.length > 0 && (
