@@ -702,7 +702,7 @@ export function CombatScreen() {
     lastEffects, turnPhase, playerAttackAnimTier,
     enemyHitVersion, playerHitVersion, playerEffectVersion,
     orbVersion, counterVersion, rollStartVersion, resolvingDieIndex, resolvingPhase, enemyAttackVersion,
-    currentFloor, gold, drawAndRoll, bankAndAttack, unlockedNodes, isChoosingNextDie,
+    currentFloor, gold, drawAndRoll, bankAndAttack, unlockedNodes, isChoosingNextDie, abandonRun,
   } = useGameStore()
 
   const metaSouls = useGameStore((s) => s.metaSouls)
@@ -852,6 +852,28 @@ export function CombatScreen() {
         <span style={{ fontSize: '0.6rem', color: '#7c3aed', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
           Souls
         </span>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 4 }}>
+          {([
+            { label: 'END RUN',   action: abandonRun },
+            { label: 'CLEAR SAVE', action: () => { localStorage.clear(); window.location.reload() } },
+          ] as const).map(({ label, action }) => (
+            <button
+              key={label}
+              onClick={action}
+              style={{
+                fontSize: '0.55rem', letterSpacing: '0.05em',
+                color: '#f87171', border: '1px solid #7f1d1d',
+                background: 'none', padding: '2px 6px',
+                cursor: 'pointer', fontFamily: 'inherit',
+                opacity: 0.35, transition: 'opacity 0.15s',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+              onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.35')}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Shake container wraps Zones A–C */}

@@ -281,6 +281,7 @@ interface GameState {
   unlockNode: (nodeId: string) => void
   setSelectedClass: (cls: string) => void
   leaveShop: () => void
+  abandonRun: () => void
 }
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
@@ -849,6 +850,27 @@ export const useGameStore = create<GameState>()(
   },
 
   setSelectedClass: (cls) => set({ selectedClass: cls }),
+
+  abandonRun: () => {
+    set({
+      player: { hp: 100, maxHp: 100, shield: 0 },
+      enemy: spawnEnemy(1),
+      currentFloor: 1,
+      totalDamage: 0, totalHeal: 0, totalShield: 0, totalGold: 0,
+      skullCount: 0,
+      inventory: INITIAL_INVENTORY.map((d) => ({ ...d })),
+      drawPile: [], playedDice: [],
+      lastEffects: { heal: 0, shield: 0, gold: 0 },
+      resolvingDieIndex: null, resolvingPhase: null,
+      draftChoices: [], lastGoldEarned: 0,
+      gold: 0,
+      isChoosingNextDie: false,
+      usedSecondWind: false,
+      firstAttackThisEncounter: true,
+      playerAttackAnimTier: null,
+      turnPhase: 'loadout',
+    })
+  },
 
   unlockNode: (nodeId) => {
     const { metaSouls, unlockedNodes } = get()
