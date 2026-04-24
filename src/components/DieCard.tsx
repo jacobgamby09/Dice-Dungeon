@@ -307,7 +307,7 @@ export function DieCard({
   const s          = dieTypeStyle[die.dieType]
   const face       = die.currentFace
   const maxFaceVal = Math.max(...die.faces.map(f => f.value))
-  const isCrit     = !!face && face.value === maxFaceVal && maxFaceVal > 0
+  const isCrit     = !!face && face.type !== 'skull' && face.value === maxFaceVal && maxFaceVal > 0
 
   const isSpinning = isResolving && resolvingPhase === 'spinning'
   const isLanded   = isResolving && resolvingPhase === 'landed'
@@ -545,6 +545,26 @@ export function DieCard({
             }}
             animate={{ opacity: [1, 0.2, 1] }}
             transition={{ duration: 0.55, repeat: Infinity, ease: 'easeInOut' }}
+          />
+        )}
+
+        {/* Skull — eerie purple pulse */}
+        {face?.type === 'skull' && !isSpinning && (
+          <motion.div
+            style={{
+              position: 'absolute', inset: -3,
+              border: '3px solid #7c3aed',
+              pointerEvents: 'none', zIndex: 1,
+            }}
+            animate={{
+              opacity: [0.35, 1, 0.35],
+              boxShadow: [
+                '0 0 6px 2px rgba(124,58,237,0.25)',
+                '0 0 18px 7px rgba(124,58,237,0.75)',
+                '0 0 6px 2px rgba(124,58,237,0.25)',
+              ],
+            }}
+            transition={{ duration: 2.0, repeat: Infinity, ease: 'easeInOut' }}
           />
         )}
 

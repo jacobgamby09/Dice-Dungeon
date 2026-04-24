@@ -787,6 +787,11 @@ export const useGameStore = create<GameState>()(
       return
     }
 
+    // Credit accumulated gold (e.g. Scavenger faces) before runEnemyPhase clears it
+    if (totalGold > 0) {
+      set((st) => ({ gold: st.gold + totalGold }))
+    }
+
     await sleep(400)
     await runEnemyPhase()
   },
