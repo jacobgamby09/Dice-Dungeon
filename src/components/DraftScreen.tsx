@@ -45,9 +45,9 @@ const RARITY_COLOR: Record<string, string> = {
 // ── Single die choice card ────────────────────────────────────────────────────
 
 function DieChoiceCard({
-  dieType, dieId, isLocked, onSelect, onToggleLock,
+  dieType, isLocked, onSelect, onToggleLock,
 }: {
-  dieType: DieType; dieId: string
+  dieType: DieType
   isLocked: boolean; onSelect: () => void; onToggleLock: () => void
 }) {
   const template = DIE_TEMPLATES[dieType]
@@ -212,7 +212,6 @@ export function DraftScreen() {
           <DieChoiceCard
             key={die.id}
             dieType={die.dieType}
-            dieId={die.id}
             isLocked={lockedIds.has(die.id)}
             onToggleLock={() => toggleLock(die.id)}
             onSelect={() => {
