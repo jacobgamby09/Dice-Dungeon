@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { X, Swords, Shield, Heart, Skull, Coins, Droplets, Star } from 'lucide-react'
+import { X, Swords, Shield, Heart, Skull, Coins, Droplets, Star, Shuffle } from 'lucide-react'
 import type { DieType, DieFace } from '../store/gameStore'
 import { DIE_TEMPLATES } from '../store/gameStore'
 import { dieTypeStyle, faceColor } from './DieCard'
@@ -19,6 +19,7 @@ const TYPE_LABEL: Record<DieType, string> = {
   vampire:        'VAMPIRE',
   priest:         'PRIEST',
   fortune_teller: 'FORTUNE TELLER',
+  joker:          'JOKER',
 }
 
 function FaceIcon({ type, size = 13 }: { type: DieFace['type']; size?: number }) {
@@ -29,6 +30,7 @@ function FaceIcon({ type, size = 13 }: { type: DieFace['type']; size?: number })
   if (type === 'gold')      return <Coins    size={size} color={color} strokeWidth={2.5} />
   if (type === 'lifesteal')   return <Droplets size={size} color={color} strokeWidth={2.5} />
   if (type === 'choose_next') return <Star     size={size} color={color} strokeWidth={2.5} />
+  if (type === 'wildcard')    return <Shuffle  size={size} color={color} strokeWidth={2.5} />
   return <Heart size={size} color={color} strokeWidth={2.5} />
 }
 
@@ -146,8 +148,8 @@ export function DiceInspectorModal({ types, initialType, onClose }: Props) {
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
               }}
             >
-              {face.type === 'skull' ? (
-                <FaceIcon type="skull" size={22} />
+              {(face.type === 'skull' || face.type === 'wildcard') ? (
+                <FaceIcon type={face.type} size={22} />
               ) : (
                 <>
                   <span style={{ fontSize: '1.25rem', fontWeight: 700, color: s.text, lineHeight: 1 }}>

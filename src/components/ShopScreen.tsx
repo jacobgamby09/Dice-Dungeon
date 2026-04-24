@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Coins, Heart, Shield, Swords, Skull, Flame, ArrowLeft, Droplets } from 'lucide-react'
+import { Coins, Heart, Shield, Swords, Skull, Flame, ArrowLeft, Droplets, Star, Shuffle } from 'lucide-react'
 import { useGameStore } from '../store/gameStore'
 import { dieTypeStyle, faceColor } from './DieCard'
 import type { Die, DieFace } from '../store/gameStore'
@@ -11,17 +11,21 @@ const DIE_NAMES: Record<string, string> = {
   heavy: 'HEAVY', paladin: 'PALADIN', gambler: 'GAMBLER',
   scavenger: 'SCAVENGER', wall: 'WALL', curse: 'THE CURSE',
   jackpot: 'THE JACKPOT', vampire: 'THE VAMPIRE',
+  priest: 'THE PRIEST', fortune_teller: 'THE FORTUNE TELLER',
+  joker: 'THE JOKER',
 }
 
 // ── Face icon ─────────────────────────────────────────────────────────────────
 
 function FaceIcon({ type, size = 13 }: { type: DieFace['type']; size?: number }) {
   const color = faceColor[type]
-  if (type === 'damage')    return <Swords   size={size} color={color} strokeWidth={2.5} />
-  if (type === 'shield')    return <Shield   size={size} color={color} strokeWidth={2.5} />
-  if (type === 'skull')     return <Skull    size={size} color={color} strokeWidth={2.5} />
-  if (type === 'gold')      return <Coins    size={size} color={color} strokeWidth={2.5} />
-  if (type === 'lifesteal') return <Droplets size={size} color={color} strokeWidth={2.5} />
+  if (type === 'damage')      return <Swords   size={size} color={color} strokeWidth={2.5} />
+  if (type === 'shield')      return <Shield   size={size} color={color} strokeWidth={2.5} />
+  if (type === 'skull')       return <Skull    size={size} color={color} strokeWidth={2.5} />
+  if (type === 'gold')        return <Coins    size={size} color={color} strokeWidth={2.5} />
+  if (type === 'lifesteal')   return <Droplets size={size} color={color} strokeWidth={2.5} />
+  if (type === 'choose_next') return <Star     size={size} color={color} strokeWidth={2.5} />
+  if (type === 'wildcard')    return <Shuffle  size={size} color={color} strokeWidth={2.5} />
   return <Heart size={size} color={color} strokeWidth={2.5} />
 }
 
@@ -169,7 +173,7 @@ function FacePickerGrid({
 
 export function ShopScreen() {
   const {
-    player, gold, inventory, lastGoldEarned,
+    player, gold, inventory, lastGoldEarned, justDefeatedBoss,
     shopHeal, shopModifyFace, shopMergeDice, leaveShop,
   } = useGameStore()
   const unlockedNodes = useGameStore((s) => s.unlockedNodes)
@@ -208,7 +212,9 @@ export function ShopScreen() {
     }
     const die1 = inventory.find((d) => d.id === firstMergeId)
     const die2 = inventory.find((d) => d.id === dieId)
-    if (!die1 || !die2 || die1.dieType !== die2.dieType) {
+    const jokerMerge = die1?.dieType === 'joker' || die2?.dieType === 'joker'
+    const bothJokers = die1?.dieType === 'joker' && die2?.dieType === 'joker'
+    if (!die1 || !die2 || bothJokers || (!jokerMerge && die1.dieType !== die2.dieType)) {
       setMergeError(true)
       setTimeout(() => setMergeError(false), 1200)
       return
@@ -230,7 +236,11 @@ export function ShopScreen() {
   }
 
   const canMerge = gold >= mergeCost &&
-    inventory.some((d, i) => inventory.some((d2, j) => i !== j && d.dieType === d2.dieType))
+    inventory.some((d, i) => inventory.some((d2, j) => {
+      if (i >= j) return false
+      if (d.dieType === 'joker' && d2.dieType === 'joker') return false
+      return d.dieType === d2.dieType || d.dieType === 'joker' || d2.dieType === 'joker'
+    }))
 
   const subheaderText =
     activeAction === null        ? 'Choose a service'                        :
@@ -281,6 +291,20 @@ export function ShopScreen() {
             <Coins size={12} color="#fbbf24" strokeWidth={2.5} />
             <span style={{ color: '#fbbf24', fontSize: '0.7rem', fontWeight: 700 }}>
               +{lastGoldEarned} gold from boss victory
+            </span>
+          </div>
+        )}
+        {justDefeatedBoss && (
+          <div style={{
+            marginTop: 8, padding: '8px 12px',
+            background: '#1c0533',
+            border: '2px solid #9333ea',
+            boxShadow: '3px 3px 0 #4c0070',
+            display: 'flex', alignItems: 'center', gap: 8,
+          }}>
+            <Skull size={14} color="#c084fc" strokeWidth={2.5} />
+            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#e9d5ff', letterSpacing: '0.05em' }}>
+              BOSS DEFEATED — A Cursed Die has been added to your bag!
             </span>
           </div>
         )}

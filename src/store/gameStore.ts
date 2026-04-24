@@ -4,13 +4,14 @@ import { persist } from 'zustand/middleware'
 // ── Core types ───────────────────────────────────────────────────────────────
 
 export interface DieFace {
-  type: 'damage' | 'shield' | 'heal' | 'skull' | 'gold' | 'lifesteal' | 'choose_next'
+  type: 'damage' | 'shield' | 'heal' | 'skull' | 'gold' | 'lifesteal' | 'choose_next' | 'wildcard'
   value: number
 }
 
 export type DieType = 'white' | 'blue' | 'green' | 'cursed'
                     | 'heavy' | 'paladin' | 'gambler' | 'scavenger' | 'wall'
                     | 'curse' | 'jackpot' | 'vampire' | 'priest' | 'fortune_teller'
+                    | 'joker'
 
 export interface Die {
   id: string
@@ -206,6 +207,18 @@ export const DIE_TEMPLATES: Record<DieType, { sides: number; faces: DieFace[]; r
       { type: 'skull',       value: 1 },
     ],
   },
+  joker: {
+    sides: 6,
+    rarity: 'rare',
+    faces: [
+      { type: 'wildcard', value: 0 },
+      { type: 'wildcard', value: 0 },
+      { type: 'wildcard', value: 0 },
+      { type: 'wildcard', value: 0 },
+      { type: 'wildcard', value: 0 },
+      { type: 'wildcard', value: 0 },
+    ],
+  },
 }
 
 function createDie(type: DieType, id: string): Die {
@@ -261,6 +274,7 @@ interface GameState {
   currentFloor: number
   gold: number
   draftChoices: Die[]
+  lockedDraftDice: Die[]
   lastGoldEarned: number
   metaSouls: number
   unlockedNodes: string[]
@@ -269,12 +283,16 @@ interface GameState {
   isChoosingNextDie: boolean
   usedSecondWind: boolean
   firstAttackThisEncounter: boolean
+  rerollCost: number
+  justDefeatedBoss: boolean
+  secondWindTriggered: boolean
   startCombat: () => void
   drawAndRoll: () => Promise<void>
   drawSpecificDie: (dieId: string) => Promise<void>
   bankAndAttack: () => Promise<void>
-  selectDraftDie: (dieId: string) => void
+  selectDraftDie: (dieId: string, lockedOtherIds: string[]) => void
   skipDraft: () => void
+  rerollDraft: (lockedDieIds: string[]) => void
   shopHeal: (cost: number, amount: number) => void
   shopModifyFace: (dieId: string, faceIndex: number, newFace: DieFace, cost: number) => void
   shopMergeDice: (die1Id: string, die2Id: string, cost: number) => void
@@ -371,7 +389,7 @@ const INITIAL_INVENTORY: Die[] = [
 ]
 
 function getDiceLootPool(unlockedNodes: string[]): DieType[] {
-  const pool: DieType[] = ['heavy', 'paladin', 'gambler', 'scavenger', 'wall']
+  const pool: DieType[] = ['heavy', 'paladin', 'gambler', 'scavenger', 'wall', 'joker']
   if (unlockedNodes.includes('kec9ybn2')) pool.push('jackpot')
   if (unlockedNodes.includes('60vc1fvg')) pool.push('vampire')
   if (unlockedNodes.includes('dx6jq5y5')) pool.push('priest')
@@ -407,6 +425,7 @@ export const useGameStore = create<GameState>()(
   currentFloor: 1,
   gold: 0,
   draftChoices: [],
+  lockedDraftDice: [],
   lastGoldEarned: 0,
   metaSouls: 0,
   unlockedNodes: ['sflz4yv3'],
@@ -415,6 +434,9 @@ export const useGameStore = create<GameState>()(
   isChoosingNextDie: false,
   usedSecondWind: false,
   firstAttackThisEncounter: true,
+  rerollCost: 5,
+  justDefeatedBoss: false,
+  secondWindTriggered: false,
 
   startCombat: () => {
     const { unlockedNodes, selectedClass } = get()
@@ -480,10 +502,13 @@ export const useGameStore = create<GameState>()(
       lastEffects:  { heal: 0, shield: 0, gold: 0 },
       rollStartVersion: s.rollStartVersion + 1,
       resolvingDieIndex: null, resolvingPhase: null,
-      draftChoices: [], lastGoldEarned: 0,
+      draftChoices: [], lockedDraftDice: [], lastGoldEarned: 0,
       isChoosingNextDie: false,
       usedSecondWind: false,
       firstAttackThisEncounter: true,
+      rerollCost: 5,
+      justDefeatedBoss: false,
+      secondWindTriggered: false,
     }))
   },
 
@@ -728,6 +753,7 @@ export const useGameStore = create<GameState>()(
           lastGoldEarned: earned,
           metaSouls: st.metaSouls + soulsGained,
           turnPhase: 'shop',
+          justDefeatedBoss: true,
           player: { ...st.player, hp: Math.min(st.player.maxHp, st.player.hp + thickSkinHeal) },
           totalDamage: 0, totalHeal: 0, totalShield: 0, totalGold: 0,
           skullCount: 0,
@@ -736,15 +762,20 @@ export const useGameStore = create<GameState>()(
           resolvingDieIndex: null, resolvingPhase: null,
         }))
       } else {
+        const { lockedDraftDice } = get()
+        const slotsToFill = 3 - lockedDraftDice.length
         const pool    = getDiceLootPool(unlockedNodes)
-        const choices = shuffleArray([...pool])
-                          .slice(0, 3)
+        const newDice = shuffleArray([...pool])
+                          .slice(0, slotsToFill)
                           .map((t) => createDie(t, uid()))
+        const choices = [...lockedDraftDice, ...newDice]
         set((st) => ({
           gold: st.gold + earned,
           lastGoldEarned: earned,
           metaSouls: st.metaSouls + soulsGained,
           draftChoices: choices,
+          lockedDraftDice: [],
+          rerollCost: 5,
           turnPhase: 'draft',
           totalDamage: 0, totalHeal: 0, totalShield: 0, totalGold: 0,
           skullCount: 0,
@@ -760,10 +791,11 @@ export const useGameStore = create<GameState>()(
     await runEnemyPhase()
   },
 
-  selectDraftDie: (dieId) => {
+  selectDraftDie: (dieId, lockedOtherIds) => {
     const { draftChoices, inventory, currentFloor } = get()
     const chosen = draftChoices.find((d) => d.id === dieId)
     if (!chosen) return
+    const lockedUnselected = draftChoices.filter((d) => d.id !== dieId && lockedOtherIds.includes(d.id))
     const nextFloor = currentFloor + 1
     const newEnemy  = spawnEnemy(nextFloor)
     const newInv    = [...inventory, chosen]
@@ -773,6 +805,7 @@ export const useGameStore = create<GameState>()(
       enemy:        newEnemy,
       player:       { ...s.player, shield: 0 },
       draftChoices: [],
+      lockedDraftDice: lockedUnselected,
       drawPile:     shuffleArray([...newInv]),
       playedDice:   [],
       skullCount:   0,
@@ -783,6 +816,20 @@ export const useGameStore = create<GameState>()(
       isChoosingNextDie: false,
       firstAttackThisEncounter: true,
       turnPhase:    'idle',
+    }))
+  },
+
+  rerollDraft: (lockedDieIds) => {
+    const { gold, rerollCost, unlockedNodes, draftChoices } = get()
+    if (gold < rerollCost) return
+    const lockedDice  = draftChoices.filter((d) => lockedDieIds.includes(d.id))
+    const slotsToFill = 3 - lockedDice.length
+    const pool    = getDiceLootPool(unlockedNodes)
+    const newDice = shuffleArray([...pool]).slice(0, slotsToFill).map((t) => createDie(t, uid()))
+    set((s) => ({
+      gold: s.gold - rerollCost,
+      rerollCost: s.rerollCost + 5,
+      draftChoices: [...lockedDice, ...newDice],
     }))
   },
 
@@ -833,10 +880,16 @@ export const useGameStore = create<GameState>()(
   shopMergeDice: (die1Id, die2Id, cost) => {
     set((s) => {
       if (s.gold < cost) return {}
+      const die1 = s.inventory.find((d) => d.id === die1Id)
+      const die2 = s.inventory.find((d) => d.id === die2Id)
+      if (!die1 || !die2) return {}
+      // If one is a Joker, the non-Joker die gets upgraded
+      const upgradeId = die1.dieType === 'joker' ? die2Id : die1Id
+      const removeId  = die1.dieType === 'joker' ? die1Id : die2Id
       const newInventory = s.inventory
-        .filter((d) => d.id !== die2Id)
+        .filter((d) => d.id !== removeId)
         .map((d) => {
-          if (d.id !== die1Id) return d
+          if (d.id !== upgradeId) return d
           return {
             ...d,
             isMerged: true,
@@ -941,6 +994,7 @@ async function runEnemyPhase() {
       useGameStore.setState((st) => ({
         player: { ...st.player, hp: 20, shield: 0 },
         usedSecondWind: true,
+        secondWindTriggered: true,
         turnPhase: 'idle',
         totalDamage: 0, totalHeal: 0, totalShield: 0, totalGold: 0,
         skullCount: 0,

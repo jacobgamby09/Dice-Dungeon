@@ -1,4 +1,5 @@
-import { Coins, Swords, Shield, Heart, Skull, Droplets } from 'lucide-react'
+import { useState } from 'react'
+import { Coins, Swords, Shield, Heart, Skull, Droplets, Star, Shuffle, Lock, LockOpen } from 'lucide-react'
 import { useGameStore, DIE_TEMPLATES } from '../store/gameStore'
 import { dieTypeStyle, faceColor } from './DieCard'
 import type { DieType, DieFace } from '../store/gameStore'
@@ -6,24 +7,29 @@ import type { DieType, DieFace } from '../store/gameStore'
 // ── Die display names ─────────────────────────────────────────────────────────
 
 const DIE_NAMES: Partial<Record<DieType, string>> = {
-  heavy:     'THE HEAVY',
-  paladin:   'THE PALADIN',
-  gambler:   'THE GAMBLER',
-  scavenger: 'THE SCAVENGER',
-  wall:      'THE WALL',
-  jackpot:   'THE JACKPOT',
-  vampire:   'THE VAMPIRE',
+  heavy:         'THE HEAVY',
+  paladin:       'THE PALADIN',
+  gambler:       'THE GAMBLER',
+  scavenger:     'THE SCAVENGER',
+  wall:          'THE WALL',
+  jackpot:       'THE JACKPOT',
+  vampire:       'THE VAMPIRE',
+  priest:        'THE PRIEST',
+  fortune_teller:'THE FORTUNE TELLER',
+  joker:         'THE JOKER',
 }
 
 // ── Face icon ─────────────────────────────────────────────────────────────────
 
 function FaceIcon({ type, size = 13 }: { type: DieFace['type']; size?: number }) {
   const color = faceColor[type]
-  if (type === 'damage')    return <Swords   size={size} color={color} strokeWidth={2.5} />
-  if (type === 'shield')    return <Shield   size={size} color={color} strokeWidth={2.5} />
-  if (type === 'skull')     return <Skull    size={size} color={color} strokeWidth={2.5} />
-  if (type === 'gold')      return <Coins    size={size} color={color} strokeWidth={2.5} />
-  if (type === 'lifesteal') return <Droplets size={size} color={color} strokeWidth={2.5} />
+  if (type === 'damage')      return <Swords   size={size} color={color} strokeWidth={2.5} />
+  if (type === 'shield')      return <Shield   size={size} color={color} strokeWidth={2.5} />
+  if (type === 'skull')       return <Skull    size={size} color={color} strokeWidth={2.5} />
+  if (type === 'gold')        return <Coins    size={size} color={color} strokeWidth={2.5} />
+  if (type === 'lifesteal')   return <Droplets size={size} color={color} strokeWidth={2.5} />
+  if (type === 'choose_next') return <Star     size={size} color={color} strokeWidth={2.5} />
+  if (type === 'wildcard')    return <Shuffle  size={size} color={color} strokeWidth={2.5} />
   return <Heart size={size} color={color} strokeWidth={2.5} />
 }
 
@@ -38,7 +44,12 @@ const RARITY_COLOR: Record<string, string> = {
 
 // ── Single die choice card ────────────────────────────────────────────────────
 
-function DieChoiceCard({ dieType, onSelect }: { dieType: DieType; dieId: string; onSelect: () => void }) {
+function DieChoiceCard({
+  dieType, dieId, isLocked, onSelect, onToggleLock,
+}: {
+  dieType: DieType; dieId: string
+  isLocked: boolean; onSelect: () => void; onToggleLock: () => void
+}) {
   const template = DIE_TEMPLATES[dieType]
   const s = dieTypeStyle[dieType]
   const name = DIE_NAMES[dieType] ?? dieType.toUpperCase()
@@ -46,8 +57,8 @@ function DieChoiceCard({ dieType, onSelect }: { dieType: DieType; dieId: string;
   return (
     <div style={{
       background: '#1a1a2e',
-      border: '3px solid #000',
-      boxShadow: '4px 4px 0 #000',
+      border: `3px solid ${isLocked ? '#d97706' : '#000'}`,
+      boxShadow: `4px 4px 0 ${isLocked ? '#92400e' : '#000'}`,
       padding: '14px',
       display: 'flex', flexDirection: 'column', gap: 10,
     }}>
@@ -71,14 +82,28 @@ function DieChoiceCard({ dieType, onSelect }: { dieType: DieType; dieId: string;
         }}>
           {template.rarity}
         </span>
+        {/* Lock toggle */}
+        <button
+          onClick={onToggleLock}
+          title={isLocked ? 'Unlock (carry to next draft)' : 'Lock (carry to next draft)'}
+          style={{
+            background: isLocked ? '#92400e' : '#1e293b',
+            border: `2px solid ${isLocked ? '#d97706' : '#374151'}`,
+            boxShadow: isLocked ? '2px 2px 0 #78350f' : 'none',
+            padding: '4px 5px', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            lineHeight: 0, flexShrink: 0,
+          }}
+        >
+          {isLocked
+            ? <Lock     size={12} color="#fbbf24" strokeWidth={2.5} />
+            : <LockOpen size={12} color="#6b7280" strokeWidth={2.5} />
+          }
+        </button>
       </div>
 
       {/* Face grid: 3 columns × 2 rows */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(3, 1fr)',
-        gap: 6,
-      }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
         {template.faces.map((face, i) => (
           <div
             key={i}
@@ -90,8 +115,8 @@ function DieChoiceCard({ dieType, onSelect }: { dieType: DieType; dieId: string;
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
             }}
           >
-            {face.type === 'skull' ? (
-              <FaceIcon type="skull" size={18} />
+            {(face.type === 'skull' || face.type === 'choose_next' || face.type === 'wildcard') ? (
+              <FaceIcon type={face.type} size={18} />
             ) : (
               <>
                 <span style={{ fontSize: '1rem', fontWeight: 700, color: s.text, lineHeight: 1 }}>
@@ -119,7 +144,19 @@ function DieChoiceCard({ dieType, onSelect }: { dieType: DieType; dieId: string;
 // ── Draft screen ──────────────────────────────────────────────────────────────
 
 export function DraftScreen() {
-  const { draftChoices, lastGoldEarned, selectDraftDie, skipDraft } = useGameStore()
+  const { draftChoices, lastGoldEarned, gold, rerollCost, selectDraftDie, rerollDraft } = useGameStore()
+  const [lockedIds, setLockedIds] = useState<Set<string>>(new Set())
+
+  function toggleLock(id: string) {
+    setLockedIds((prev) => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  const allLocked = draftChoices.length > 0 && draftChoices.every((d) => lockedIds.has(d.id))
+  const canReroll = gold >= rerollCost && !allLocked
 
   return (
     <div style={{
@@ -161,7 +198,7 @@ export function DraftScreen() {
           fontSize: '0.65rem', color: '#9ca3af',
           letterSpacing: '0.3em', textTransform: 'uppercase',
         }}>
-          Choose your reward
+          Choose your reward · Lock to carry forward
         </span>
       </div>
 
@@ -176,20 +213,33 @@ export function DraftScreen() {
             key={die.id}
             dieType={die.dieType}
             dieId={die.id}
-            onSelect={() => selectDraftDie(die.id)}
+            isLocked={lockedIds.has(die.id)}
+            onToggleLock={() => toggleLock(die.id)}
+            onSelect={() => {
+              const otherLockedIds = draftChoices
+                .filter((d) => d.id !== die.id && lockedIds.has(d.id))
+                .map((d) => d.id)
+              selectDraftDie(die.id, otherLockedIds)
+            }}
           />
         ))}
       </div>
 
-      {/* Skip footer */}
+      {/* Re-roll footer */}
       <div style={{ background: '#1a1a2e', padding: '12px 16px', borderTop: '3px solid #000' }}>
         <button
-          onClick={skipDraft}
+          onClick={() => rerollDraft([...lockedIds])}
+          disabled={!canReroll}
           className="pixel-btn"
-          style={{ background: '#374151', color: '#fbbf24', textShadow: '1px 1px 0 #000' }}
+          style={{
+            background: canReroll ? '#7c3aed' : '#374151',
+            color: '#e9d5ff',
+            textShadow: '1px 1px 0 #000',
+            opacity: canReroll ? 1 : 0.5,
+          }}
         >
           <Coins size={13} strokeWidth={2.5} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6 }} />
-          SKIP DRAFT (+3 Gold)
+          RE-ROLL DICE (-{rerollCost} Gold)
         </button>
       </div>
     </div>

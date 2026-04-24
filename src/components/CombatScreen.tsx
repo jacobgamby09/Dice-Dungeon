@@ -235,7 +235,7 @@ function OrbLayer({ playedDice, orbVersion, resolvingDieIndex, damageRef, healRe
     const dr = dieEl.getBoundingClientRect()
 
     const faceType = die.currentFace.type
-    if (faceType === 'choose_next') return
+    if (faceType === 'choose_next' || faceType === 'wildcard') return
     const targetRef = faceType === 'damage'    ? damageRef
                     : faceType === 'lifesteal' ? damageRef
                     : faceType === 'heal'      ? healRef
@@ -703,6 +703,7 @@ export function CombatScreen() {
     enemyHitVersion, playerHitVersion, playerEffectVersion,
     orbVersion, counterVersion, rollStartVersion, resolvingDieIndex, resolvingPhase, enemyAttackVersion,
     currentFloor, gold, drawAndRoll, bankAndAttack, unlockedNodes, isChoosingNextDie, abandonRun,
+    secondWindTriggered,
   } = useGameStore()
 
   const metaSouls = useGameStore((s) => s.metaSouls)
@@ -791,6 +792,22 @@ export function CombatScreen() {
   const [showScout, setShowScout] = useState(false)
   const [isAutoRolling, setIsAutoRolling] = useState(false)
   const autoRollRef = useRef(false)
+  const [floatingGold, setFloatingGold] = useState(0)
+
+  useEffect(() => {
+    if (!secondWindTriggered) return
+    const t = setTimeout(() => useGameStore.setState({ secondWindTriggered: false }), 2200)
+    return () => clearTimeout(t)
+  }, [secondWindTriggered])
+
+  const handleAttack = () => {
+    const g = useGameStore.getState().totalGold
+    if (g > 0) {
+      setFloatingGold(g)
+      setTimeout(() => setFloatingGold(0), 1500)
+    }
+    bankAndAttack()
+  }
 
   const hasScouting = unlockedNodes.includes('zmumocry')
   const hasAutoRoll = unlockedNodes.includes('w6bsuulh')
@@ -1027,6 +1044,7 @@ export function CombatScreen() {
       {/* Zone C — Played Dice Tray */}
       <div style={{
         flex: 1, minHeight: 175,
+        position: 'relative',
         display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'flex-start',
         gap: 8, padding: '10px 16px', background: '#12121f',
@@ -1047,6 +1065,27 @@ export function CombatScreen() {
             ))}
           </div>
         )}
+        <AnimatePresence>
+          {floatingGold > 0 && (
+            <motion.div
+              key={floatingGold}
+              style={{
+                position: 'absolute', left: '50%', top: '40%',
+                transform: 'translateX(-50%)',
+                pointerEvents: 'none', zIndex: 50,
+                color: '#fbbf24', fontWeight: 700, fontSize: '1.1rem',
+                textShadow: '1px 1px 0 #000, 0 0 8px #fbbf24',
+                whiteSpace: 'nowrap',
+              }}
+              initial={{ y: 0, opacity: 1 }}
+              animate={{ y: -70, opacity: 0 }}
+              exit={{}}
+              transition={{ duration: 1.4, ease: 'easeOut' }}
+            >
+              +{floatingGold} Gold
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       </div>{/* end shake container */}
@@ -1123,7 +1162,7 @@ export function CombatScreen() {
             {drawButtonLabel}
           </button>
           <button
-            onClick={bankAndAttack}
+            onClick={handleAttack}
             disabled={!canBank}
             className="pixel-btn"
             style={{
@@ -1158,6 +1197,48 @@ export function CombatScreen() {
         enemyEl={enemyScope.current}
         playerHpRef={playerHpRef}
       />
+
+      <AnimatePresence>
+        {secondWindTriggered && (
+          <motion.div
+            key="second-wind"
+            style={{
+              position: 'fixed', inset: 0, zIndex: 300,
+              maxWidth: 384, margin: '0 auto',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              pointerEvents: 'none',
+            }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <motion.div
+              style={{
+                position: 'absolute', inset: 0,
+                border: '6px solid #fbbf24',
+                boxShadow: 'inset 0 0 40px rgba(251,191,36,0.35), 0 0 40px rgba(34,197,94,0.4)',
+                pointerEvents: 'none',
+              }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: [0, 1, 0.6, 0] }}
+              transition={{ duration: 2, times: [0, 0.1, 0.5, 1] }}
+            />
+            <motion.div
+              style={{
+                fontSize: '2rem', fontWeight: 700, letterSpacing: '0.15em',
+                color: '#fef08a', textShadow: '3px 3px 0 #000, 0 0 20px #fbbf24, 0 0 40px #22c55e',
+                textAlign: 'center',
+              }}
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: [0.5, 1.15, 1], opacity: [0, 1, 1, 0] }}
+              transition={{ duration: 2, times: [0, 0.15, 0.6, 1] }}
+            >
+              SECOND WIND!
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

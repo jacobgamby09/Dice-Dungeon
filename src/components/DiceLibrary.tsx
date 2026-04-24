@@ -1,9 +1,9 @@
-import { X, Swords, Shield, Heart, Skull, Coins, Droplets, Star } from 'lucide-react'
+import { X, Swords, Shield, Heart, Skull, Coins, Droplets, Star, Shuffle } from 'lucide-react'
 import { DIE_TEMPLATES } from '../store/gameStore'
 import type { DieType, DieFace } from '../store/gameStore'
 import { dieTypeStyle, faceColor } from './DieCard'
 
-const LIBRARY_TYPES: DieType[] = ['white', 'blue', 'green', 'cursed', 'heavy', 'paladin', 'gambler', 'scavenger', 'wall', 'jackpot', 'vampire', 'priest', 'fortune_teller']
+const LIBRARY_TYPES: DieType[] = ['white', 'blue', 'green', 'cursed', 'heavy', 'paladin', 'gambler', 'scavenger', 'wall', 'jackpot', 'vampire', 'priest', 'fortune_teller', 'joker']
 
 const DIE_NAMES: Record<DieType, string> = {
   white:          'Standard',
@@ -20,6 +20,7 @@ const DIE_NAMES: Record<DieType, string> = {
   vampire:        'The Vampire',
   priest:         'The Priest',
   fortune_teller: 'The Fortune Teller',
+  joker:          'The Joker',
 }
 
 function FaceIcon({ type, size = 11 }: { type: DieFace['type']; size?: number }) {
@@ -30,6 +31,7 @@ function FaceIcon({ type, size = 11 }: { type: DieFace['type']; size?: number })
   if (type === 'gold')      return <Coins    size={size} color={color} strokeWidth={2.5} />
   if (type === 'lifesteal')   return <Droplets size={size} color={color} strokeWidth={2.5} />
   if (type === 'choose_next') return <Star     size={size} color={color} strokeWidth={2.5} />
+  if (type === 'wildcard')    return <Shuffle  size={size} color={color} strokeWidth={2.5} />
   return <Heart size={size} color={color} strokeWidth={2.5} />
 }
 
@@ -107,7 +109,7 @@ export function DiceLibrary({ onClose }: { onClose: () => void }) {
                       alignItems: 'center', justifyContent: 'center', gap: 2,
                     }}
                   >
-                    {face.type === 'skull' || face.type === 'choose_next' ? (
+                    {(face.type === 'skull' || face.type === 'choose_next' || face.type === 'wildcard') ? (
                       <FaceIcon type={face.type} size={14} />
                     ) : (
                       <>

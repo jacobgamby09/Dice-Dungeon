@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Swords, Shield, Heart, Skull, Coins, Droplets, Star } from 'lucide-react'
+import { Swords, Shield, Heart, Skull, Coins, Droplets, Star, Shuffle } from 'lucide-react'
 import type { Die, DieType, DieFace, ResolvingPhase } from '../store/gameStore'
 
 // ── Visual tables ────────────────────────────────────────────────────────────
@@ -15,15 +15,16 @@ export const dieTypeStyle: Record<DieType, { bg: string; shadow: string; text: s
   gambler:   { bg: '#e9d5ff', shadow: '#6d28d9', text: '#4c1d95' },
   scavenger: { bg: '#fed7aa', shadow: '#c2410c', text: '#7c2d12' },
   wall:      { bg: '#bfdbfe', shadow: '#1d4ed8', text: '#1e3a8a' },
-  curse:         { bg: '#0c0c1a', shadow: '#4c0070',  text: '#c084fc' },
+  curse:         { bg: '#9333ea', shadow: '#4c0070',  text: '#f5d0fe' },
   jackpot:       { bg: '#fbbf24', shadow: '#78350f',  text: '#1c0a00' },
   vampire:       { bg: '#7f1d1d', shadow: '#450a0a',  text: '#fca5a5' },
   priest:        { bg: '#fef9c3', shadow: '#a16207',  text: '#713f12' },
   fortune_teller:{ bg: '#6366f1', shadow: '#1e1b4b',  text: '#e0e7ff' },
+  joker:         { bg: '#d1d5db', shadow: '#6b7280',  text: '#111827' },
 }
 
 // Custom loot dice use their die text color for all face content (monochrome)
-const CUSTOM_LOOT_DIES = new Set<DieType>(['heavy', 'paladin', 'gambler', 'scavenger', 'wall', 'curse', 'jackpot', 'vampire', 'priest', 'fortune_teller'])
+const CUSTOM_LOOT_DIES = new Set<DieType>(['heavy', 'paladin', 'gambler', 'scavenger', 'wall', 'curse', 'jackpot', 'vampire', 'priest', 'fortune_teller', 'joker'])
 
 export const faceColor: Record<DieFace['type'], string> = {
   damage:      '#dc2626',
@@ -33,6 +34,7 @@ export const faceColor: Record<DieFace['type'], string> = {
   gold:        '#fbbf24',
   lifesteal:   '#e879f9',
   choose_next: '#a5b4fc',
+  wildcard:    '#a8a29e',
 }
 
 export const faceShadow: Record<DieFace['type'], string> = {
@@ -43,6 +45,7 @@ export const faceShadow: Record<DieFace['type'], string> = {
   gold:        '#78350f',
   lifesteal:   '#701a75',
   choose_next: '#3730a3',
+  wildcard:    '#57534e',
 }
 
 // ── Type icon ────────────────────────────────────────────────────────────────
@@ -55,6 +58,7 @@ function TypeIcon({ type, size = 13, forceColor }: { type: DieFace['type']; size
   if (type === 'gold')        return <Coins    size={size} color={color} strokeWidth={2.5} />
   if (type === 'lifesteal')   return <Droplets size={size} color={color} strokeWidth={2.5} />
   if (type === 'choose_next') return <Star     size={size} color={color} strokeWidth={2.5} />
+  if (type === 'wildcard')    return <Shuffle  size={size} color={color} strokeWidth={2.5} />
   return                             <Heart    size={size} color={color} strokeWidth={2.5} />
 }
 
@@ -64,8 +68,8 @@ function DiceFace({ face, textColor, dieType }: { face: DieFace; textColor: stri
   // Custom loot dice use their die text color for all icons (monochrome palette)
   const iconColor = CUSTOM_LOOT_DIES.has(dieType) ? textColor : undefined
 
-  // Skull and choose_next render icon-only
-  if (face.type === 'skull' || face.type === 'choose_next') {
+  // Skull, choose_next, and wildcard render icon-only
+  if (face.type === 'skull' || face.type === 'choose_next' || face.type === 'wildcard') {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
         <TypeIcon type={face.type} size={32} forceColor={iconColor} />

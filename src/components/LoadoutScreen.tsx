@@ -147,14 +147,14 @@ export function LoadoutScreen() {
         <button
           onClick={() => setShowTalents(true)}
           className="pixel-btn"
-          style={{ background: '#6d28d9' }}
+          style={{ background: '#7c3aed', color: '#ede9fe', textShadow: '1px 1px 0 #4c1d95' }}
         >
           ✦ TALENTS
         </button>
         <button
           onClick={() => setShowLibrary(true)}
           className="pixel-btn"
-          style={{ background: '#1e3a5f' }}
+          style={{ background: '#b45309', color: '#fef3c7', textShadow: '1px 1px 0 #78350f' }}
         >
           ✦ LIBRARY
         </button>
@@ -206,7 +206,7 @@ export function LoadoutScreen() {
           disabled={!canStart}
           className="pixel-btn"
           style={{
-            background: canStart ? '#4f46e5' : '#374151',
+            background: canStart ? '#16a34a' : '#374151', color: '#f0fdf4', textShadow: canStart ? '1px 1px 0 #14532d' : 'none',
             opacity: canStart ? 1 : 0.7,
             cursor: canStart ? 'pointer' : 'not-allowed',
           }}
