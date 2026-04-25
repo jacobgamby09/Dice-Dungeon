@@ -15,7 +15,6 @@ export const dieTypeStyle: Record<DieType, { bg: string; shadow: string; text: s
   gambler:   { bg: '#e9d5ff', shadow: '#6d28d9', text: '#4c1d95' },
   scavenger: { bg: '#fed7aa', shadow: '#c2410c', text: '#7c2d12' },
   wall:      { bg: '#bfdbfe', shadow: '#1d4ed8', text: '#1e3a8a' },
-  curse:         { bg: '#9333ea', shadow: '#4c0070',  text: '#f5d0fe' },
   jackpot:       { bg: '#fbbf24', shadow: '#78350f',  text: '#1c0a00' },
   vampire:       { bg: '#7f1d1d', shadow: '#450a0a',  text: '#fca5a5' },
   priest:        { bg: '#fef9c3', shadow: '#a16207',  text: '#713f12' },
@@ -24,7 +23,7 @@ export const dieTypeStyle: Record<DieType, { bg: string; shadow: string; text: s
 }
 
 // Custom loot dice use their die text color for all face content (monochrome)
-const CUSTOM_LOOT_DIES = new Set<DieType>(['heavy', 'paladin', 'gambler', 'scavenger', 'wall', 'curse', 'jackpot', 'vampire', 'priest', 'fortune_teller', 'joker'])
+const CUSTOM_LOOT_DIES = new Set<DieType>(['heavy', 'paladin', 'gambler', 'scavenger', 'wall', 'jackpot', 'vampire', 'priest', 'fortune_teller', 'joker'])
 
 export const faceColor: Record<DieFace['type'], string> = {
   damage:      '#dc2626',

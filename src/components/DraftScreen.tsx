@@ -7,16 +7,20 @@ import type { DieType, DieFace } from '../store/gameStore'
 // ── Die display names ─────────────────────────────────────────────────────────
 
 const DIE_NAMES: Partial<Record<DieType, string>> = {
-  heavy:         'THE HEAVY',
-  paladin:       'THE PALADIN',
-  gambler:       'THE GAMBLER',
-  scavenger:     'THE SCAVENGER',
-  wall:          'THE WALL',
-  jackpot:       'THE JACKPOT',
-  vampire:       'THE VAMPIRE',
-  priest:        'THE PRIEST',
-  fortune_teller:'THE FORTUNE TELLER',
-  joker:         'THE JOKER',
+  white:          'The Basic',
+  blue:           'The Guard',
+  green:          'The Mender',
+  cursed:         'The Cursed',
+  heavy:          'The Heavy',
+  paladin:        'The Paladin',
+  gambler:        'The Gambler',
+  scavenger:      'The Scavenger',
+  wall:           'The Wall',
+  jackpot:        'The Jackpot',
+  vampire:        'The Vampire',
+  priest:         'The Priest',
+  fortune_teller: 'The Fortune Teller',
+  joker:          'The Joker',
 }
 
 // ── Face icon ─────────────────────────────────────────────────────────────────
@@ -52,7 +56,7 @@ function DieChoiceCard({
 }) {
   const template = DIE_TEMPLATES[dieType]
   const s = dieTypeStyle[dieType]
-  const name = DIE_NAMES[dieType] ?? dieType.toUpperCase()
+  const name = DIE_NAMES[dieType] ?? dieType
 
   return (
     <div style={{

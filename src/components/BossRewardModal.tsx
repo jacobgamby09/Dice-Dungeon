@@ -17,8 +17,8 @@ function FaceIcon({ type, size = 12 }: { type: DieFace['type']; size?: number })
 
 export function BossRewardModal() {
   const claimBossReward = useGameStore((s) => s.claimBossReward)
-  const template = DIE_TEMPLATES['curse']
-  const s = dieTypeStyle['curse']
+  const template = DIE_TEMPLATES['cursed']
+  const s = dieTypeStyle['cursed']
 
   return (
     <div

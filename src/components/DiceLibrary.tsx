@@ -6,16 +6,15 @@ import { dieTypeStyle, faceColor } from './DieCard'
 const LIBRARY_TYPES: DieType[] = ['white', 'blue', 'green', 'cursed', 'heavy', 'paladin', 'gambler', 'scavenger', 'wall', 'jackpot', 'vampire', 'priest', 'fortune_teller', 'joker']
 
 const DIE_NAMES: Record<DieType, string> = {
-  white:          'Standard',
-  blue:           'Guard',
-  green:          'Mender',
-  cursed:         'Cursed',
+  white:          'The Basic',
+  blue:           'The Guard',
+  green:          'The Mender',
+  cursed:         'The Cursed',
   heavy:          'The Heavy',
   paladin:        'The Paladin',
   gambler:        'The Gambler',
   scavenger:      'The Scavenger',
   wall:           'The Wall',
-  curse:          'The Cursed',
   jackpot:        'The Jackpot',
   vampire:        'The Vampire',
   priest:         'The Priest',

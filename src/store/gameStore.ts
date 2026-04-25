@@ -10,7 +10,7 @@ export interface DieFace {
 
 export type DieType = 'white' | 'blue' | 'green' | 'cursed'
                     | 'heavy' | 'paladin' | 'gambler' | 'scavenger' | 'wall'
-                    | 'curse' | 'jackpot' | 'vampire' | 'priest' | 'fortune_teller'
+                    | 'jackpot' | 'vampire' | 'priest' | 'fortune_teller'
                     | 'joker'
 
 export interface Die {
@@ -147,18 +147,7 @@ export const DIE_TEMPLATES: Record<DieType, { sides: number; faces: DieFace[]; r
       { type: 'shield', value: 6 },
     ],
   },
-  curse: {
-    sides: 6,
-    rarity: 'rare',
-    faces: [
-      { type: 'skull',  value: 1 },
-      { type: 'skull',  value: 1 },
-      { type: 'skull',  value: 1 },
-      { type: 'skull',  value: 1 },
-      { type: 'damage', value: 0 },
-      { type: 'damage', value: 0 },
-    ],
-  },
+
   jackpot: {
     sides: 6,
     rarity: 'legendary',
@@ -752,7 +741,7 @@ export const useGameStore = create<GameState>()(
       if (isBossFloor) {
         const curseId = uid()
         set((st) => ({
-          inventory: [...st.inventory, createDie('curse', curseId)],
+          inventory: [...st.inventory, createDie('cursed', curseId)],
           gold: st.gold + earned,
           lastGoldEarned: earned,
           metaSouls: st.metaSouls + soulsGained,

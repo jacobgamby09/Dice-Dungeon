@@ -5,21 +5,20 @@ import { DIE_TEMPLATES } from '../store/gameStore'
 import { dieTypeStyle, faceColor } from './DieCard'
 
 const TYPE_LABEL: Record<DieType, string> = {
-  white:     'WHITE',
-  blue:      'BLUE',
-  green:     'GREEN',
-  cursed:    'CURSED',
-  heavy:     'HEAVY',
-  paladin:   'PALADIN',
-  gambler:   'GAMBLER',
-  scavenger: 'SCAVENGER',
-  wall:      'WALL',
-  curse:          'CURSE',
-  jackpot:        'JACKPOT',
-  vampire:        'VAMPIRE',
-  priest:         'PRIEST',
-  fortune_teller: 'FORTUNE TELLER',
-  joker:          'JOKER',
+  white:          'The Basic',
+  blue:           'The Guard',
+  green:          'The Mender',
+  cursed:         'The Cursed',
+  heavy:          'The Heavy',
+  paladin:        'The Paladin',
+  gambler:        'The Gambler',
+  scavenger:      'The Scavenger',
+  wall:           'The Wall',
+  jackpot:        'The Jackpot',
+  vampire:        'The Vampire',
+  priest:         'The Priest',
+  fortune_teller: 'The Fortune Teller',
+  joker:          'The Joker',
 }
 
 function FaceIcon({ type, size = 13 }: { type: DieFace['type']; size?: number }) {
@@ -124,7 +123,7 @@ export function DiceInspectorModal({ types, initialType, onClose }: Props) {
             boxShadow: `2px 2px 0 ${s.shadow}`, flexShrink: 0,
           }} />
           <span style={{ fontSize: '0.85rem', fontWeight: 700, color: s.bg }}>
-            {TYPE_LABEL[selected]} DIE
+            {TYPE_LABEL[selected]}
           </span>
           <span style={{ fontSize: '0.6rem', color: '#6b7280', marginLeft: 'auto' }}>
             {template.sides} sides · {template.rarity}

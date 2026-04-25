@@ -7,12 +7,20 @@ import type { Die, DieFace } from '../store/gameStore'
 // ── Die display names ─────────────────────────────────────────────────────────
 
 const DIE_NAMES: Record<string, string> = {
-  white: 'BASIC', blue: 'GUARD', green: 'MENDER', cursed: 'CURSED',
-  heavy: 'HEAVY', paladin: 'PALADIN', gambler: 'GAMBLER',
-  scavenger: 'SCAVENGER', wall: 'WALL', curse: 'THE CURSE',
-  jackpot: 'THE JACKPOT', vampire: 'THE VAMPIRE',
-  priest: 'THE PRIEST', fortune_teller: 'THE FORTUNE TELLER',
-  joker: 'THE JOKER',
+  white:          'The Basic',
+  blue:           'The Guard',
+  green:          'The Mender',
+  cursed:         'The Cursed',
+  heavy:          'The Heavy',
+  paladin:        'The Paladin',
+  gambler:        'The Gambler',
+  scavenger:      'The Scavenger',
+  wall:           'The Wall',
+  jackpot:        'The Jackpot',
+  vampire:        'The Vampire',
+  priest:         'The Priest',
+  fortune_teller: 'The Fortune Teller',
+  joker:          'The Joker',
 }
 
 // ── Face icon ─────────────────────────────────────────────────────────────────
