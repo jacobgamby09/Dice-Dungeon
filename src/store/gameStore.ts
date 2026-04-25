@@ -354,24 +354,6 @@ export function getClassPreviewDice(cls: string): Die[] {
       createDie('cursed',    'pv-c1'), createDie('cursed',    'pv-c2'), createDie('cursed', 'pv-c3'),
     ]
   }
-  if (cls === 'priest') {
-    return [
-      createDie('priest',  'pv-p1'), createDie('priest',  'pv-p2'),
-      createDie('white',   'pv-w1'), createDie('white',   'pv-w2'),
-      createDie('blue',    'pv-b1'), createDie('blue',    'pv-b2'),
-      createDie('green',   'pv-gr1'), createDie('green',  'pv-gr2'),
-      createDie('cursed',  'pv-c1'), createDie('cursed',  'pv-c2'),
-    ]
-  }
-  if (cls === 'fortune_teller') {
-    return [
-      createDie('fortune_teller', 'pv-ft1'), createDie('fortune_teller', 'pv-ft2'),
-      createDie('white',   'pv-w1'), createDie('white',   'pv-w2'),
-      createDie('blue',    'pv-b1'),
-      createDie('green',   'pv-gr1'),
-      createDie('cursed',  'pv-c1'), createDie('cursed',  'pv-c2'), createDie('cursed', 'pv-c3'),
-    ]
-  }
   return [
     createDie('white',  'pv-w1'), createDie('white',  'pv-w2'), createDie('white',  'pv-w3'), createDie('white', 'pv-w4'),
     createDie('blue',   'pv-b1'), createDie('blue',   'pv-b2'),
@@ -486,24 +468,6 @@ export const useGameStore = create<GameState>()(
         createDie('cursed',    uid()), createDie('cursed',    uid()), createDie('cursed', uid()),
       ]
       baseHp = 100 + vitI + vitII
-    } else if (selectedClass === 'priest') {
-      startInventory = [
-        createDie('priest',  uid()), createDie('priest',  uid()),
-        createDie('white',   uid()), createDie('white',   uid()),
-        createDie('blue',    uid()), createDie('blue',    uid()),
-        createDie('green',   uid()), createDie('green',   uid()),
-        createDie('cursed',  uid()), createDie('cursed',  uid()),
-      ]
-      baseHp = 100 + vitI + vitII
-    } else if (selectedClass === 'fortune_teller') {
-      startInventory = [
-        createDie('fortune_teller', uid()), createDie('fortune_teller', uid()),
-        createDie('white',   uid()), createDie('white',   uid()),
-        createDie('blue',    uid()),
-        createDie('green',   uid()),
-        createDie('cursed',  uid()), createDie('cursed',  uid()), createDie('cursed', uid()),
-      ]
-      baseHp = 90 + vitI + vitII
     } else {
       startInventory = [
         createDie('white',  uid()), createDie('white',  uid()), createDie('white',  uid()), createDie('white', uid()),
