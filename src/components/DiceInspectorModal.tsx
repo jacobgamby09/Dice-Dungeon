@@ -144,10 +144,11 @@ export function DiceInspectorModal({ types, initialType, onClose }: Props) {
                 border: '3px solid #000',
                 boxShadow: `3px 3px 0 ${s.shadow}`,
                 padding: '10px 4px',
+                minHeight: 56,
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
               }}
             >
-              {(face.type === 'skull' || face.type === 'wildcard') ? (
+              {(face.type === 'skull' || face.type === 'wildcard' || face.type === 'choose_next') ? (
                 <FaceIcon type={face.type} size={22} />
               ) : (
                 <>

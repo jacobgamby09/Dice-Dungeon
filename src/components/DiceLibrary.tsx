@@ -104,6 +104,7 @@ export function DiceLibrary({ onClose }: { onClose: () => void }) {
                       border: '2px solid #000',
                       boxShadow: `2px 2px 0 ${s.shadow}`,
                       padding: '6px 2px',
+                      minHeight: 36,
                       display: 'flex', flexDirection: 'column',
                       alignItems: 'center', justifyContent: 'center', gap: 2,
                     }}
