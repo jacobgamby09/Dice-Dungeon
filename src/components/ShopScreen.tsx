@@ -44,10 +44,11 @@ type ShopAction = 'purify' | 'empower' | 'merge' | null
 // ── Action card ───────────────────────────────────────────────────────────────
 
 function ActionCard({
-  label, cost, description, disabled, accentColor, onSelect,
+  label, cost, description, disabled, accentColor, onSelect, buttonLabel,
 }: {
   label: string; cost: number; description: string
   disabled: boolean; accentColor: string; onSelect: () => void
+  buttonLabel?: string
 }) {
   return (
     <div style={{
@@ -79,7 +80,7 @@ function ActionCard({
           color: '#fff', fontSize: '0.9rem', padding: '10px 0',
         }}
       >
-        {label}
+        {buttonLabel ?? label}
       </button>
     </div>
   )
@@ -183,6 +184,7 @@ export function ShopScreen() {
   const {
     player, gold, inventory, lastGoldEarned, justDefeatedBoss,
     shopHeal, shopModifyFace, shopMergeDice, leaveShop,
+    purifyUsesThisShop,
   } = useGameStore()
   const unlockedNodes = useGameStore((s) => s.unlockedNodes)
   const healCost  = unlockedNodes.includes('7jutuf9h') ? 5  : 10
@@ -364,9 +366,10 @@ export function ShopScreen() {
             <ActionCard
               label="PURIFY"
               cost={20}
-              description="Remove a curse. Changes 1 Skull face into a blank Damage face (0 dmg)."
-              disabled={gold < 20}
+              description={`Remove a curse. Changes 1 Skull face into a blank Damage face (0 dmg). ${3 - purifyUsesThisShop} use${3 - purifyUsesThisShop === 1 ? '' : 's'} remaining this visit.`}
+              disabled={gold < 20 || purifyUsesThisShop >= 3}
               accentColor="#7c3aed"
+              buttonLabel={`PURIFY (${3 - purifyUsesThisShop} left)`}
               onSelect={() => { setActiveAction('purify'); setSelectedDieId(null) }}
             />
             <ActionCard

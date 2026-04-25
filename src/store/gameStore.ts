@@ -129,7 +129,7 @@ export const DIE_TEMPLATES: Record<DieType, { sides: number; faces: DieFace[]; r
     faces: [
       { type: 'gold',   value: 3 },
       { type: 'gold',   value: 4 },
-      { type: 'gold',   value: 6 },
+      { type: 'shield', value: 1 },
       { type: 'shield', value: 2 },
       { type: 'shield', value: 3 },
       { type: 'skull',  value: 1 },
@@ -276,6 +276,7 @@ interface GameState {
   justDefeatedBoss: boolean
   secondWindTriggered: boolean
   showBossRewardModal: boolean
+  purifyUsesThisShop: number
   claimBossReward: () => void
   startCombat: () => void
   drawAndRoll: () => Promise<void>
@@ -429,6 +430,7 @@ export const useGameStore = create<GameState>()(
   justDefeatedBoss: false,
   secondWindTriggered: false,
   showBossRewardModal: false,
+  purifyUsesThisShop: 0,
 
   startCombat: () => {
     const { unlockedNodes, selectedClass } = get()
@@ -502,6 +504,7 @@ export const useGameStore = create<GameState>()(
       justDefeatedBoss: false,
       secondWindTriggered: false,
       showBossRewardModal: false,
+      purifyUsesThisShop: 0,
     }))
   },
 
@@ -748,6 +751,7 @@ export const useGameStore = create<GameState>()(
           turnPhase: 'shop',
           justDefeatedBoss: true,
           showBossRewardModal: true,
+          purifyUsesThisShop: 0,
           player: { ...st.player, hp: Math.min(st.player.maxHp, st.player.hp + thickSkinHeal) },
           totalDamage: 0, totalHeal: 0, totalShield: 0, totalGold: 0,
           skullCount: 0,
@@ -872,11 +876,17 @@ export const useGameStore = create<GameState>()(
   shopModifyFace: (dieId, faceIndex, newFace, cost) => {
     set((s) => {
       if (s.gold < cost) return {}
+      const isPurify = cost === 20
+      if (isPurify && s.purifyUsesThisShop >= 3) return {}
       const newInventory = s.inventory.map((d) => {
         if (d.id !== dieId) return d
         return { ...d, faces: d.faces.map((f, i) => (i === faceIndex ? newFace : f)) }
       })
-      return { gold: s.gold - cost, inventory: newInventory }
+      return {
+        gold: s.gold - cost,
+        inventory: newInventory,
+        ...(isPurify ? { purifyUsesThisShop: s.purifyUsesThisShop + 1 } : {}),
+      }
     })
   },
 
