@@ -713,7 +713,7 @@ function ScoutModal({ drawPile, onClose }: { drawPile: import('../store/gameStor
 // ── Main screen ──────────────────────────────────────────────────────────────
 export function CombatScreen() {
   const {
-    enemy,
+    player, enemy,
     drawPile, playedDice, skullCount, skullRolledVersion,
     totalDamage, totalHeal, totalShield, totalGold,
     lastEffects, turnPhase, playerAttackAnimTier,
@@ -974,7 +974,17 @@ export function CombatScreen() {
           version={playerEffectVersion}
         />
 
-        <div ref={playerHpRef} style={{ height: 0, overflow: 'hidden' }} />
+        <div ref={playerHpRef} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Heart size={13} color="#f472b6" strokeWidth={2.5} />
+          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#f9a8d4' }}>{player.hp}</span>
+          <span style={{ fontSize: '0.75rem', color: '#4b5563' }}>/ {player.maxHp}</span>
+          {player.shield > 0 && (
+            <>
+              <Shield size={13} color="#38bdf8" strokeWidth={2.5} style={{ marginLeft: 6 }} />
+              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#7dd3fc' }}>{player.shield}</span>
+            </>
+          )}
+        </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 2 }}>
