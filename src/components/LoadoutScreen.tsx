@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { Flame } from 'lucide-react'
 import { useGameStore, getClassPreviewDice } from '../store/gameStore'
 import type { DieType } from '../store/gameStore'
-import { DieCard, dieTypeStyle } from './DieCard'
+import { DieCard } from './DieCard'
 import { DiceInspectorModal } from './DiceInspectorModal'
 import { SkillTree } from './SkillTree'
 import { DiceLibrary } from './DiceLibrary'
@@ -23,13 +23,6 @@ function Label({ children }: { children: React.ReactNode }) {
     </span>
   )
 }
-
-const TYPE_LEGEND = [
-  { type: 'white',  label: 'White — Damage' },
-  { type: 'blue',   label: 'Blue — Shield' },
-  { type: 'green',  label: 'Green — Heal' },
-  { type: 'cursed', label: 'Cursed — Skull' },
-] as const
 
 export function LoadoutScreen() {
   const { currentFloor, startCombat } = useGameStore()
@@ -83,39 +76,6 @@ export function LoadoutScreen() {
         </span>
       </div>
 
-      {/* Die type legend — clickable inspector buttons */}
-      <div style={{
-        background: '#12121f', padding: '10px 16px',
-        borderBottom: '2px solid #000',
-        display: 'flex', gap: 8,
-      }}>
-        {TYPE_LEGEND.map(({ type, label }) => {
-          const s = dieTypeStyle[type]
-          return (
-            <button
-              key={type}
-              onClick={() => setInspectorType(type)}
-              style={{
-                flex: 1,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                background: '#0f0f1a',
-                border: `2px solid ${s.shadow}`,
-                boxShadow: `2px 2px 0 ${s.shadow}`,
-                padding: '7px 4px',
-                cursor: 'pointer', fontFamily: 'inherit',
-              }}
-            >
-              <div style={{
-                width: 14, height: 14, flexShrink: 0,
-                background: s.bg, border: '2px solid #000',
-                boxShadow: `1px 1px 0 ${s.shadow}`,
-              }} />
-              <span style={{ fontSize: '0.6rem', color: '#d1d5db', letterSpacing: '0.08em' }}>{label}</span>
-            </button>
-          )
-        })}
-      </div>
-
       {/* Starting loadout preview */}
       <div style={{
         flex: 1, overflowY: 'auto', padding: '14px 16px',
@@ -137,7 +97,7 @@ export function LoadoutScreen() {
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10 }}>
           {previewDice.map((die) => (
-            <DieCard key={die.id} die={die} />
+            <DieCard key={die.id} die={die} onClick={() => setInspectorType(die.dieType)} />
           ))}
         </div>
       </div>
