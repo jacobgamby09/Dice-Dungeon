@@ -286,6 +286,8 @@ interface GameState {
   rerollCost: number
   justDefeatedBoss: boolean
   secondWindTriggered: boolean
+  showBossRewardModal: boolean
+  claimBossReward: () => void
   startCombat: () => void
   drawAndRoll: () => Promise<void>
   drawSpecificDie: (dieId: string) => Promise<void>
@@ -350,6 +352,24 @@ export function getClassPreviewDice(cls: string): Die[] {
       createDie('blue',      'pv-b1'),
       createDie('green',     'pv-gr1'),
       createDie('cursed',    'pv-c1'), createDie('cursed',    'pv-c2'), createDie('cursed', 'pv-c3'),
+    ]
+  }
+  if (cls === 'priest') {
+    return [
+      createDie('priest',  'pv-p1'), createDie('priest',  'pv-p2'),
+      createDie('white',   'pv-w1'), createDie('white',   'pv-w2'),
+      createDie('blue',    'pv-b1'), createDie('blue',    'pv-b2'),
+      createDie('green',   'pv-gr1'), createDie('green',  'pv-gr2'),
+      createDie('cursed',  'pv-c1'), createDie('cursed',  'pv-c2'),
+    ]
+  }
+  if (cls === 'fortune_teller') {
+    return [
+      createDie('fortune_teller', 'pv-ft1'), createDie('fortune_teller', 'pv-ft2'),
+      createDie('white',   'pv-w1'), createDie('white',   'pv-w2'),
+      createDie('blue',    'pv-b1'),
+      createDie('green',   'pv-gr1'),
+      createDie('cursed',  'pv-c1'), createDie('cursed',  'pv-c2'), createDie('cursed', 'pv-c3'),
     ]
   }
   return [
@@ -437,6 +457,7 @@ export const useGameStore = create<GameState>()(
   rerollCost: 5,
   justDefeatedBoss: false,
   secondWindTriggered: false,
+  showBossRewardModal: false,
 
   startCombat: () => {
     const { unlockedNodes, selectedClass } = get()
@@ -465,6 +486,24 @@ export const useGameStore = create<GameState>()(
         createDie('cursed',    uid()), createDie('cursed',    uid()), createDie('cursed', uid()),
       ]
       baseHp = 100 + vitI + vitII
+    } else if (selectedClass === 'priest') {
+      startInventory = [
+        createDie('priest',  uid()), createDie('priest',  uid()),
+        createDie('white',   uid()), createDie('white',   uid()),
+        createDie('blue',    uid()), createDie('blue',    uid()),
+        createDie('green',   uid()), createDie('green',   uid()),
+        createDie('cursed',  uid()), createDie('cursed',  uid()),
+      ]
+      baseHp = 100 + vitI + vitII
+    } else if (selectedClass === 'fortune_teller') {
+      startInventory = [
+        createDie('fortune_teller', uid()), createDie('fortune_teller', uid()),
+        createDie('white',   uid()), createDie('white',   uid()),
+        createDie('blue',    uid()),
+        createDie('green',   uid()),
+        createDie('cursed',  uid()), createDie('cursed',  uid()), createDie('cursed', uid()),
+      ]
+      baseHp = 90 + vitI + vitII
     } else {
       startInventory = [
         createDie('white',  uid()), createDie('white',  uid()), createDie('white',  uid()), createDie('white', uid()),
@@ -509,6 +548,7 @@ export const useGameStore = create<GameState>()(
       rerollCost: 5,
       justDefeatedBoss: false,
       secondWindTriggered: false,
+      showBossRewardModal: false,
     }))
   },
 
@@ -754,6 +794,7 @@ export const useGameStore = create<GameState>()(
           metaSouls: st.metaSouls + soulsGained,
           turnPhase: 'shop',
           justDefeatedBoss: true,
+          showBossRewardModal: true,
           player: { ...st.player, hp: Math.min(st.player.maxHp, st.player.hp + thickSkinHeal) },
           totalDamage: 0, totalHeal: 0, totalShield: 0, totalGold: 0,
           skullCount: 0,
@@ -763,8 +804,9 @@ export const useGameStore = create<GameState>()(
         }))
       } else {
         const { lockedDraftDice } = get()
+        const lockedTypes = new Set(lockedDraftDice.map((d) => d.dieType))
         const slotsToFill = 3 - lockedDraftDice.length
-        const pool    = getDiceLootPool(unlockedNodes)
+        const pool    = getDiceLootPool(unlockedNodes).filter((t) => !lockedTypes.has(t))
         const newDice = shuffleArray([...pool])
                           .slice(0, slotsToFill)
                           .map((t) => createDie(t, uid()))
@@ -824,12 +866,15 @@ export const useGameStore = create<GameState>()(
     }))
   },
 
+  claimBossReward: () => { set({ showBossRewardModal: false }) },
+
   rerollDraft: (lockedDieIds) => {
     const { gold, rerollCost, unlockedNodes, draftChoices } = get()
     if (gold < rerollCost) return
     const lockedDice  = draftChoices.filter((d) => lockedDieIds.includes(d.id))
+    const lockedTypes = new Set(lockedDice.map((d) => d.dieType))
     const slotsToFill = 3 - lockedDice.length
-    const pool    = getDiceLootPool(unlockedNodes)
+    const pool    = getDiceLootPool(unlockedNodes).filter((t) => !lockedTypes.has(t))
     const newDice = shuffleArray([...pool]).slice(0, slotsToFill).map((t) => createDie(t, uid()))
     set((s) => ({
       gold: s.gold - rerollCost,

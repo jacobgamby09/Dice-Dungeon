@@ -26,7 +26,7 @@ function FaceIcon({ type, size = 13 }: { type: DieFace['type']; size?: number })
   const color = faceColor[type]
   if (type === 'damage')    return <Swords   size={size} color={color} strokeWidth={2.5} />
   if (type === 'shield')    return <Shield   size={size} color={color} strokeWidth={2.5} />
-  if (type === 'skull')     return <Skull    size={size} color={color} strokeWidth={2.5} />
+  if (type === 'skull')     return <Skull    size={size} color='#ffffff' strokeWidth={2.5} />
   if (type === 'gold')      return <Coins    size={size} color={color} strokeWidth={2.5} />
   if (type === 'lifesteal')   return <Droplets size={size} color={color} strokeWidth={2.5} />
   if (type === 'choose_next') return <Star     size={size} color={color} strokeWidth={2.5} />

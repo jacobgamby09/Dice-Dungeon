@@ -128,7 +128,7 @@ export function LoadoutScreen() {
             background: 'rgba(0,0,0,0.45)', padding: '2px 6px',
           }}>
             {(() => {
-              let hp = selectedClass === 'gambler' ? 80 : 100
+              let hp = selectedClass === 'gambler' ? 80 : selectedClass === 'fortune_teller' ? 90 : 100
               if (unlockedNodes.includes('fyuwvmzq')) hp += 10
               if (unlockedNodes.includes('co2xusrh')) hp += 15
               return `${hp} HP`
@@ -162,9 +162,15 @@ export function LoadoutScreen() {
         {/* Class selector */}
         {(() => {
           const CLASSES = [
-            { id: 'standard',  label: 'Standard',  unlockNode: null       },
-            { id: 'gambler',   label: 'Gambler',   unlockNode: 'c295l2dd' },
-            { id: 'scavenger', label: 'Scavenger', unlockNode: '6ts7gvct' },
+            { id: 'standard',       label: 'Standard',      unlockNode: null,       colors: null },
+            { id: 'gambler',        label: 'Gambler',        unlockNode: 'c295l2dd', colors: null },
+            { id: 'scavenger',      label: 'Scavenger',      unlockNode: '6ts7gvct', colors: null },
+            { id: 'priest',         label: 'Priest',         unlockNode: 'dx6jq5y5',
+              colors: { activeBg: '#78350f', activeBorder: '#d97706', activeText: '#fef9c3',
+                        activeShadow: '#92400e', inactiveBg: '#1c1207', inactiveText: '#6b7280' } },
+            { id: 'fortune_teller', label: 'Fortune Teller', unlockNode: 'qevchxm7',
+              colors: { activeBg: '#1e1b4b', activeBorder: '#60a5fa', activeText: '#e0e7ff',
+                        activeShadow: '#312e81', inactiveBg: '#0d0d1f', inactiveText: '#6b7280' } },
           ]
           const available = CLASSES.filter(
             (c) => c.unlockNode === null || unlockedNodes.includes(c.unlockNode)
@@ -174,21 +180,24 @@ export function LoadoutScreen() {
               <span style={{ fontSize: '0.6rem', color: '#6b7280', letterSpacing: '0.2em', textTransform: 'uppercase' }}>
                 Class
               </span>
-              <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {available.map((cls) => {
                   const active = selectedClass === cls.id
+                  const bg     = active ? (cls.colors?.activeBg     ?? '#4c1d95') : (cls.colors?.inactiveBg   ?? '#12121f')
+                  const clr    = active ? (cls.colors?.activeText   ?? '#c4b5fd') : (cls.colors?.inactiveText ?? '#6b7280')
+                  const border = active ? (cls.colors?.activeBorder ?? '#7c3aed') : '#374151'
+                  const shadow = active ? `3px 3px 0 ${cls.colors?.activeShadow ?? '#4c1d95'}` : '3px 3px 0 #000'
                   return (
                     <button
                       key={cls.id}
                       onClick={() => setSelectedClass(cls.id)}
                       style={{
-                        flex: 1, padding: '8px 4px',
-                        fontFamily: 'inherit', fontSize: '0.7rem', fontWeight: 700,
-                        letterSpacing: '0.1em', textTransform: 'uppercase',
-                        background: active ? '#4c1d95' : '#12121f',
-                        color:      active ? '#c4b5fd' : '#6b7280',
-                        border:    `2px solid ${active ? '#7c3aed' : '#374151'}`,
-                        boxShadow:  active ? '3px 3px 0 #4c1d95' : '3px 3px 0 #000',
+                        flex: 1, padding: '8px 4px', minWidth: 70,
+                        fontFamily: 'inherit', fontSize: '0.65rem', fontWeight: 700,
+                        letterSpacing: '0.08em', textTransform: 'uppercase',
+                        background: bg, color: clr,
+                        border: `2px solid ${border}`,
+                        boxShadow: shadow,
                         cursor: 'pointer',
                       }}
                     >

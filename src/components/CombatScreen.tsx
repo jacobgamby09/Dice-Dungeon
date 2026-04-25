@@ -787,6 +787,7 @@ export function CombatScreen() {
   const canBank = isIdle && playedDice.length > 0
 
   const [inspectorOpen, setInspectorOpen] = useState(false)
+  const [boardInspectorType, setBoardInspectorType] = useState<DieType | null>(null)
   const [jackpotVersion, setJackpotVersion] = useState(0)
   const [lifesteelOrbVersion, setLifesteelOrbVersion] = useState(0)
   const [showScout, setShowScout] = useState(false)
@@ -1061,6 +1062,7 @@ export function CombatScreen() {
                 die={die}
                 isResolving={i === resolvingDieIndex}
                 resolvingPhase={resolvingPhase}
+                onClick={i !== resolvingDieIndex ? () => setBoardInspectorType(die.dieType) : undefined}
               />
             ))}
           </div>
@@ -1239,6 +1241,13 @@ export function CombatScreen() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {boardInspectorType && (
+        <DiceInspectorModal
+          types={[boardInspectorType]}
+          onClose={() => setBoardInspectorType(null)}
+        />
+      )}
     </div>
   )
 }

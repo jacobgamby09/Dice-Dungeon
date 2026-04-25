@@ -15,7 +15,7 @@ const DIE_NAMES: Record<DieType, string> = {
   gambler:        'The Gambler',
   scavenger:      'The Scavenger',
   wall:           'The Wall',
-  curse:          'The Curse',
+  curse:          'The Cursed',
   jackpot:        'The Jackpot',
   vampire:        'The Vampire',
   priest:         'The Priest',
