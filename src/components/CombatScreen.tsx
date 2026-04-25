@@ -974,28 +974,32 @@ export function CombatScreen() {
           version={playerEffectVersion}
         />
 
-        <div ref={playerHpRef} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <Heart size={13} color="#f472b6" strokeWidth={2.5} />
-          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#f9a8d4' }}>{player.hp}</span>
-          <span style={{ fontSize: '0.75rem', color: '#4b5563' }}>/ {player.maxHp}</span>
-          {player.shield > 0 && (
-            <>
-              <Shield size={13} color="#38bdf8" strokeWidth={2.5} style={{ marginLeft: 6 }} />
-              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#7dd3fc' }}>{player.shield}</span>
-            </>
-          )}
+        {/* 3-col grid: HP | TOTAL DAMAGE | Skulls */}
+        <div style={{
+          display: 'grid', gridTemplateColumns: '1fr auto 1fr',
+          alignItems: 'center', marginBottom: 2,
+        }}>
+          <div ref={playerHpRef} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <Heart size={13} color="#f472b6" strokeWidth={2.5} />
+            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#f9a8d4' }}>{player.hp}</span>
+            <span style={{ fontSize: '0.75rem', color: '#4b5563' }}>/ {player.maxHp}</span>
+            {player.shield > 0 && (
+              <>
+                <Shield size={13} color="#38bdf8" strokeWidth={2.5} style={{ marginLeft: 4 }} />
+                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#7dd3fc' }}>{player.shield}</span>
+              </>
+            )}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Swords size={12} color="#6b7280" />
+            <Label>Total Damage</Label>
+          </div>
+          <div ref={skullRef} style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <SkullTracker skullCount={skullCount} />
+          </div>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 2 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Swords size={12} color="#6b7280" />
-              <Label>Total Damage</Label>
-            </div>
-            <div ref={skullRef}>
-              <SkullTracker skullCount={skullCount} />
-            </div>
-          </div>
           <div ref={damageRef}>
             <DamageCounter target={totalDamage} rollStartVersion={rollStartVersion} counterVersion={counterVersion} attackTier={playerAttackAnimTier} />
           </div>
