@@ -37,12 +37,14 @@ interface Props {
   types: DieType[]
   initialType?: DieType
   mergeLevel?: number
+  faces?: DieFace[]
   onClose: () => void
 }
 
-export function DiceInspectorModal({ types, initialType, mergeLevel, onClose }: Props) {
+export function DiceInspectorModal({ types, initialType, mergeLevel, faces, onClose }: Props) {
   const [selected, setSelected] = useState<DieType>(initialType ?? types[0])
   const template = DIE_TEMPLATES[selected]
+  const displayFaces = faces ?? template.faces
   const s = dieTypeStyle[selected]
 
   return (
@@ -140,7 +142,7 @@ export function DiceInspectorModal({ types, initialType, mergeLevel, onClose }: 
           gridTemplateColumns: 'repeat(3, 1fr)',
           gap: 8, marginBottom: 16,
         }}>
-          {template.faces.map((face, i) => (
+          {displayFaces.map((face, i) => (
             <div
               key={i}
               style={{

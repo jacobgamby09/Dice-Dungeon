@@ -161,7 +161,7 @@ function FacePickerGrid({
   const s = dieTypeStyle[die.dieType]
 
   function isEligible(face: DieFace) {
-    if (activeAction === 'purify') return face.type === 'skull'
+    if (activeAction === 'purify') return face.type !== 'blank'
     if (activeAction === 'craft')  return face.type === 'blank' || face.type === 'purified_skull'
     return false
   }
@@ -220,7 +220,7 @@ function FacePickerGrid({
 export function ShopScreen() {
   const {
     player, gold, inventory, lastGoldEarned, justDefeatedBoss,
-    shopHeal, shopModifyFace, shopMergeDice, shopCraftFace, leaveShop,
+    shopHeal, shopMergeDice, shopCraftFace, shopPurifyFace, leaveShop,
     purifyUsesThisShop,
   } = useGameStore()
   const unlockedNodes = useGameStore((s) => s.unlockedNodes)
@@ -242,7 +242,7 @@ export function ShopScreen() {
   function handleFaceSelect(faceIndex: number, _face: DieFace) {
     if (!selectedDieId) return
     if (activeAction === 'purify') {
-      shopModifyFace(selectedDieId, faceIndex, { type: 'purified_skull', value: 0 }, 20)
+      shopPurifyFace(selectedDieId, faceIndex)
       setActiveAction(null)
       setSelectedDieId(null)
     } else if (activeAction === 'craft') {
@@ -445,9 +445,9 @@ export function ShopScreen() {
             />
             <ActionCard
               label="PURIFY"
-              cost={20}
-              description={`Remove a curse. Changes 1 Skull face into a purified blank face. ${3 - purifyUsesThisShop} use${3 - purifyUsesThisShop === 1 ? '' : 's'} remaining this visit.`}
-              disabled={gold < 20 || purifyUsesThisShop >= 3}
+              cost={10}
+              description={`Wipe any face clean, making it blank and available for crafting. ${3 - purifyUsesThisShop} use${3 - purifyUsesThisShop === 1 ? '' : 's'} remaining this visit.`}
+              disabled={gold < 10 || purifyUsesThisShop >= 3}
               accentColor="#7c3aed"
               buttonLabel={`PURIFY (${3 - purifyUsesThisShop} left)`}
               onSelect={() => { setActiveAction('purify'); setSelectedDieId(null) }}
@@ -542,7 +542,7 @@ export function ShopScreen() {
               textAlign: 'center', margin: 0, letterSpacing: '0.05em',
             }}>
               {activeAction === 'purify'
-                ? 'Only skull faces can be purified'
+                ? 'Select any face to convert it to blank'
                 : 'Select a blank or purified face to overwrite'}
             </p>
           </div>
@@ -618,6 +618,7 @@ export function ShopScreen() {
           <DiceInspectorModal
             types={[die.dieType]}
             mergeLevel={die.mergeLevel}
+            faces={die.faces}
             onClose={() => setInspectDieId(null)}
           />
         )
