@@ -293,6 +293,7 @@ interface GameState {
   setSelectedClass: (cls: string) => void
   leaveShop: () => void
   abandonRun: () => void
+  devJumpToForge: () => void
 }
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
@@ -952,6 +953,73 @@ export const useGameStore = create<GameState>()(
       playerAttackAnimTier: null,
       turnPhase: 'loadout',
     })
+  },
+
+  devJumpToForge: () => {
+    const { unlockedNodes, selectedClass } = get()
+    const vitI  = unlockedNodes.includes('fyuwvmzq') ? 10 : 0
+    const vitII = unlockedNodes.includes('co2xusrh') ? 15 : 0
+    let startInventory: Die[]
+    let baseHp: number
+    if (selectedClass === 'gambler') {
+      startInventory = [
+        createDie('gambler', uid()), createDie('gambler', uid()),
+        createDie('white',   uid()), createDie('white',   uid()),
+        createDie('blue',    uid()), createDie('blue',    uid()),
+        createDie('green',   uid()),
+        createDie('cursed',  uid()), createDie('cursed',  uid()), createDie('cursed', uid()),
+      ]
+      baseHp = 80 + vitI + vitII
+    } else if (selectedClass === 'scavenger') {
+      startInventory = [
+        createDie('scavenger', uid()), createDie('scavenger', uid()),
+        createDie('white',     uid()), createDie('white',     uid()), createDie('white', uid()),
+        createDie('blue',      uid()),
+        createDie('green',     uid()),
+        createDie('cursed',    uid()), createDie('cursed',    uid()), createDie('cursed', uid()),
+      ]
+      baseHp = 100 + vitI + vitII
+    } else {
+      startInventory = [
+        createDie('white',  uid()), createDie('white',  uid()), createDie('white',  uid()), createDie('white', uid()),
+        createDie('blue',   uid()), createDie('blue',   uid()),
+        createDie('green',  uid()),
+        createDie('cursed', uid()), createDie('cursed', uid()), createDie('cursed', uid()),
+      ]
+      baseHp = 100 + vitI + vitII
+    }
+    const pool    = getDiceLootPool(unlockedNodes)
+    const shuffled = shuffleArray(pool)
+    const lootDice = shuffled.slice(0, 4).map((t) => createDie(t, uid()))
+    const inventory = [
+      ...startInventory,
+      ...lootDice,
+      createDie('cursed', uid()),
+    ]
+    set((s) => ({
+      turnPhase:    'shop',
+      player:       { hp: baseHp, maxHp: baseHp, shield: 0 },
+      inventory,
+      gold:         150,
+      currentFloor: 6,
+      enemy:        spawnEnemy(6),
+      drawPile:     [],
+      playedDice:   [],
+      skullCount:   0,
+      totalDamage: 0, totalHeal: 0, totalShield: 0, totalGold: 0,
+      lastEffects:  { heal: 0, shield: 0, gold: 0 },
+      rollStartVersion: s.rollStartVersion + 1,
+      resolvingDieIndex: null, resolvingPhase: null,
+      draftChoices: [], lockedDraftDice: [], lastGoldEarned: 150,
+      isChoosingNextDie: false,
+      usedSecondWind: false,
+      firstAttackThisEncounter: true,
+      rerollCost: 5,
+      justDefeatedBoss: true,
+      secondWindTriggered: false,
+      showBossRewardModal: false,
+      purifyUsesThisShop: 0,
+    }))
   },
 
   unlockNode: (nodeId) => {

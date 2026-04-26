@@ -25,7 +25,7 @@ function Label({ children }: { children: React.ReactNode }) {
 }
 
 export function LoadoutScreen() {
-  const { currentFloor, startCombat } = useGameStore()
+  const { currentFloor, startCombat, devJumpToForge } = useGameStore()
   const metaSouls       = useGameStore((s) => s.metaSouls)
   const unlockedNodes   = useGameStore((s) => s.unlockedNodes)
   const selectedClass   = useGameStore((s) => s.selectedClass)
@@ -166,18 +166,38 @@ export function LoadoutScreen() {
           )
         })()}
 
-        <button
-          onClick={startCombat}
-          disabled={!canStart}
-          className="pixel-btn"
-          style={{
-            background: canStart ? '#16a34a' : '#374151', color: '#f0fdf4', textShadow: canStart ? '1px 1px 0 #14532d' : 'none',
-            opacity: canStart ? 1 : 0.7,
-            cursor: canStart ? 'pointer' : 'not-allowed',
-          }}
-        >
-          ▶ START COMBAT
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            onClick={startCombat}
+            disabled={!canStart}
+            className="pixel-btn"
+            style={{
+              flex: 1,
+              background: canStart ? '#16a34a' : '#374151', color: '#f0fdf4', textShadow: canStart ? '1px 1px 0 #14532d' : 'none',
+              opacity: canStart ? 1 : 0.7,
+              cursor: canStart ? 'pointer' : 'not-allowed',
+            }}
+          >
+            ▶ START COMBAT
+          </button>
+          <button
+            onClick={devJumpToForge}
+            title="DEV: Jump to Forge with 150g + 4 loot dice"
+            style={{
+              width: 44, flexShrink: 0,
+              background: '#1c1c2e',
+              border: '2px dashed #4b5563',
+              color: '#6b7280',
+              fontSize: '0.55rem', fontWeight: 700, fontFamily: 'inherit',
+              letterSpacing: '0.05em',
+              cursor: 'pointer',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2,
+            }}
+          >
+            <span style={{ fontSize: '1rem', lineHeight: 1 }}>🛠</span>
+            <span>DEV</span>
+          </button>
+        </div>
       </div>
 
       {inspectorType && (
