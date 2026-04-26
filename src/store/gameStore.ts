@@ -289,6 +289,7 @@ interface GameState {
   shopHeal: (cost: number, amount: number) => void
   shopModifyFace: (dieId: string, faceIndex: number, newFace: DieFace, cost: number) => void
   shopMergeDice: (die1Id: string, die2Id: string, cost: number) => void
+  shopCraftFace: (dieId: string, faceIndex: number, newFace: DieFace) => void
   unlockNode: (nodeId: string) => void
   setSelectedClass: (cls: string) => void
   leaveShop: () => void
@@ -929,6 +930,17 @@ export const useGameStore = create<GameState>()(
           }
         })
       return { gold: s.gold - cost, inventory: newInventory }
+    })
+  },
+
+  shopCraftFace: (dieId, faceIndex, newFace) => {
+    set((s) => {
+      if (s.gold < 20) return {}
+      const newInventory = s.inventory.map((d) => {
+        if (d.id !== dieId) return d
+        return { ...d, faces: d.faces.map((f, i) => (i === faceIndex ? newFace : f)) }
+      })
+      return { gold: s.gold - 20, inventory: newInventory }
     })
   },
 

@@ -3,6 +3,7 @@ import { Coins, Heart, Shield, Swords, Skull, Flame, ArrowLeft, Droplets, Star, 
 import { useGameStore } from '../store/gameStore'
 import { dieTypeStyle, faceColor } from './DieCard'
 import type { Die, DieFace } from '../store/gameStore'
+import { DiceInspectorModal } from './DiceInspectorModal'
 
 // ── Die display names ─────────────────────────────────────────────────────────
 
@@ -39,7 +40,26 @@ function FaceIcon({ type, size = 13 }: { type: DieFace['type']; size?: number })
 
 // ── Shop action type ──────────────────────────────────────────────────────────
 
-type ShopAction = 'purify' | 'empower' | 'merge' | null
+type ShopAction = 'purify' | 'craft' | 'merge' | null
+
+// ── Craft option generator ────────────────────────────────────────────────────
+
+const CRAFT_TYPES: Array<DieFace['type']> = ['damage', 'shield', 'heal', 'lifesteal']
+
+function generateCraftOptions(): DieFace[] {
+  const shuffled = [...CRAFT_TYPES].sort(() => Math.random() - 0.5)
+  return shuffled.slice(0, 3).map((type) => ({
+    type,
+    value: Math.floor(Math.random() * 6) + 1,
+  }))
+}
+
+const FACE_LABELS: Partial<Record<DieFace['type'], string>> = {
+  damage:    'Damage',
+  shield:    'Shield',
+  heal:      'Heal',
+  lifesteal: 'Lifesteal',
+}
 
 // ── Action card ───────────────────────────────────────────────────────────────
 
@@ -88,21 +108,27 @@ function ActionCard({
 
 // ── Die picker row ────────────────────────────────────────────────────────────
 
-function DiePickerRow({ die, isHighlighted, onClick }: { die: Die; isHighlighted?: boolean; onClick: () => void }) {
+function DiePickerRow({
+  die, isHighlighted, allowCursed, onClick,
+}: {
+  die: Die; isHighlighted?: boolean; allowCursed?: boolean; onClick: () => void
+}) {
   const s        = dieTypeStyle[die.dieType]
   const name     = DIE_NAMES[die.dieType] ?? die.dieType.toUpperCase()
   const level    = die.mergeLevel ?? 0
   const isCursed = die.dieType === 'cursed'
+  const disabled = isCursed && !allowCursed
+
   return (
     <button
-      onClick={isCursed ? undefined : onClick}
+      onClick={disabled ? undefined : onClick}
       style={{
         background: '#1a1a2e',
         border: `3px solid ${isHighlighted ? '#d97706' : '#000'}`,
         boxShadow: isHighlighted ? '4px 4px 0 #d97706' : '4px 4px 0 #000',
         padding: '10px 14px', width: '100%', color: '#fff',
-        cursor: isCursed ? 'not-allowed' : 'pointer',
-        opacity: isCursed ? 0.45 : 1,
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.45 : 1,
         display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left',
       }}
     >
@@ -116,7 +142,7 @@ function DiePickerRow({ die, isHighlighted, onClick }: { die: Die; isHighlighted
           <span style={{ color: '#f59e0b', fontWeight: 900, marginLeft: 4 }}>+{level}</span>
         )}
       </span>
-      {isCursed
+      {disabled
         ? <span style={{ marginLeft: 'auto', fontSize: '0.6rem', color: '#ef4444', letterSpacing: '0.1em' }}>CANNOT MERGE</span>
         : <span style={{ marginLeft: 'auto', fontSize: '0.6rem', color: '#6b7280', letterSpacing: '0.1em' }}>SELECT</span>
       }
@@ -129,14 +155,14 @@ function DiePickerRow({ die, isHighlighted, onClick }: { die: Die; isHighlighted
 function FacePickerGrid({
   die, activeAction, onFaceSelect,
 }: {
-  die: Die; activeAction: 'purify' | 'empower'
+  die: Die; activeAction: 'purify' | 'craft'
   onFaceSelect: (faceIndex: number, face: DieFace) => void
 }) {
   const s = dieTypeStyle[die.dieType]
 
   function isEligible(face: DieFace) {
-    if (activeAction === 'purify')  return face.type === 'skull'
-    if (activeAction === 'empower') return face.type === 'damage' || face.type === 'shield'
+    if (activeAction === 'purify') return face.type === 'skull'
+    if (activeAction === 'craft')  return face.type === 'blank' || face.type === 'purified_skull'
     return false
   }
 
@@ -159,8 +185,9 @@ function FacePickerGrid({
               opacity: eligible ? 1 : 0.3,
             }}
           >
-            {face.type === 'blank' ? null
-            : face.type === 'purified_skull' ? (
+            {face.type === 'blank' ? (
+              <span style={{ fontSize: '0.6rem', color: eligible ? s.text : '#4b5563', letterSpacing: '0.1em' }}>BLANK</span>
+            ) : face.type === 'purified_skull' ? (
               <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Skull size={22} color="#ffffff" strokeWidth={2.5} />
                 <svg style={{ position: 'absolute', pointerEvents: 'none', zIndex: 10 }} width="28" height="28" viewBox="0 0 28 28">
@@ -193,7 +220,7 @@ function FacePickerGrid({
 export function ShopScreen() {
   const {
     player, gold, inventory, lastGoldEarned, justDefeatedBoss,
-    shopHeal, shopModifyFace, shopMergeDice, leaveShop,
+    shopHeal, shopModifyFace, shopMergeDice, shopCraftFace, leaveShop,
     purifyUsesThisShop,
   } = useGameStore()
   const unlockedNodes = useGameStore((s) => s.unlockedNodes)
@@ -204,20 +231,34 @@ export function ShopScreen() {
   const [selectedDieId, setSelectedDieId] = useState<string | null>(null)
   const [firstMergeId, setFirstMergeId]   = useState<string | null>(null)
   const [mergeError, setMergeError]       = useState<string | false>(false)
+  const [craftOptions, setCraftOptions]   = useState<DieFace[] | null>(null)
+  const [craftFaceIndex, setCraftFaceIndex] = useState<number | null>(null)
+  const [inspectDieId, setInspectDieId]   = useState<string | null>(null)
 
   const selectedDie = selectedDieId
     ? inventory.find((d) => d.id === selectedDieId) ?? null
     : null
 
-  function handleFaceSelect(faceIndex: number, face: DieFace) {
+  function handleFaceSelect(faceIndex: number, _face: DieFace) {
     if (!selectedDieId) return
     if (activeAction === 'purify') {
       shopModifyFace(selectedDieId, faceIndex, { type: 'purified_skull', value: 0 }, 20)
-    } else if (activeAction === 'empower') {
-      shopModifyFace(selectedDieId, faceIndex, { type: face.type, value: face.value + 2 }, 25)
+      setActiveAction(null)
+      setSelectedDieId(null)
+    } else if (activeAction === 'craft') {
+      setCraftFaceIndex(faceIndex)
+      setCraftOptions(generateCraftOptions())
     }
+  }
+
+  function handleCraftOptionSelect(face: DieFace) {
+    if (!selectedDieId || craftFaceIndex === null) return
+    shopCraftFace(selectedDieId, craftFaceIndex, face)
+    setInspectDieId(selectedDieId)
     setActiveAction(null)
     setSelectedDieId(null)
+    setCraftOptions(null)
+    setCraftFaceIndex(null)
   }
 
   function handleMergeSelect(dieId: string) {
@@ -258,12 +299,15 @@ export function ShopScreen() {
   }
 
   function handleBack() {
-    if (activeAction === 'merge' && firstMergeId !== null) {
+    if (activeAction === 'craft' && craftOptions !== null) {
+      setCraftOptions(null); setCraftFaceIndex(null)
+    } else if (activeAction === 'merge' && firstMergeId !== null) {
       setFirstMergeId(null); setMergeError(false)
-    } else if (selectedDieId) {
+    } else if (selectedDieId !== null) {
       setSelectedDieId(null)
     } else {
       setActiveAction(null); setFirstMergeId(null)
+      setCraftOptions(null); setCraftFaceIndex(null)
     }
   }
 
@@ -279,13 +323,22 @@ export function ShopScreen() {
       return d.dieType === d2.dieType
     }))
 
+  const canCraft = gold >= 20 &&
+    inventory.some((d) => d.faces.some((f) => f.type === 'blank' || f.type === 'purified_skull'))
+
+  const craftEligibleDice = inventory.filter((d) =>
+    d.faces.some((f) => f.type === 'blank' || f.type === 'purified_skull')
+  )
+
   const subheaderText =
-    activeAction === null        ? 'Choose a service'                        :
-    activeAction === 'merge' && firstMergeId === null ? 'Select first die to merge'      :
-    activeAction === 'merge' && firstMergeId !== null ? 'Select an identical die to merge' :
-    selectedDieId === null
-      ? (activeAction === 'purify' ? 'Select a die to purify'  : 'Select a die to empower')
-      : (activeAction === 'purify' ? 'Select a skull face'     : 'Select a face to empower')
+    activeAction === null                                    ? 'Choose a service'               :
+    activeAction === 'merge' && firstMergeId === null        ? 'Select first die to merge'      :
+    activeAction === 'merge' && firstMergeId !== null        ? 'Select a die to merge with'     :
+    activeAction === 'craft' && selectedDieId === null       ? 'Select a die to craft'          :
+    activeAction === 'craft' && craftOptions !== null        ? 'Choose your new face'           :
+    activeAction === 'craft' && selectedDieId !== null       ? 'Select a face to replace'       :
+    selectedDieId === null                                   ? 'Select a die to purify'         :
+                                                               'Select a skull face'
 
   return (
     <div style={{
@@ -393,19 +446,19 @@ export function ShopScreen() {
             <ActionCard
               label="PURIFY"
               cost={20}
-              description={`Remove a curse. Changes 1 Skull face into a blank Damage face (0 dmg). ${3 - purifyUsesThisShop} use${3 - purifyUsesThisShop === 1 ? '' : 's'} remaining this visit.`}
+              description={`Remove a curse. Changes 1 Skull face into a purified blank face. ${3 - purifyUsesThisShop} use${3 - purifyUsesThisShop === 1 ? '' : 's'} remaining this visit.`}
               disabled={gold < 20 || purifyUsesThisShop >= 3}
               accentColor="#7c3aed"
               buttonLabel={`PURIFY (${3 - purifyUsesThisShop} left)`}
               onSelect={() => { setActiveAction('purify'); setSelectedDieId(null) }}
             />
             <ActionCard
-              label="EMPOWER"
-              cost={25}
-              description="Forge a stronger face. Adds +2 to any Damage or Shield face."
-              disabled={gold < 25}
+              label="CRAFT"
+              cost={20}
+              description="Transform a blank or purified face. Choose from 3 random new face options."
+              disabled={!canCraft}
               accentColor="#dc2626"
-              onSelect={() => { setActiveAction('empower'); setSelectedDieId(null) }}
+              onSelect={() => { setActiveAction('craft'); setSelectedDieId(null) }}
             />
             <ActionCard
               label="MERGE"
@@ -418,12 +471,26 @@ export function ShopScreen() {
           </>
         )}
 
-        {/* Die selection view — purify / empower */}
-        {(activeAction === 'purify' || activeAction === 'empower') && selectedDieId === null && inventory.map((die) => (
-          <DiePickerRow key={die.id} die={die} onClick={() => setSelectedDieId(die.id)} />
+        {/* Die selection — purify (cursed allowed) */}
+        {activeAction === 'purify' && selectedDieId === null && inventory.map((die) => (
+          <DiePickerRow key={die.id} die={die} allowCursed onClick={() => setSelectedDieId(die.id)} />
         ))}
 
-        {/* Die selection view — merge */}
+        {/* Die selection — craft (only eligible dice, cursed not disabled here either if it has blank faces) */}
+        {activeAction === 'craft' && selectedDieId === null && craftOptions === null && (
+          <>
+            {craftEligibleDice.length === 0
+              ? <p style={{ fontSize: '0.65rem', color: '#6b7280', textAlign: 'center', margin: 0 }}>
+                  No dice with blank or purified faces to craft
+                </p>
+              : craftEligibleDice.map((die) => (
+                  <DiePickerRow key={die.id} die={die} allowCursed onClick={() => setSelectedDieId(die.id)} />
+                ))
+            }
+          </>
+        )}
+
+        {/* Die selection — merge */}
         {activeAction === 'merge' && (
           <>
             {inventory.map((die) => (
@@ -445,8 +512,8 @@ export function ShopScreen() {
           </>
         )}
 
-        {/* Face selection view — purify / empower */}
-        {(activeAction === 'purify' || activeAction === 'empower') && selectedDie !== null && (
+        {/* Face selection — purify or craft (before options shown) */}
+        {(activeAction === 'purify' || (activeAction === 'craft' && craftOptions === null)) && selectedDie !== null && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{
               display: 'flex', alignItems: 'center', gap: 8,
@@ -467,7 +534,7 @@ export function ShopScreen() {
             </div>
             <FacePickerGrid
               die={selectedDie}
-              activeAction={activeAction}
+              activeAction={activeAction as 'purify' | 'craft'}
               onFaceSelect={handleFaceSelect}
             />
             <p style={{
@@ -476,8 +543,53 @@ export function ShopScreen() {
             }}>
               {activeAction === 'purify'
                 ? 'Only skull faces can be purified'
-                : 'Only damage and shield faces can be empowered'}
+                : 'Select a blank or purified face to overwrite'}
             </p>
+          </div>
+        )}
+
+        {/* Craft option picker */}
+        {activeAction === 'craft' && craftOptions !== null && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <p style={{
+              fontSize: '0.65rem', color: '#9ca3af',
+              textAlign: 'center', margin: 0, letterSpacing: '0.05em',
+            }}>
+              Pick one face to permanently add to your die
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+              {craftOptions.map((face, i) => {
+                const color = faceColor[face.type]
+                return (
+                  <button
+                    key={i}
+                    onClick={() => handleCraftOptionSelect(face)}
+                    style={{
+                      background: '#1a1a2e',
+                      border: '3px solid #000',
+                      boxShadow: '3px 3px 0 #000',
+                      padding: '18px 8px 14px',
+                      cursor: 'pointer',
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                      transition: 'border-color 0.1s',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.borderColor = color)}
+                    onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#000')}
+                  >
+                    <FaceIcon type={face.type} size={26} />
+                    <span style={{ fontSize: '1.4rem', fontWeight: 900, color, lineHeight: 1 }}>
+                      {face.value}
+                    </span>
+                    <span style={{
+                      fontSize: '0.5rem', color: '#6b7280',
+                      textTransform: 'uppercase', letterSpacing: '0.15em',
+                    }}>
+                      {FACE_LABELS[face.type] ?? face.type}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
           </div>
         )}
       </div>
@@ -497,6 +609,19 @@ export function ShopScreen() {
           </button>
         </div>
       )}
+
+      {/* Post-craft die inspection */}
+      {inspectDieId !== null && (() => {
+        const die = inventory.find((d) => d.id === inspectDieId)
+        if (!die) return null
+        return (
+          <DiceInspectorModal
+            types={[die.dieType]}
+            mergeLevel={die.mergeLevel}
+            onClose={() => setInspectDieId(null)}
+          />
+        )
+      })()}
     </div>
   )
 }
