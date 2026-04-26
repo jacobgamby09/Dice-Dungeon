@@ -21,6 +21,7 @@ export interface Die {
   currentFace?: DieFace
   rarity: 'common' | 'uncommon' | 'rare' | 'legendary'
   isMerged?: boolean
+  mergeLevel?: number
 }
 
 export interface SkillNode {
@@ -896,18 +897,33 @@ export const useGameStore = create<GameState>()(
       const die1 = s.inventory.find((d) => d.id === die1Id)
       const die2 = s.inventory.find((d) => d.id === die2Id)
       if (!die1 || !die2) return {}
-      // If one is a Joker, the non-Joker die gets upgraded
-      const upgradeId = die1.dieType === 'joker' ? die2Id : die1Id
-      const removeId  = die1.dieType === 'joker' ? die1Id : die2Id
+      if (die1.dieType === 'cursed' || die2.dieType === 'cursed') return {}
+      const level1 = die1.mergeLevel ?? 0
+      const level2 = die2.mergeLevel ?? 0
+      if (level1 !== level2) return {}
+      const bothJokers = die1.dieType === 'joker' && die2.dieType === 'joker'
+      const jokerMerge = die1.dieType === 'joker' || die2.dieType === 'joker'
+      if (!jokerMerge && die1.dieType !== die2.dieType) return {}
+      if (bothJokers) {
+        const newInventory = s.inventory
+          .filter((d) => d.id !== die2Id)
+          .map((d) => d.id !== die1Id ? d : { ...d, isMerged: true, mergeLevel: level1 + 1 })
+        return { gold: s.gold - cost, inventory: newInventory }
+      }
+      const keepId   = die1.dieType === 'joker' ? die2Id : die1Id
+      const removeId = die1.dieType === 'joker' ? die1Id : die2Id
       const newInventory = s.inventory
         .filter((d) => d.id !== removeId)
         .map((d) => {
-          if (d.id !== upgradeId) return d
+          if (d.id !== keepId) return d
           return {
             ...d,
             isMerged: true,
+            mergeLevel: level1 + 1,
             faces: d.faces.map((f) =>
-              f.type === 'skull' ? f : { ...f, value: f.value * 3 }
+              (f.type === 'skull' || f.type === 'blank' || f.type === 'purified_skull')
+                ? f
+                : { ...f, value: f.value * 3 }
             ),
           }
         })

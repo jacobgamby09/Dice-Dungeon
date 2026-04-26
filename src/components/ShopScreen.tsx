@@ -89,20 +89,20 @@ function ActionCard({
 // ── Die picker row ────────────────────────────────────────────────────────────
 
 function DiePickerRow({ die, isHighlighted, onClick }: { die: Die; isHighlighted?: boolean; onClick: () => void }) {
-  const s    = dieTypeStyle[die.dieType]
-  const name = DIE_NAMES[die.dieType] ?? die.dieType.toUpperCase()
+  const s        = dieTypeStyle[die.dieType]
+  const name     = DIE_NAMES[die.dieType] ?? die.dieType.toUpperCase()
+  const level    = die.mergeLevel ?? 0
+  const isCursed = die.dieType === 'cursed'
   return (
     <button
-      onClick={onClick}
+      onClick={isCursed ? undefined : onClick}
       style={{
         background: '#1a1a2e',
-        border: `3px solid ${isHighlighted ? '#d97706' : die.isMerged ? '#facc15' : '#000'}`,
-        boxShadow: isHighlighted
-          ? '4px 4px 0 #d97706'
-          : die.isMerged
-            ? '4px 4px 0 #facc15, 0 0 12px 2px rgba(250,204,21,0.4)'
-            : '4px 4px 0 #000',
-        padding: '10px 14px', width: '100%', cursor: 'pointer', color: '#fff',
+        border: `3px solid ${isHighlighted ? '#d97706' : '#000'}`,
+        boxShadow: isHighlighted ? '4px 4px 0 #d97706' : '4px 4px 0 #000',
+        padding: '10px 14px', width: '100%', color: '#fff',
+        cursor: isCursed ? 'not-allowed' : 'pointer',
+        opacity: isCursed ? 0.45 : 1,
         display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left',
       }}
     >
@@ -110,15 +110,16 @@ function DiePickerRow({ die, isHighlighted, onClick }: { die: Die; isHighlighted
         width: 18, height: 18, flexShrink: 0,
         backgroundColor: s.bg, border: '2px solid #000', boxShadow: `2px 2px 0 ${s.shadow}`,
       }} />
-      <span style={{ fontWeight: 700, fontSize: '0.85rem', color: s.bg }}>{name}</span>
-      {die.isMerged && (
-        <span style={{ fontSize: '0.55rem', color: '#facc15', fontWeight: 700, letterSpacing: '0.15em' }}>
-          MERGED
-        </span>
-      )}
-      <span style={{ marginLeft: 'auto', fontSize: '0.6rem', color: '#6b7280', letterSpacing: '0.1em' }}>
-        SELECT
+      <span style={{ fontWeight: 700, fontSize: '0.85rem', color: s.bg }}>
+        {name}
+        {level > 0 && (
+          <span style={{ color: '#f59e0b', fontWeight: 900, marginLeft: 4 }}>+{level}</span>
+        )}
       </span>
+      {isCursed
+        ? <span style={{ marginLeft: 'auto', fontSize: '0.6rem', color: '#ef4444', letterSpacing: '0.1em' }}>CANNOT MERGE</span>
+        : <span style={{ marginLeft: 'auto', fontSize: '0.6rem', color: '#6b7280', letterSpacing: '0.1em' }}>SELECT</span>
+      }
     </button>
   )
 }
@@ -202,7 +203,7 @@ export function ShopScreen() {
   const [activeAction, setActiveAction]   = useState<ShopAction>(null)
   const [selectedDieId, setSelectedDieId] = useState<string | null>(null)
   const [firstMergeId, setFirstMergeId]   = useState<string | null>(null)
-  const [mergeError, setMergeError]       = useState(false)
+  const [mergeError, setMergeError]       = useState<string | false>(false)
 
   const selectedDie = selectedDieId
     ? inventory.find((d) => d.id === selectedDieId) ?? null
@@ -231,11 +232,23 @@ export function ShopScreen() {
     }
     const die1 = inventory.find((d) => d.id === firstMergeId)
     const die2 = inventory.find((d) => d.id === dieId)
-    const jokerMerge = die1?.dieType === 'joker' || die2?.dieType === 'joker'
-    const bothJokers = die1?.dieType === 'joker' && die2?.dieType === 'joker'
-    if (!die1 || !die2 || bothJokers || (!jokerMerge && die1.dieType !== die2.dieType)) {
-      setMergeError(true)
-      setTimeout(() => setMergeError(false), 1200)
+    if (!die1 || !die2) return
+    if (die1.dieType === 'cursed' || die2.dieType === 'cursed') {
+      setMergeError('The Cursed cannot be merged')
+      setTimeout(() => setMergeError(false), 1500)
+      return
+    }
+    const level1 = die1.mergeLevel ?? 0
+    const level2 = die2.mergeLevel ?? 0
+    if (level1 !== level2) {
+      setMergeError('Dice must be at the same merge level')
+      setTimeout(() => setMergeError(false), 1500)
+      return
+    }
+    const jokerMerge = die1.dieType === 'joker' || die2.dieType === 'joker'
+    if (!jokerMerge && die1.dieType !== die2.dieType) {
+      setMergeError('Dice must be of the same type to merge')
+      setTimeout(() => setMergeError(false), 1500)
       return
     }
     shopMergeDice(firstMergeId, dieId, mergeCost)
@@ -257,8 +270,13 @@ export function ShopScreen() {
   const canMerge = gold >= mergeCost &&
     inventory.some((d, i) => inventory.some((d2, j) => {
       if (i >= j) return false
-      if (d.dieType === 'joker' && d2.dieType === 'joker') return false
-      return d.dieType === d2.dieType || d.dieType === 'joker' || d2.dieType === 'joker'
+      if (d.dieType === 'cursed' || d2.dieType === 'cursed') return false
+      const l1 = d.mergeLevel ?? 0
+      const l2 = d2.mergeLevel ?? 0
+      if (l1 !== l2) return false
+      if (d.dieType === 'joker' && d2.dieType === 'joker') return true
+      if (d.dieType === 'joker' || d2.dieType === 'joker') return true
+      return d.dieType === d2.dieType
     }))
 
   const subheaderText =
@@ -421,7 +439,7 @@ export function ShopScreen() {
                 fontSize: '0.65rem', color: '#ef4444',
                 textAlign: 'center', margin: 0, letterSpacing: '0.05em',
               }}>
-                Dice must be of the same type to merge
+                {mergeError}
               </p>
             )}
           </>

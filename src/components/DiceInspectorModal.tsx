@@ -36,10 +36,11 @@ function FaceIcon({ type, size = 13 }: { type: DieFace['type']; size?: number })
 interface Props {
   types: DieType[]
   initialType?: DieType
+  mergeLevel?: number
   onClose: () => void
 }
 
-export function DiceInspectorModal({ types, initialType, onClose }: Props) {
+export function DiceInspectorModal({ types, initialType, mergeLevel, onClose }: Props) {
   const [selected, setSelected] = useState<DieType>(initialType ?? types[0])
   const template = DIE_TEMPLATES[selected]
   const s = dieTypeStyle[selected]
@@ -124,6 +125,9 @@ export function DiceInspectorModal({ types, initialType, onClose }: Props) {
           }} />
           <span style={{ fontSize: '0.85rem', fontWeight: 700, color: s.bg }}>
             {TYPE_LABEL[selected]}
+            {(mergeLevel ?? 0) > 0 && (
+              <span style={{ color: '#f59e0b', fontWeight: 900, marginLeft: 5 }}>+{mergeLevel}</span>
+            )}
           </span>
           <span style={{ fontSize: '0.6rem', color: '#6b7280', marginLeft: 'auto' }}>
             {template.sides} sides · {template.rarity}
