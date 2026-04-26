@@ -26,25 +26,29 @@ export const dieTypeStyle: Record<DieType, { bg: string; shadow: string; text: s
 const CUSTOM_LOOT_DIES = new Set<DieType>(['heavy', 'paladin', 'gambler', 'scavenger', 'wall', 'jackpot', 'vampire', 'priest', 'fortune_teller', 'joker'])
 
 export const faceColor: Record<DieFace['type'], string> = {
-  damage:      '#dc2626',
-  shield:      '#38bdf8',
-  heal:        '#22c55e',
-  skull:       '#7c3aed',
-  gold:        '#fbbf24',
-  lifesteal:   '#e879f9',
-  choose_next: '#a5b4fc',
-  wildcard:    '#a8a29e',
+  damage:         '#dc2626',
+  shield:         '#38bdf8',
+  heal:           '#22c55e',
+  skull:          '#7c3aed',
+  gold:           '#fbbf24',
+  lifesteal:      '#e879f9',
+  choose_next:    '#a5b4fc',
+  wildcard:       '#a8a29e',
+  blank:          '#374151',
+  purified_skull: '#ffffff',
 }
 
 export const faceShadow: Record<DieFace['type'], string> = {
-  damage:      '#7f1d1d',
-  shield:      '#1e3a8a',
-  heal:        '#15803d',
-  skull:       '#3b0764',
-  gold:        '#78350f',
-  lifesteal:   '#701a75',
-  choose_next: '#3730a3',
-  wildcard:    '#57534e',
+  damage:         '#7f1d1d',
+  shield:         '#1e3a8a',
+  heal:           '#15803d',
+  skull:          '#3b0764',
+  gold:           '#78350f',
+  lifesteal:      '#701a75',
+  choose_next:    '#3730a3',
+  wildcard:       '#57534e',
+  blank:          '#1f2937',
+  purified_skull: '#9f1239',
 }
 
 // ── Type icon ────────────────────────────────────────────────────────────────
@@ -66,6 +70,27 @@ function TypeIcon({ type, size = 13, forceColor }: { type: DieFace['type']; size
 function DiceFace({ face, textColor, dieType }: { face: DieFace; textColor: string; dieType: DieType }) {
   // Custom loot dice use their die text color for all icons (monochrome palette)
   const iconColor = CUSTOM_LOOT_DIES.has(dieType) ? textColor : undefined
+
+  // Blank — completely empty face
+  if (face.type === 'blank') {
+    return <div style={{ width: '100%', height: '100%' }} />
+  }
+
+  // Purified skull — white skull with red X overlay
+  if (face.type === 'purified_skull') {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', position: 'relative' }}>
+        <Skull size={32} color="#ffffff" strokeWidth={2.5} />
+        <svg
+          style={{ position: 'absolute', pointerEvents: 'none', zIndex: 10 }}
+          width="36" height="36" viewBox="0 0 36 36"
+        >
+          <line x1="3" y1="3" x2="33" y2="33" stroke="#ef4444" strokeWidth="5" strokeLinecap="round" />
+          <line x1="33" y1="3" x2="3" y2="33" stroke="#ef4444" strokeWidth="5" strokeLinecap="round" />
+        </svg>
+      </div>
+    )
+  }
 
   // Skull, choose_next, and wildcard render icon-only
   if (face.type === 'skull' || face.type === 'choose_next' || face.type === 'wildcard') {

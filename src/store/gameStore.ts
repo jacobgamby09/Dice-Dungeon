@@ -4,7 +4,7 @@ import { persist } from 'zustand/middleware'
 // ── Core types ───────────────────────────────────────────────────────────────
 
 export interface DieFace {
-  type: 'damage' | 'shield' | 'heal' | 'skull' | 'gold' | 'lifesteal' | 'choose_next' | 'wildcard'
+  type: 'damage' | 'shield' | 'heal' | 'skull' | 'gold' | 'lifesteal' | 'choose_next' | 'wildcard' | 'blank' | 'purified_skull'
   value: number
 }
 
@@ -117,8 +117,8 @@ export const DIE_TEMPLATES: Record<DieType, { sides: number; faces: DieFace[]; r
     faces: [
       { type: 'damage', value: 12 },
       { type: 'damage', value: 12 },
-      { type: 'damage', value: 0  },
-      { type: 'damage', value: 0  },
+      { type: 'blank',  value: 0  },
+      { type: 'blank',  value: 0  },
       { type: 'skull',  value: 1  },
       { type: 'skull',  value: 1  },
     ],
@@ -156,8 +156,8 @@ export const DIE_TEMPLATES: Record<DieType, { sides: number; faces: DieFace[]; r
       { type: 'skull',  value: 1  },
       { type: 'skull',  value: 1  },
       { type: 'skull',  value: 1  },
-      { type: 'damage', value: 0  },
-      { type: 'damage', value: 0  },
+      { type: 'blank',  value: 0  },
+      { type: 'blank',  value: 0  },
     ],
   },
   vampire: {

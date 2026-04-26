@@ -158,7 +158,16 @@ function FacePickerGrid({
               opacity: eligible ? 1 : 0.3,
             }}
           >
-            {face.type === 'skull' ? (
+            {face.type === 'blank' ? null
+            : face.type === 'purified_skull' ? (
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Skull size={22} color="#ffffff" strokeWidth={2.5} />
+                <svg style={{ position: 'absolute', pointerEvents: 'none', zIndex: 10 }} width="28" height="28" viewBox="0 0 28 28">
+                  <line x1="2" y1="2" x2="26" y2="26" stroke="#ef4444" strokeWidth="4" strokeLinecap="round" />
+                  <line x1="26" y1="2" x2="2" y2="26" stroke="#ef4444" strokeWidth="4" strokeLinecap="round" />
+                </svg>
+              </div>
+            ) : face.type === 'skull' ? (
               <Skull size={22} color={faceColor.skull} strokeWidth={2.5} />
             ) : (
               <>
@@ -202,7 +211,7 @@ export function ShopScreen() {
   function handleFaceSelect(faceIndex: number, face: DieFace) {
     if (!selectedDieId) return
     if (activeAction === 'purify') {
-      shopModifyFace(selectedDieId, faceIndex, { type: 'damage', value: 0 }, 20)
+      shopModifyFace(selectedDieId, faceIndex, { type: 'purified_skull', value: 0 }, 20)
     } else if (activeAction === 'empower') {
       shopModifyFace(selectedDieId, faceIndex, { type: face.type, value: face.value + 2 }, 25)
     }

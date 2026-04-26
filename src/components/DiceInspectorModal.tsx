@@ -145,10 +145,20 @@ export function DiceInspectorModal({ types, initialType, onClose }: Props) {
                 boxShadow: `3px 3px 0 ${s.shadow}`,
                 padding: '10px 4px',
                 minHeight: 56,
+                position: 'relative',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
               }}
             >
-              {(face.type === 'skull' || face.type === 'wildcard' || face.type === 'choose_next') ? (
+              {face.type === 'blank' ? null
+              : face.type === 'purified_skull' ? (
+                <>
+                  <Skull size={22} color="#ffffff" strokeWidth={2.5} />
+                  <svg style={{ position: 'absolute', pointerEvents: 'none', zIndex: 10 }} width="28" height="28" viewBox="0 0 28 28">
+                    <line x1="2" y1="2" x2="26" y2="26" stroke="#ef4444" strokeWidth="4" strokeLinecap="round" />
+                    <line x1="26" y1="2" x2="2" y2="26" stroke="#ef4444" strokeWidth="4" strokeLinecap="round" />
+                  </svg>
+                </>
+              ) : (face.type === 'skull' || face.type === 'wildcard' || face.type === 'choose_next') ? (
                 <FaceIcon type={face.type} size={22} />
               ) : (
                 <>
