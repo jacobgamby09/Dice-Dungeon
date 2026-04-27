@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Coins, Swords, Shield, Heart, Skull, Droplets, Star, Shuffle, Lock, LockOpen } from 'lucide-react'
 import { useGameStore, DIE_TEMPLATES } from '../store/gameStore'
-import { DieCard, dieTypeStyle, faceColor } from './DieCard'
+import { dieTypeStyle, faceColor } from './DieCard'
 import { DiceInspectorModal } from './DiceInspectorModal'
 import type { DieType, DieFace, Die } from '../store/gameStore'
 
@@ -291,12 +291,62 @@ export function DraftScreen() {
             </span>
           </div>
           <div style={{
-            flex: 1, overflowY: 'auto', padding: '14px 16px',
-            display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10,
+            flex: 1, overflowY: 'auto', padding: '10px 14px',
+            display: 'flex', flexDirection: 'column', gap: 8,
           }}>
-            {inventory.map((die) => (
-              <DieCard key={die.id} die={die} onClick={() => setInspectorDie(die)} />
-            ))}
+            {inventory.length === 0 ? (
+              <span style={{ color: '#6b7280', fontSize: '0.8rem', textAlign: 'center', padding: '12px 0' }}>
+                Bag is empty
+              </span>
+            ) : inventory.map((die) => {
+              const s = dieTypeStyle[die.dieType]
+              return (
+                <button
+                  key={die.id}
+                  onClick={() => setInspectorDie(die)}
+                  style={{
+                    background: '#12121f', border: `2px solid ${s.shadow}`,
+                    boxShadow: `3px 3px 0 ${s.shadow}`,
+                    padding: '8px 10px', cursor: 'pointer', fontFamily: 'inherit',
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    transition: 'background 0.1s',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = '#1a1a2e')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = '#12121f')}
+                >
+                  <div style={{
+                    width: 14, height: 14, flexShrink: 0,
+                    background: s.bg, border: '2px solid #000',
+                    boxShadow: `1px 1px 0 ${s.shadow}`,
+                  }} />
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: s.bg, flex: 1, letterSpacing: '0.05em' }}>
+                    {DIE_NAMES[die.dieType] ?? die.dieType}
+                    {(die.mergeLevel ?? 0) > 0 && (
+                      <span style={{ color: '#f59e0b', fontWeight: 900, marginLeft: 4 }}>+{die.mergeLevel}</span>
+                    )}
+                  </span>
+                  <div style={{ display: 'flex', gap: 3 }}>
+                    {die.faces.map((face, i) => (
+                      <div key={i} style={{
+                        width: 28, height: 28,
+                        background: s.bg, border: '2px solid #000',
+                        boxShadow: `1px 1px 0 ${s.shadow}`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '0.65rem', fontWeight: 700,
+                        color: face.type === 'skull' || face.type === 'purified_skull' ? faceColor.skull : s.text,
+                      }}>
+                        {face.type === 'skull' ? '💀'
+                          : face.type === 'purified_skull' ? '☠'
+                          : face.type === 'choose_next' ? '✦'
+                          : face.type === 'wildcard' ? '~'
+                          : face.type === 'blank' ? ''
+                          : face.value}
+                      </div>
+                    ))}
+                  </div>
+                </button>
+              )
+            })}
           </div>
           <div style={{ background: '#1a1a2e', padding: '12px 16px', borderTop: '3px solid #000' }}>
             <button
