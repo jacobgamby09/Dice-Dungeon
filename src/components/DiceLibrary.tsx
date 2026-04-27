@@ -109,16 +109,17 @@ export function DiceLibrary({ onClose }: { onClose: () => void }) {
                       alignItems: 'center', justifyContent: 'center', gap: 2,
                     }}
                   >
-                    {(face.type === 'skull' || face.type === 'choose_next' || face.type === 'wildcard') ? (
-                      <FaceIcon type={face.type} size={14} />
-                    ) : (
-                      <>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: s.text, lineHeight: 1 }}>
-                          {face.value}
-                        </span>
-                        <FaceIcon type={face.type} size={10} />
-                      </>
-                    )}
+                    {face.type === 'blank' ? null
+                      : (face.type === 'skull' || face.type === 'purified_skull' || face.type === 'choose_next' || face.type === 'wildcard') ? (
+                        <FaceIcon type={face.type} size={14} />
+                      ) : (
+                        <>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: s.text, lineHeight: 1 }}>
+                            {face.value}
+                          </span>
+                          <FaceIcon type={face.type} size={10} />
+                        </>
+                      )}
                   </div>
                 ))}
               </div>

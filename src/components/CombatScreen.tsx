@@ -600,9 +600,14 @@ function FortuneTellerModal({ drawPile }: { drawPile: import('../store/gameStore
                         boxShadow: `1px 1px 0 ${s.shadow}`,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         fontSize: '0.65rem', fontWeight: 700,
-                        color: face.type === 'skull' ? faceColor.skull : s.text,
+                        color: (face.type === 'skull' || face.type === 'purified_skull') ? faceColor.skull : s.text,
                       }}>
-                        {face.type === 'skull' ? '💀' : face.type === 'choose_next' ? '✦' : face.value}
+                        {face.type === 'skull' ? '💀'
+                          : face.type === 'purified_skull' ? '☠'
+                          : face.type === 'choose_next' ? '✦'
+                          : face.type === 'wildcard' ? '~'
+                          : face.type === 'blank' ? ''
+                          : face.value}
                       </div>
                     ))}
                   </div>
@@ -705,9 +710,14 @@ function ScoutModal({ drawPile, onClose }: { drawPile: import('../store/gameStor
                         boxShadow: `1px 1px 0 ${s.shadow}`,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         fontSize: '0.65rem', fontWeight: 700,
-                        color: face.type === 'skull' ? faceColor.skull : s.text,
+                        color: (face.type === 'skull' || face.type === 'purified_skull') ? faceColor.skull : s.text,
                       }}>
-                        {face.type === 'skull' ? '💀' : face.value}
+                        {face.type === 'skull' ? '💀'
+                          : face.type === 'purified_skull' ? '☠'
+                          : face.type === 'choose_next' ? '✦'
+                          : face.type === 'wildcard' ? '~'
+                          : face.type === 'blank' ? ''
+                          : face.value}
                       </div>
                     ))}
                   </div>
