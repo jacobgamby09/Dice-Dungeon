@@ -1104,6 +1104,7 @@ export const useGameStore = create<GameState>()(
       ...startInventory,
       ...lootDice,
       createDie('cursed', uid()),
+      createDie('unique', uid()),
     ]
     set((s) => ({
       turnPhase:    'shop',
