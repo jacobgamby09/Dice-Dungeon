@@ -546,18 +546,18 @@ export function DieCard({
           position: 'relative',
           background: s.bg,
           boxShadow: mergeLevel >= 3
-            ? `4px 4px 0 ${s.shadow}, 0 0 20px rgba(251,191,36,0.9), inset 0 0 15px rgba(252,211,77,0.8)`
+            ? `4px 4px 0 ${s.shadow}, 0 0 25px rgba(220,38,38,0.9)`
             : mergeLevel === 2
-              ? `4px 4px 0 ${s.shadow}, 0 0 22px rgba(203,213,225,1.0), inset 0 0 16px rgba(255,255,255,0.9)`
+              ? `4px 4px 0 ${s.shadow}, 0 0 16px rgba(249,115,22,0.8)`
               : mergeLevel === 1
-                ? `4px 4px 0 ${s.shadow}, 0 0 16px rgba(222,154,83,0.9), inset 0 0 12px rgba(222,154,83,0.6)`
+                ? `4px 4px 0 ${s.shadow}, 0 0 12px rgba(34,211,238,0.7)`
                 : `4px 4px 0 ${s.shadow}`,
           border: mergeLevel >= 3
-            ? '4px solid #fbbf24'
+            ? '4px solid #dc2626'
             : mergeLevel === 2
-              ? '3px solid #f1f5f9'
+              ? '3px solid #f97316'
               : mergeLevel === 1
-                ? '2px solid #de9a53'
+                ? '2px solid #22d3ee'
                 : undefined,
           cursor: onClick ? 'pointer' : 'default',
           flexDirection: 'column',
@@ -588,23 +588,23 @@ export function DieCard({
           />
         )}
 
-        {/* Merge level 3+ (Gold) — pulsing gold aura overlay */}
+        {/* Merge level 3+ — pulsing red aura overlay */}
         {mergeLevel >= 3 && (
           <motion.div
             style={{
               position: 'absolute', inset: -3,
-              border: '3px solid #fbbf24',
+              border: '3px solid #dc2626',
               pointerEvents: 'none', zIndex: 1,
             }}
             animate={{
-              opacity: [1, 0.35, 1],
+              opacity: [1, 0.3, 1],
               boxShadow: [
-                '0 0 12px 4px rgba(251,191,36,0.6), inset 0 0 10px rgba(252,211,77,0.5)',
-                '0 0 28px 10px rgba(251,191,36,1.0), inset 0 0 20px rgba(252,211,77,0.9)',
-                '0 0 12px 4px rgba(251,191,36,0.6), inset 0 0 10px rgba(252,211,77,0.5)',
+                '0 0 12px 4px rgba(220,38,38,0.5)',
+                '0 0 30px 10px rgba(220,38,38,0.95)',
+                '0 0 12px 4px rgba(220,38,38,0.5)',
               ],
             }}
-            transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
+            transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
           />
         )}
 
