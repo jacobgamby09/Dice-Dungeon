@@ -1,9 +1,10 @@
 import { useState } from 'react'
+import { motion } from 'framer-motion'
 import { Coins, Heart, Shield, Swords, Skull, Flame, ArrowLeft, Droplets, Star, Shuffle } from 'lucide-react'
 import { useGameStore } from '../store/gameStore'
 import { dieTypeStyle, faceColor } from './DieCard'
 import type { Die, DieFace } from '../store/gameStore'
-import { DiceInspectorModal } from './DiceInspectorModal'
+import { DiePresentationModal } from './DiePresentationModal'
 
 // ── Die display names ─────────────────────────────────────────────────────────
 
@@ -246,7 +247,10 @@ export function ShopScreen() {
   const [mergeError, setMergeError]       = useState<string | false>(false)
   const [craftOptions, setCraftOptions]   = useState<DieFace[] | null>(null)
   const [craftFaceIndex, setCraftFaceIndex] = useState<number | null>(null)
-  const [inspectDieId, setInspectDieId]   = useState<string | null>(null)
+  const [presentDieId, setPresentDieId]   = useState<string | null>(null)
+  const [presentAction, setPresentAction] = useState<'merge' | 'craft' | null>(null)
+  const [showPresent, setShowPresent]     = useState(false)
+  const [flashVisible, setFlashVisible]   = useState(false)
 
   const selectedDie = selectedDieId
     ? inventory.find((d) => d.id === selectedDieId) ?? null
@@ -264,14 +268,23 @@ export function ShopScreen() {
     }
   }
 
+  function triggerPresentation(dieId: string, action: 'merge' | 'craft') {
+    setPresentDieId(dieId)
+    setPresentAction(action)
+    setShowPresent(false)
+    setFlashVisible(true)
+    setTimeout(() => { setFlashVisible(false); setShowPresent(true) }, 500)
+  }
+
   function handleCraftOptionSelect(face: DieFace) {
     if (!selectedDieId || craftFaceIndex === null) return
     shopCraftFace(selectedDieId, craftFaceIndex, face)
-    setInspectDieId(selectedDieId)
+    const id = selectedDieId
     setActiveAction(null)
     setSelectedDieId(null)
     setCraftOptions(null)
     setCraftFaceIndex(null)
+    triggerPresentation(id, 'craft')
   }
 
   function handleMergeSelect(dieId: string) {
@@ -305,10 +318,12 @@ export function ShopScreen() {
       setTimeout(() => setMergeError(false), 1500)
       return
     }
+    const hostId = firstMergeId
     shopMergeDice(firstMergeId, dieId, mergeCost)
     setActiveAction(null)
     setFirstMergeId(null)
     setMergeError(false)
+    triggerPresentation(hostId, 'merge')
   }
 
   function handleBack() {
@@ -604,16 +619,29 @@ export function ShopScreen() {
         </div>
       )}
 
-      {/* Post-craft die inspection */}
-      {inspectDieId !== null && (() => {
-        const die = inventory.find((d) => d.id === inspectDieId)
-        if (!die) return null
+      {/* Flash overlay */}
+      {flashVisible && (
+        <motion.div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 48,
+            background: presentAction === 'merge' ? 'rgba(251,191,36,0.35)' : 'rgba(220,38,38,0.35)',
+            maxWidth: 384, margin: '0 auto', pointerEvents: 'none',
+          }}
+          initial={{ opacity: 1 }}
+          animate={{ opacity: 0 }}
+          transition={{ duration: 0.45 }}
+        />
+      )}
+
+      {/* Presentation modal */}
+      {showPresent && presentDieId !== null && (() => {
+        const die = inventory.find((d) => d.id === presentDieId)
+        if (!die || !presentAction) return null
         return (
-          <DiceInspectorModal
-            types={[die.dieType]}
-            mergeLevel={die.mergeLevel}
-            faces={die.faces}
-            onClose={() => setInspectDieId(null)}
+          <DiePresentationModal
+            die={die}
+            action={presentAction}
+            onClose={() => { setShowPresent(false); setPresentDieId(null); setPresentAction(null) }}
           />
         )
       })()}
