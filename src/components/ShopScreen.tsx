@@ -219,7 +219,7 @@ function FacePickerGrid({
 
 export function ShopScreen() {
   const {
-    player, gold, inventory, lastGoldEarned, justDefeatedBoss,
+    player, gold, inventory,
     shopHeal, shopMergeDice, shopCraftFace, shopPurifyFace, leaveShop,
     purifyUsesThisShop,
   } = useGameStore()
@@ -377,28 +377,7 @@ export function ShopScreen() {
             </div>
           </div>
         </div>
-        {lastGoldEarned > 0 && (
-          <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
-            <Coins size={12} color="#fbbf24" strokeWidth={2.5} />
-            <span style={{ color: '#fbbf24', fontSize: '0.7rem', fontWeight: 700 }}>
-              +{lastGoldEarned} gold from boss victory
-            </span>
-          </div>
-        )}
-        {justDefeatedBoss && (
-          <div style={{
-            marginTop: 8, padding: '8px 12px',
-            background: '#1c0533',
-            border: '2px solid #9333ea',
-            boxShadow: '3px 3px 0 #4c0070',
-            display: 'flex', alignItems: 'center', gap: 8,
-          }}>
-            <Skull size={14} color="#c084fc" strokeWidth={2.5} />
-            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#e9d5ff', letterSpacing: '0.05em' }}>
-              BOSS DEFEATED — A Cursed Die has been added to your bag!
-            </span>
-          </div>
-        )}
+
       </div>
 
       {/* ── Sub-header / breadcrumb ────────────────────────────────────────── */}
