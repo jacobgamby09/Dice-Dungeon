@@ -1034,7 +1034,22 @@ export const useGameStore = create<GameState>()(
     }
     const pool    = getDiceLootPool(unlockedNodes)
     const shuffled = shuffleArray(pool)
-    const lootDice = shuffled.slice(0, 4).map((t) => createDie(t, uid()))
+    const lootDice = shuffled.slice(0, 4).map((t, i) => {
+      const die   = createDie(t, uid())
+      const level = i < 3 ? i + 1 : 0   // indices 0,1,2 → levels 1,2,3
+      if (level === 0) return die
+      const mult = Math.pow(3, level)
+      return {
+        ...die,
+        isMerged: true,
+        mergeLevel: level,
+        faces: die.faces.map((f) =>
+          (f.type === 'skull' || f.type === 'blank' || f.type === 'purified_skull')
+            ? f
+            : { ...f, value: f.value * mult }
+        ),
+      }
+    })
     const inventory = [
       ...startInventory,
       ...lootDice,

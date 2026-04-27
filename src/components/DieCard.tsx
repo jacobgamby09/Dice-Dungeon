@@ -116,13 +116,13 @@ function DiceFace({ face, textColor, dieType }: { face: DieFace; textColor: stri
 
 // ── Particle burst ────────────────────────────────────────────────────────────
 
-function ParticleBurst({ faceType, isCrit }: { faceType: DieFace['type']; isCrit: boolean }) {
-  const count    = isCrit ? 12 : 7
-  const baseSize = isCrit ? 7  : 4
-  const color    = isCrit ? '#fbbf24' : faceColor[faceType]
-  const shadow   = isCrit ? '#78350f' : faceShadow[faceType]
-  const baseDist = isCrit ? 46 : 28
-  const dur      = isCrit ? 0.55 : 0.38
+function ParticleBurst({ faceType }: { faceType: DieFace['type'] }) {
+  const count    = 7
+  const baseSize = 4
+  const color    = faceColor[faceType]
+  const shadow   = faceShadow[faceType]
+  const baseDist = 28
+  const dur      = 0.38
 
   return (
     <>
@@ -330,8 +330,7 @@ export function DieCard({
 }: DieCardProps) {
   const s          = dieTypeStyle[die.dieType]
   const face       = die.currentFace
-  const maxFaceVal = Math.max(...die.faces.map(f => f.value))
-  const isCrit     = !!face && face.type !== 'skull' && face.value === maxFaceVal && maxFaceVal > 0
+  const mergeLevel = die.mergeLevel ?? 0
 
   const isSpinning = isResolving && resolvingPhase === 'spinning'
   const isLanded   = isResolving && resolvingPhase === 'landed'
@@ -546,10 +545,20 @@ export function DieCard({
         style={{
           position: 'relative',
           background: s.bg,
-          boxShadow: die.isMerged
-            ? `4px 4px 0 ${s.shadow}, 0 0 0 3px #facc15, 0 0 18px 4px rgba(250,204,21,0.55)`
-            : `4px 4px 0 ${s.shadow}`,
-          border: die.isMerged ? '3px solid #facc15' : undefined,
+          boxShadow: mergeLevel >= 3
+            ? `4px 4px 0 ${s.shadow}, 0 0 25px rgba(239,68,68,0.9)`
+            : mergeLevel === 2
+              ? `4px 4px 0 ${s.shadow}, 0 0 15px rgba(250,204,21,0.8)`
+              : mergeLevel === 1
+                ? `4px 4px 0 ${s.shadow}, 0 0 10px rgba(34,211,238,0.6)`
+                : `4px 4px 0 ${s.shadow}`,
+          border: mergeLevel >= 3
+            ? '4px solid #ef4444'
+            : mergeLevel === 2
+              ? '4px solid #facc15'
+              : mergeLevel === 1
+                ? '3px solid #22d3ee'
+                : undefined,
           cursor: onClick ? 'pointer' : 'default',
           flexDirection: 'column',
         }}
@@ -558,19 +567,6 @@ export function DieCard({
           ? <DiceFace face={displayFace} textColor={s.text} dieType={die.dieType} />
           : <span style={{ fontSize: '1.5rem', fontWeight: 700, color: s.text }}>?</span>
         }
-
-        {/* Crit pulsing border — skipped for Paladin (aura takes over) */}
-        {isCrit && !isSpinning && die.dieType !== 'paladin' && (
-          <motion.div
-            style={{
-              position: 'absolute', inset: -3,
-              border: '3px solid #fbbf24',
-              pointerEvents: 'none', zIndex: 1,
-            }}
-            animate={{ opacity: [1, 0.2, 1] }}
-            transition={{ duration: 0.55, repeat: Infinity, ease: 'easeInOut' }}
-          />
-        )}
 
         {/* Skull — eerie purple pulse */}
         {face?.type === 'skull' && !isSpinning && (
@@ -592,22 +588,28 @@ export function DieCard({
           />
         )}
 
-        {/* Crit sparkle radial flash on land */}
-        {isLanded && isCrit && (
+        {/* Merge level 3+ — pulsing red aura overlay */}
+        {mergeLevel >= 3 && (
           <motion.div
             style={{
-              position: 'absolute', inset: 0,
-              background: 'radial-gradient(circle at center, rgba(251,191,36,0.9) 0%, transparent 70%)',
-              pointerEvents: 'none', zIndex: 5,
+              position: 'absolute', inset: -3,
+              border: '3px solid #ef4444',
+              pointerEvents: 'none', zIndex: 1,
             }}
-            initial={{ opacity: 0, scale: 0.4 }}
-            animate={{ opacity: [0, 1, 0], scale: [0.4, 1.4, 1] }}
-            transition={{ duration: 0.46, ease: 'easeOut' }}
+            animate={{
+              opacity: [1, 0.25, 1],
+              boxShadow: [
+                '0 0 10px 3px rgba(239,68,68,0.5)',
+                '0 0 30px 10px rgba(239,68,68,0.9)',
+                '0 0 10px 3px rgba(239,68,68,0.5)',
+              ],
+            }}
+            transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
           />
         )}
 
         {/* Impact particle burst — all dice */}
-        {burst && face && <ParticleBurst faceType={face.type} isCrit={isCrit} />}
+        {burst && face && <ParticleBurst faceType={face.type} />}
 
         {/* Heavy — violent red flash on impact */}
         <AnimatePresence>
