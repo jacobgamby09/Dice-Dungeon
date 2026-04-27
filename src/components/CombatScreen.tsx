@@ -164,6 +164,50 @@ function SkullTracker({ skullCount }: { skullCount: number }) {
   return icons
 }
 
+// ── Multiplier fired overlay ─────────────────────────────────────────────────
+function MultiplierFiredOverlay({ multiplierFiredVersion }: { multiplierFiredVersion: number }) {
+  const [key, setKey] = useState(0)
+  const [visible, setVisible] = useState(false)
+  const prevVersion = useRef(multiplierFiredVersion)
+
+  useEffect(() => {
+    if (multiplierFiredVersion === prevVersion.current) return
+    prevVersion.current = multiplierFiredVersion
+    setKey((k) => k + 1)
+    setVisible(true)
+    const t = setTimeout(() => setVisible(false), 800)
+    return () => clearTimeout(t)
+  }, [multiplierFiredVersion])
+
+  return (
+    <AnimatePresence>
+      {visible && (
+        <motion.div
+          key={key}
+          style={{
+            position: 'fixed', inset: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            pointerEvents: 'none', zIndex: 500,
+            maxWidth: 384, margin: '0 auto',
+          }}
+          initial={{ scale: 0.7, opacity: 1 }}
+          animate={{ scale: 1.6, opacity: 0 }}
+          transition={{ duration: 0.75, ease: 'easeOut' }}
+        >
+          <span style={{
+            fontSize: '3rem', fontWeight: 900,
+            color: '#a3e635',
+            textShadow: '0 0 20px #a3e635, 3px 3px 0 #3f6212',
+            letterSpacing: '0.05em',
+          }}>
+            DOUBLED!
+          </span>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
+}
+
 // ── Skull jumpscare overlay ───────────────────────────────────────────────────
 function SkullJumpscareOverlay({ skullRolledVersion }: { skullRolledVersion: number }) {
   const [key, setKey] = useState(0)
@@ -741,7 +785,7 @@ export function CombatScreen() {
     enemyHitVersion, playerHitVersion, playerEffectVersion,
     orbVersion, counterVersion, rollStartVersion, resolvingDieIndex, resolvingPhase, enemyAttackVersion,
     currentFloor, gold, drawAndRoll, bankAndAttack, unlockedNodes, isChoosingNextDie, abandonRun,
-    secondWindTriggered,
+    secondWindTriggered, activeMultiplier, multiplierFiredVersion,
   } = useGameStore()
 
   const metaSouls = useGameStore((s) => s.metaSouls)
@@ -1190,6 +1234,25 @@ export function CombatScreen() {
           </div>
         )}
 
+        {/* Multiplier active badge */}
+        {activeMultiplier > 1 && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            style={{
+              alignSelf: 'center',
+              background: '#1a2e0a',
+              border: '2px solid #a3e635',
+              boxShadow: '0 0 10px rgba(163,230,53,0.6)',
+              padding: '4px 12px',
+              fontSize: '0.8rem', fontWeight: 900,
+              color: '#a3e635', letterSpacing: '0.1em',
+            }}
+          >
+            ×{activeMultiplier} NEXT
+          </motion.div>
+        )}
+
         {/* Bottom row — primary action buttons */}
         <div style={{ display: 'flex', gap: 10, width: '100%' }}>
           <button
@@ -1236,6 +1299,7 @@ export function CombatScreen() {
       )}
 
       <SkullJumpscareOverlay skullRolledVersion={skullRolledVersion} />
+      <MultiplierFiredOverlay multiplierFiredVersion={multiplierFiredVersion} />
       <JackpotOverlay version={jackpotVersion} />
       <LifestealOrbLayer
         version={lifesteelOrbVersion}

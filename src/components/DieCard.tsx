@@ -20,10 +20,11 @@ export const dieTypeStyle: Record<DieType, { bg: string; shadow: string; text: s
   priest:        { bg: '#fef9c3', shadow: '#a16207',  text: '#713f12' },
   fortune_teller:{ bg: '#6366f1', shadow: '#1e1b4b',  text: '#e0e7ff' },
   joker:         { bg: '#d1d5db', shadow: '#6b7280',  text: '#111827' },
+  unique:        { bg: '#06b6d4', shadow: '#0e7490',  text: '#ffffff' },
 }
 
 // Custom loot dice use their die text color for all face content (monochrome)
-const CUSTOM_LOOT_DIES = new Set<DieType>(['heavy', 'paladin', 'gambler', 'scavenger', 'wall', 'jackpot', 'vampire', 'priest', 'fortune_teller', 'joker'])
+const CUSTOM_LOOT_DIES = new Set<DieType>(['heavy', 'paladin', 'gambler', 'scavenger', 'wall', 'jackpot', 'vampire', 'priest', 'fortune_teller', 'joker', 'unique'])
 
 export const faceColor: Record<DieFace['type'], string> = {
   damage:         '#dc2626',
@@ -36,6 +37,7 @@ export const faceColor: Record<DieFace['type'], string> = {
   wildcard:       '#a8a29e',
   blank:          '#374151',
   purified_skull: '#ffffff',
+  multiplier:     '#a3e635',
 }
 
 export const faceShadow: Record<DieFace['type'], string> = {
@@ -49,6 +51,7 @@ export const faceShadow: Record<DieFace['type'], string> = {
   wildcard:       '#57534e',
   blank:          '#1f2937',
   purified_skull: '#9f1239',
+  multiplier:     '#3f6212',
 }
 
 // ── Type icon ────────────────────────────────────────────────────────────────
@@ -67,7 +70,7 @@ function TypeIcon({ type, size = 13, forceColor }: { type: DieFace['type']; size
 
 // ── DiceFace ─────────────────────────────────────────────────────────────────
 
-function DiceFace({ face, textColor, dieType }: { face: DieFace; textColor: string; dieType: DieType }) {
+function DiceFace({ face, textColor, dieType, mergeLevel = 0 }: { face: DieFace; textColor: string; dieType: DieType; mergeLevel?: number }) {
   // Custom loot dice use their die text color for all icons (monochrome palette)
   const iconColor = CUSTOM_LOOT_DIES.has(dieType) ? textColor : undefined
 
@@ -92,11 +95,36 @@ function DiceFace({ face, textColor, dieType }: { face: DieFace; textColor: stri
     )
   }
 
-  // Skull, choose_next, and wildcard render icon-only
-  if (face.type === 'skull' || face.type === 'choose_next' || face.type === 'wildcard') {
+  // Multiplier face — shows ×{value}
+  if (face.type === 'multiplier') {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
+        <span style={{ fontSize: '1.5rem', fontWeight: 900, color: iconColor ?? faceColor.multiplier, lineHeight: 1 }}>
+          ×{face.value}
+        </span>
+      </div>
+    )
+  }
+
+  // Skull and wildcard — icon only
+  if (face.type === 'skull' || face.type === 'wildcard') {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
         <TypeIcon type={face.type} size={32} forceColor={iconColor} />
+      </div>
+    )
+  }
+
+  // choose_next — icon + optional x{N} multiplier badge
+  if (face.type === 'choose_next') {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', gap: 2 }}>
+        <TypeIcon type={face.type} size={28} forceColor={iconColor} />
+        {mergeLevel > 0 && (
+          <span style={{ fontSize: '0.55rem', fontWeight: 900, color: iconColor ?? faceColor.choose_next, lineHeight: 1 }}>
+            x{mergeLevel + 1}
+          </span>
+        )}
       </div>
     )
   }
@@ -545,26 +573,30 @@ export function DieCard({
         style={{
           position: 'relative',
           background: s.bg,
-          boxShadow: mergeLevel >= 3
-            ? `4px 4px 0 ${s.shadow}, 0 0 25px rgba(220,38,38,0.9)`
-            : mergeLevel === 2
-              ? `4px 4px 0 ${s.shadow}, 0 0 16px rgba(249,115,22,0.8)`
-              : mergeLevel === 1
-                ? `4px 4px 0 ${s.shadow}, 0 0 12px rgba(34,211,238,0.7)`
-                : `4px 4px 0 ${s.shadow}`,
-          border: mergeLevel >= 3
-            ? '4px solid #dc2626'
-            : mergeLevel === 2
-              ? '3px solid #f97316'
-              : mergeLevel === 1
-                ? '2px solid #22d3ee'
-                : undefined,
+          boxShadow: die.dieType === 'unique'
+            ? `4px 4px 0 ${s.shadow}, 0 0 18px rgba(6,182,212,0.75)`
+            : mergeLevel >= 3
+              ? `4px 4px 0 ${s.shadow}, 0 0 25px rgba(220,38,38,0.9)`
+              : mergeLevel === 2
+                ? `4px 4px 0 ${s.shadow}, 0 0 16px rgba(249,115,22,0.8)`
+                : mergeLevel === 1
+                  ? `4px 4px 0 ${s.shadow}, 0 0 12px rgba(34,211,238,0.7)`
+                  : `4px 4px 0 ${s.shadow}`,
+          border: die.dieType === 'unique'
+            ? '3px solid #06b6d4'
+            : mergeLevel >= 3
+              ? '4px solid #dc2626'
+              : mergeLevel === 2
+                ? '3px solid #f97316'
+                : mergeLevel === 1
+                  ? '2px solid #22d3ee'
+                  : undefined,
           cursor: onClick ? 'pointer' : 'default',
           flexDirection: 'column',
         }}
       >
         {displayFace
-          ? <DiceFace face={displayFace} textColor={s.text} dieType={die.dieType} />
+          ? <DiceFace face={displayFace} textColor={s.text} dieType={die.dieType} mergeLevel={mergeLevel} />
           : <span style={{ fontSize: '1.5rem', fontWeight: 700, color: s.text }}>?</span>
         }
 
@@ -619,6 +651,26 @@ export function DieCard({
               ],
             }}
             transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+          />
+        )}
+
+        {/* Unique die — permanent iridescent teal pulse */}
+        {die.dieType === 'unique' && (
+          <motion.div
+            style={{
+              position: 'absolute', inset: -3,
+              border: '3px solid #06b6d4',
+              pointerEvents: 'none', zIndex: 1,
+            }}
+            animate={{
+              opacity: [1, 0.4, 1],
+              boxShadow: [
+                '0 0 14px 5px rgba(6,182,212,0.5)',
+                '0 0 32px 12px rgba(6,182,212,0.95)',
+                '0 0 14px 5px rgba(6,182,212,0.5)',
+              ],
+            }}
+            transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
           />
         )}
 

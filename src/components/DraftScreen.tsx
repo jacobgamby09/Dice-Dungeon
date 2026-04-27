@@ -120,16 +120,29 @@ function DieChoiceCard({
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
             }}
           >
-            {(face.type === 'skull' || face.type === 'choose_next' || face.type === 'wildcard') ? (
-              <FaceIcon type={face.type} size={18} />
-            ) : (
-              <>
-                <span style={{ fontSize: '1rem', fontWeight: 700, color: s.text, lineHeight: 1 }}>
-                  {face.value}
+            {face.type === 'blank' ? null
+              : face.type === 'multiplier' ? (
+                <span style={{ fontSize: '0.9rem', fontWeight: 900, color: s.text, lineHeight: 1 }}>
+                  ×{face.value}
                 </span>
-                <FaceIcon type={face.type} size={12} />
-              </>
-            )}
+              ) : face.type === 'purified_skull' ? (
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Skull size={18} color="#ffffff" strokeWidth={2.5} />
+                  <svg style={{ position: 'absolute', pointerEvents: 'none' }} width="24" height="24" viewBox="0 0 24 24">
+                    <line x1="2" y1="2" x2="22" y2="22" stroke="#ef4444" strokeWidth="3.5" strokeLinecap="round" />
+                    <line x1="22" y1="2" x2="2" y2="22" stroke="#ef4444" strokeWidth="3.5" strokeLinecap="round" />
+                  </svg>
+                </div>
+              ) : (face.type === 'skull' || face.type === 'choose_next' || face.type === 'wildcard') ? (
+                <FaceIcon type={face.type} size={18} />
+              ) : (
+                <>
+                  <span style={{ fontSize: '1rem', fontWeight: 700, color: s.text, lineHeight: 1 }}>
+                    {face.value}
+                  </span>
+                  <FaceIcon type={face.type} size={12} />
+                </>
+              )}
           </div>
         ))}
       </div>

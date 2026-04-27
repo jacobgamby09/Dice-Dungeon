@@ -3,7 +3,7 @@ import { DIE_TEMPLATES } from '../store/gameStore'
 import type { DieType, DieFace } from '../store/gameStore'
 import { dieTypeStyle, faceColor } from './DieCard'
 
-const LIBRARY_TYPES: DieType[] = ['white', 'blue', 'green', 'cursed', 'heavy', 'paladin', 'gambler', 'scavenger', 'wall', 'jackpot', 'vampire', 'priest', 'fortune_teller', 'joker']
+const LIBRARY_TYPES: DieType[] = ['white', 'blue', 'green', 'cursed', 'heavy', 'paladin', 'gambler', 'scavenger', 'wall', 'jackpot', 'vampire', 'priest', 'fortune_teller', 'joker', 'unique']
 
 const DIE_NAMES: Record<DieType, string> = {
   white:          'The Basic',
@@ -20,6 +20,7 @@ const DIE_NAMES: Record<DieType, string> = {
   priest:         'The Priest',
   fortune_teller: 'The Fortune Teller',
   joker:          'The Joker',
+  unique:         'The Multiplier',
 }
 
 function FaceIcon({ type, size = 11 }: { type: DieFace['type']; size?: number }) {
@@ -110,7 +111,11 @@ export function DiceLibrary({ onClose }: { onClose: () => void }) {
                     }}
                   >
                     {face.type === 'blank' ? null
-                      : (face.type === 'skull' || face.type === 'purified_skull' || face.type === 'choose_next' || face.type === 'wildcard') ? (
+                      : face.type === 'multiplier' ? (
+                        <span style={{ fontSize: '0.75rem', fontWeight: 900, color: s.text, lineHeight: 1 }}>
+                          ×{face.value}
+                        </span>
+                      ) : (face.type === 'skull' || face.type === 'purified_skull' || face.type === 'choose_next' || face.type === 'wildcard') ? (
                         <FaceIcon type={face.type} size={14} />
                       ) : (
                         <>

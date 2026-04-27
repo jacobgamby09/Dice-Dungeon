@@ -4,14 +4,14 @@ import { persist } from 'zustand/middleware'
 // ── Core types ───────────────────────────────────────────────────────────────
 
 export interface DieFace {
-  type: 'damage' | 'shield' | 'heal' | 'skull' | 'gold' | 'lifesteal' | 'choose_next' | 'wildcard' | 'blank' | 'purified_skull'
+  type: 'damage' | 'shield' | 'heal' | 'skull' | 'gold' | 'lifesteal' | 'choose_next' | 'wildcard' | 'blank' | 'purified_skull' | 'multiplier'
   value: number
 }
 
 export type DieType = 'white' | 'blue' | 'green' | 'cursed'
                     | 'heavy' | 'paladin' | 'gambler' | 'scavenger' | 'wall'
                     | 'jackpot' | 'vampire' | 'priest' | 'fortune_teller'
-                    | 'joker'
+                    | 'joker' | 'unique'
 
 export interface Die {
   id: string
@@ -210,6 +210,18 @@ export const DIE_TEMPLATES: Record<DieType, { sides: number; faces: DieFace[]; r
       { type: 'wildcard', value: 0 },
     ],
   },
+  unique: {
+    sides: 6,
+    rarity: 'legendary',
+    faces: [
+      { type: 'multiplier', value: 2 },
+      { type: 'multiplier', value: 2 },
+      { type: 'multiplier', value: 2 },
+      { type: 'multiplier', value: 2 },
+      { type: 'multiplier', value: 2 },
+      { type: 'multiplier', value: 2 },
+    ],
+  },
 }
 
 function createDie(type: DieType, id: string): Die {
@@ -280,6 +292,8 @@ interface GameState {
   secondWindTriggered: boolean
   showBossRewardModal: boolean
   purifyUsesThisShop: number
+  activeMultiplier: number
+  multiplierFiredVersion: number
   claimBossReward: () => void
   startCombat: () => void
   drawAndRoll: () => Promise<void>
@@ -387,7 +401,7 @@ const INITIAL_INVENTORY: Die[] = [
 ]
 
 function getDiceLootPool(unlockedNodes: string[]): DieType[] {
-  const pool: DieType[] = ['heavy', 'paladin', 'gambler', 'scavenger', 'wall', 'joker']
+  const pool: DieType[] = ['heavy', 'paladin', 'gambler', 'scavenger', 'wall', 'joker', 'unique']
   if (unlockedNodes.includes('kec9ybn2')) pool.push('jackpot')
   if (unlockedNodes.includes('60vc1fvg')) pool.push('vampire')
   if (unlockedNodes.includes('dx6jq5y5')) pool.push('priest')
@@ -438,6 +452,8 @@ export const useGameStore = create<GameState>()(
   secondWindTriggered: false,
   showBossRewardModal: false,
   purifyUsesThisShop: 0,
+  activeMultiplier: 1,
+  multiplierFiredVersion: 0,
 
   startCombat: () => {
     const { unlockedNodes, selectedClass } = get()
@@ -506,6 +522,7 @@ export const useGameStore = create<GameState>()(
       draftChoices: [], lockedDraftDice: [], lastGoldEarned: 0,
       isChoosingNextDie: false,
       fortuneTellerPicksRemaining: 0,
+      activeMultiplier: 1,
       usedSecondWind: false,
       firstAttackThisEncounter: true,
       rerollCost: 5,
@@ -556,28 +573,39 @@ export const useGameStore = create<GameState>()(
     await sleep(150)
 
     // Stage 4 — Tally
-    const isSkull       = face.type === 'skull'
-    const newSkullCount = s.skullCount + (isSkull ? 1 : 0)
-    const lifestealGain = face.type === 'lifesteal' ? face.value : 0
-    const healGain      = face.type === 'heal'      ? face.value : lifestealGain
-    const shieldGain    = face.type === 'shield'    ? face.value : 0
-    const damageGain    = (face.type === 'damage' || face.type === 'lifesteal') ? face.value : 0
-    const goldGain      = face.type === 'gold'      ? face.value : 0
+    const mult          = s.activeMultiplier
+    let   newSkullCount = s.skullCount
 
-    set((st) => ({
-      totalDamage: st.totalDamage + damageGain,
-      totalHeal:   st.totalHeal   + healGain,
-      totalShield: st.totalShield + shieldGain,
-      totalGold:   st.totalGold   + goldGain,
-      skullCount:  newSkullCount,
-      counterVersion: st.counterVersion + 1,
-      lastEffects: { heal: healGain, shield: shieldGain, gold: goldGain },
-      ...(isSkull ? { skullRolledVersion: st.skullRolledVersion + 1 } : {}),
-      ...(healGain > 0 || shieldGain > 0 || goldGain > 0
-        ? { playerEffectVersion: st.playerEffectVersion + 1 }
-        : {}),
-    }))
-    await sleep(75)
+    if (face.type === 'multiplier') {
+      set((st) => ({ activeMultiplier: face.value, counterVersion: st.counterVersion + 1 }))
+      await sleep(75)
+    } else {
+      const isSkull       = face.type === 'skull'
+      newSkullCount       = s.skullCount + (isSkull ? mult : 0)
+      const lifestealGain = face.type === 'lifesteal' ? face.value * mult : 0
+      const healGain      = face.type === 'heal'      ? face.value * mult : lifestealGain
+      const shieldGain    = face.type === 'shield'    ? face.value * mult : 0
+      const damageGain    = (face.type === 'damage' || face.type === 'lifesteal') ? face.value * mult : 0
+      const goldGain      = face.type === 'gold'      ? face.value * mult : 0
+      const multiplierFired = mult > 1
+
+      set((st) => ({
+        totalDamage: st.totalDamage + damageGain,
+        totalHeal:   st.totalHeal   + healGain,
+        totalShield: st.totalShield + shieldGain,
+        totalGold:   st.totalGold   + goldGain,
+        skullCount:  newSkullCount,
+        activeMultiplier: 1,
+        counterVersion: st.counterVersion + 1,
+        lastEffects: { heal: healGain, shield: shieldGain, gold: goldGain },
+        ...(multiplierFired ? { multiplierFiredVersion: st.multiplierFiredVersion + 1 } : {}),
+        ...(isSkull ? { skullRolledVersion: st.skullRolledVersion + 1 } : {}),
+        ...(healGain > 0 || shieldGain > 0 || goldGain > 0
+          ? { playerEffectVersion: st.playerEffectVersion + 1 }
+          : {}),
+      }))
+      await sleep(75)
+    }
 
     set({ resolvingDieIndex: null, resolvingPhase: null })
 
@@ -606,7 +634,7 @@ export const useGameStore = create<GameState>()(
 
     // Fortune Teller: open the choose-next modal if draw pile has dice remaining
     if (face.type === 'choose_next' && get().drawPile.length > 0) {
-      const ftLimit = (drawn.mergeLevel ?? 0) > 0 ? 2 : 1
+      const ftLimit = (drawn.mergeLevel ?? 0) + 1
       const picks   = Math.min(ftLimit, get().drawPile.length)
       set({ turnPhase: 'idle', isChoosingNextDie: true, fortuneTellerPicksRemaining: picks })
     } else {
@@ -651,28 +679,39 @@ export const useGameStore = create<GameState>()(
     set((st) => ({ orbVersion: st.orbVersion + 1 }))
     await sleep(150)
 
-    const isSkull       = face.type === 'skull'
-    const newSkullCount = s.skullCount + (isSkull ? 1 : 0)
-    const lifestealGain = face.type === 'lifesteal' ? face.value : 0
-    const healGain      = face.type === 'heal'      ? face.value : lifestealGain
-    const shieldGain    = face.type === 'shield'    ? face.value : 0
-    const damageGain    = (face.type === 'damage' || face.type === 'lifesteal') ? face.value : 0
-    const goldGain      = face.type === 'gold'      ? face.value : 0
+    const mult2          = s.activeMultiplier
+    let   newSkullCount  = s.skullCount
 
-    set((st) => ({
-      totalDamage: st.totalDamage + damageGain,
-      totalHeal:   st.totalHeal   + healGain,
-      totalShield: st.totalShield + shieldGain,
-      totalGold:   st.totalGold   + goldGain,
-      skullCount:  newSkullCount,
-      counterVersion: st.counterVersion + 1,
-      lastEffects: { heal: healGain, shield: shieldGain, gold: goldGain },
-      ...(isSkull ? { skullRolledVersion: st.skullRolledVersion + 1 } : {}),
-      ...(healGain > 0 || shieldGain > 0 || goldGain > 0
-        ? { playerEffectVersion: st.playerEffectVersion + 1 }
-        : {}),
-    }))
-    await sleep(75)
+    if (face.type === 'multiplier') {
+      set((st) => ({ activeMultiplier: face.value, counterVersion: st.counterVersion + 1 }))
+      await sleep(75)
+    } else {
+      const isSkull       = face.type === 'skull'
+      newSkullCount       = s.skullCount + (isSkull ? mult2 : 0)
+      const lifestealGain = face.type === 'lifesteal' ? face.value * mult2 : 0
+      const healGain      = face.type === 'heal'      ? face.value * mult2 : lifestealGain
+      const shieldGain    = face.type === 'shield'    ? face.value * mult2 : 0
+      const damageGain    = (face.type === 'damage' || face.type === 'lifesteal') ? face.value * mult2 : 0
+      const goldGain      = face.type === 'gold'      ? face.value * mult2 : 0
+      const multiplierFired = mult2 > 1
+
+      set((st) => ({
+        totalDamage: st.totalDamage + damageGain,
+        totalHeal:   st.totalHeal   + healGain,
+        totalShield: st.totalShield + shieldGain,
+        totalGold:   st.totalGold   + goldGain,
+        skullCount:  newSkullCount,
+        activeMultiplier: 1,
+        counterVersion: st.counterVersion + 1,
+        lastEffects: { heal: healGain, shield: shieldGain, gold: goldGain },
+        ...(multiplierFired ? { multiplierFiredVersion: st.multiplierFiredVersion + 1 } : {}),
+        ...(isSkull ? { skullRolledVersion: st.skullRolledVersion + 1 } : {}),
+        ...(healGain > 0 || shieldGain > 0 || goldGain > 0
+          ? { playerEffectVersion: st.playerEffectVersion + 1 }
+          : {}),
+      }))
+      await sleep(75)
+    }
 
     set({ resolvingDieIndex: null, resolvingPhase: null })
 
@@ -691,6 +730,14 @@ export const useGameStore = create<GameState>()(
       await sleep(400)
 
       await runEnemyPhase()
+      return
+    }
+
+    // Chained Fortune Teller: drawn die itself is a choose_next — start a fresh sequence
+    if (face.type === 'choose_next' && get().drawPile.length > 0) {
+      const ftLimit = (drawn.mergeLevel ?? 0) + 1
+      const picks   = Math.min(ftLimit, get().drawPile.length)
+      set({ turnPhase: 'idle', isChoosingNextDie: true, fortuneTellerPicksRemaining: picks })
       return
     }
 
@@ -912,6 +959,7 @@ export const useGameStore = create<GameState>()(
       const die2 = s.inventory.find((d) => d.id === die2Id)
       if (!die1 || !die2) return {}
       if (die1.dieType === 'cursed' || die2.dieType === 'cursed') return {}
+      if (die1.dieType === 'unique' || die2.dieType === 'unique') return {}
       const level1 = die1.mergeLevel ?? 0
       const level2 = die2.mergeLevel ?? 0
       if (level1 !== level2) return {}
