@@ -19,6 +19,7 @@ const TYPE_LABEL: Record<DieType, string> = {
   priest:         'The Priest',
   fortune_teller: 'The Fortune Teller',
   joker:          'The Joker',
+  unique:         'The Multiplier',
 }
 
 function FaceIcon({ type, size = 13 }: { type: DieFace['type']; size?: number }) {
@@ -159,7 +160,11 @@ export function DiceInspectorModal({ types, initialType, mergeLevel, faces, dieL
               }}
             >
               {face.type === 'blank' ? null
-              : face.type === 'purified_skull' ? (
+              : face.type === 'multiplier' ? (
+                <span style={{ fontSize: '1.25rem', fontWeight: 900, color: s.text, lineHeight: 1 }}>
+                  ×{face.value}
+                </span>
+              ) : face.type === 'purified_skull' ? (
                 <>
                   <Skull size={22} color="#ffffff" strokeWidth={2.5} />
                   <svg style={{ position: 'absolute', pointerEvents: 'none', zIndex: 10 }} width="28" height="28" viewBox="0 0 28 28">
