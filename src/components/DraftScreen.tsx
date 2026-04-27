@@ -232,21 +232,32 @@ export function DraftScreen() {
         ))}
       </div>
 
-      {/* Footer */}
-      <div style={{ background: '#1a1a2e', padding: '12px 16px', borderTop: '3px solid #000', display: 'flex', gap: 8 }}>
+      {/* View Bag strip */}
+      <div style={{ padding: '8px 16px', background: '#0f0f1a' }}>
         <button
           onClick={() => setShowBagModal(true)}
-          className="pixel-btn"
-          style={{ background: '#1e293b', color: '#94a3b8', border: '2px solid #374151', flexShrink: 0, letterSpacing: '0.15em' }}
+          style={{
+            width: '100%', padding: '10px',
+            background: '#1e293b',
+            border: '2px solid #374151',
+            boxShadow: '3px 3px 0 #000',
+            color: '#94a3b8',
+            fontFamily: 'inherit', fontSize: '0.75rem', fontWeight: 700,
+            letterSpacing: '0.15em', textTransform: 'uppercase',
+            cursor: 'pointer',
+          }}
         >
           VIEW BAG
         </button>
+      </div>
+
+      {/* Re-roll footer */}
+      <div style={{ background: '#1a1a2e', padding: '12px 16px', borderTop: '3px solid #000' }}>
         <button
           onClick={() => rerollDraft([...lockedIds])}
           disabled={!canReroll}
           className="pixel-btn"
           style={{
-            flex: 1,
             background: canReroll ? '#7c3aed' : '#374151',
             color: '#e9d5ff',
             textShadow: '1px 1px 0 #000',
