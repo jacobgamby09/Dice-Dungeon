@@ -57,7 +57,7 @@ export function DiePresentationModal({
     <motion.div
       style={{
         position: 'fixed', inset: 0, zIndex: 50,
-        background: 'rgba(0,0,0,0.65)',
+        background: 'rgba(0,0,0,0.80)',
         display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center',
         maxWidth: 384, margin: '0 auto',
