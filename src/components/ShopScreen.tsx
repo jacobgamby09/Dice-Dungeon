@@ -1,20 +1,9 @@
 import { useState } from 'react'
 import { Coins, Heart, Shield, Swords, Skull, Flame, ArrowLeft, Droplets, Star, Shuffle } from 'lucide-react'
-import { useGameStore, DIE_TEMPLATES } from '../store/gameStore'
+import { useGameStore } from '../store/gameStore'
 import { dieTypeStyle, faceColor } from './DieCard'
 import type { Die, DieFace } from '../store/gameStore'
 import { DiceInspectorModal } from './DiceInspectorModal'
-
-// ── Customization detection ───────────────────────────────────────────────────
-
-function isCustomized(die: Die): boolean {
-  const template   = DIE_TEMPLATES[die.dieType]
-  const multiplier = Math.pow(3, die.mergeLevel ?? 0)
-  return die.faces.some((face, i) => {
-    const tf = template.faces[i]
-    return face.type !== tf.type || face.value !== tf.value * multiplier
-  })
-}
 
 // ── Die display names ─────────────────────────────────────────────────────────
 
@@ -154,7 +143,7 @@ function DiePickerRow({
           <span style={{ color: '#f59e0b', fontWeight: 900, marginLeft: 4 }}>+{level}</span>
         )}
       </span>
-      {isCustomized(die) && (
+      {die.isCustomized && (
         <span style={{
           fontSize: '0.55rem', fontWeight: 700, color: '#fbbf24',
           border: '1px solid #fbbf24', padding: '1px 5px',

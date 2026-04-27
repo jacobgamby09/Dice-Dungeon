@@ -588,6 +588,9 @@ function FortuneTellerModal({ drawPile }: { drawPile: import('../store/gameStore
                   }} />
                   <span style={{ fontSize: '0.75rem', fontWeight: 700, color: s.bg, flex: 1, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                     {die.dieType.replace('_', ' ')}
+                    {(die.mergeLevel ?? 0) > 0 && (
+                      <span style={{ color: '#f59e0b', fontWeight: 900, marginLeft: 4 }}>+{die.mergeLevel}</span>
+                    )}
                   </span>
                   <div style={{ display: 'flex', gap: 3 }}>
                     {die.faces.map((face, i) => (
@@ -690,6 +693,9 @@ function ScoutModal({ drawPile, onClose }: { drawPile: import('../store/gameStor
                   }} />
                   <span style={{ fontSize: '0.75rem', fontWeight: 700, color: s.bg, flex: 1, letterSpacing: '0.05em' }}>
                     {SCOUT_DIE_NAMES[die.dieType] ?? die.dieType}
+                    {(die.mergeLevel ?? 0) > 0 && (
+                      <span style={{ color: '#f59e0b', fontWeight: 900, marginLeft: 4 }}>+{die.mergeLevel}</span>
+                    )}
                   </span>
                   <div style={{ display: 'flex', gap: 3 }}>
                     {die.faces.map((face, i) => (

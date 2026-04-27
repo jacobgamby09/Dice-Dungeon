@@ -22,6 +22,7 @@ export interface Die {
   rarity: 'common' | 'uncommon' | 'rare' | 'legendary'
   isMerged?: boolean
   mergeLevel?: number
+  isCustomized?: boolean
 }
 
 export interface SkillNode {
@@ -951,7 +952,7 @@ export const useGameStore = create<GameState>()(
       if (s.gold < 20) return {}
       const newInventory = s.inventory.map((d) => {
         if (d.id !== dieId) return d
-        return { ...d, faces: d.faces.map((f, i) => (i === faceIndex ? newFace : f)) }
+        return { ...d, isCustomized: true, faces: d.faces.map((f, i) => (i === faceIndex ? newFace : f)) }
       })
       return { gold: s.gold - 20, inventory: newInventory }
     })
@@ -964,6 +965,7 @@ export const useGameStore = create<GameState>()(
         if (d.id !== dieId) return d
         return {
           ...d,
+          isCustomized: true,
           faces: d.faces.map((f, i) => {
             if (i !== faceIndex) return f
             return f.type === 'skull'
