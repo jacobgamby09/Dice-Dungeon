@@ -568,6 +568,20 @@ export function DieCard({
           : <span style={{ fontSize: '1.5rem', fontWeight: 700, color: s.text }}>?</span>
         }
 
+        {/* Merge level badge */}
+        {mergeLevel > 0 && (
+          <div style={{
+            position: 'absolute', top: 3, left: 3,
+            background: 'rgba(0,0,0,0.82)',
+            color: '#fff',
+            fontSize: '0.55rem', fontWeight: 900,
+            lineHeight: 1, padding: '2px 4px',
+            pointerEvents: 'none', zIndex: 10,
+          }}>
+            +{mergeLevel}
+          </div>
+        )}
+
         {/* Purple pulse — Cursed dice only */}
         {die.dieType === 'cursed' && face?.type === 'skull' && !isSpinning && (
           <motion.div
