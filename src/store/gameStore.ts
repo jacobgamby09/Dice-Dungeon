@@ -271,6 +271,7 @@ interface GameState {
   selectedClass: string
   playerAttackAnimTier: 1 | 2 | 3 | null
   isChoosingNextDie: boolean
+  fortuneTellerPicksRemaining: number
   usedSecondWind: boolean
   firstAttackThisEncounter: boolean
   rerollCost: number
@@ -428,6 +429,7 @@ export const useGameStore = create<GameState>()(
   selectedClass: 'standard',
   playerAttackAnimTier: null,
   isChoosingNextDie: false,
+  fortuneTellerPicksRemaining: 0,
   usedSecondWind: false,
   firstAttackThisEncounter: true,
   rerollCost: 5,
@@ -502,6 +504,7 @@ export const useGameStore = create<GameState>()(
       resolvingDieIndex: null, resolvingPhase: null,
       draftChoices: [], lockedDraftDice: [], lastGoldEarned: 0,
       isChoosingNextDie: false,
+      fortuneTellerPicksRemaining: 0,
       usedSecondWind: false,
       firstAttackThisEncounter: true,
       rerollCost: 5,
@@ -602,7 +605,9 @@ export const useGameStore = create<GameState>()(
 
     // Fortune Teller: open the choose-next modal if draw pile has dice remaining
     if (face.type === 'choose_next' && get().drawPile.length > 0) {
-      set({ turnPhase: 'idle', isChoosingNextDie: true })
+      const ftLimit = (drawn.mergeLevel ?? 0) > 0 ? 2 : 1
+      const picks   = Math.min(ftLimit, get().drawPile.length)
+      set({ turnPhase: 'idle', isChoosingNextDie: true, fortuneTellerPicksRemaining: picks })
     } else {
       set({ turnPhase: 'idle' })
     }
@@ -688,7 +693,12 @@ export const useGameStore = create<GameState>()(
       return
     }
 
-    set({ turnPhase: 'idle' })
+    const picksLeft = get().fortuneTellerPicksRemaining
+    if (picksLeft > 1 && get().drawPile.length > 0) {
+      set({ turnPhase: 'idle', isChoosingNextDie: true, fortuneTellerPicksRemaining: picksLeft - 1 })
+    } else {
+      set({ turnPhase: 'idle', fortuneTellerPicksRemaining: 0 })
+    }
   },
 
   bankAndAttack: async () => {
@@ -913,12 +923,14 @@ export const useGameStore = create<GameState>()(
           .map((d) => d.id !== die1Id ? d : { ...d, isMerged: true, mergeLevel: level1 + 1 })
         return { gold: s.gold - cost, inventory: newInventory }
       }
-      const keepId   = die1.dieType === 'joker' ? die2Id : die1Id
-      const removeId = die1.dieType === 'joker' ? die1Id : die2Id
+      // die1Id is always the first die the player selected — that is the Host.
+      // Exception: if die1 is a Joker, the non-Joker is the Host (Joker is always material).
+      const hostId     = die1.dieType === 'joker' ? die2Id : die1Id
+      const materialId = die1.dieType === 'joker' ? die1Id : die2Id
       const newInventory = s.inventory
-        .filter((d) => d.id !== removeId)
+        .filter((d) => d.id !== materialId)
         .map((d) => {
-          if (d.id !== keepId) return d
+          if (d.id !== hostId) return d
           return {
             ...d,
             isMerged: true,

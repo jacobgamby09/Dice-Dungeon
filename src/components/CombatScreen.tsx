@@ -518,7 +518,12 @@ function LifestealOrbLayer({ version, enemyEl, playerHpRef }: {
 
 // ── Fortune Teller modal ─────────────────────────────────────────────────────
 function FortuneTellerModal({ drawPile }: { drawPile: import('../store/gameStore').Die[] }) {
-  const drawSpecificDie = useGameStore((s) => s.drawSpecificDie)
+  const drawSpecificDie               = useGameStore((s) => s.drawSpecificDie)
+  const fortuneTellerPicksRemaining   = useGameStore((s) => s.fortuneTellerPicksRemaining)
+
+  const picksLabel = fortuneTellerPicksRemaining === 1
+    ? 'Choose Your Next Die'
+    : `Choose ${fortuneTellerPicksRemaining} Dice (${fortuneTellerPicksRemaining} left)`
 
   return (
     <div
@@ -545,7 +550,7 @@ function FortuneTellerModal({ drawPile }: { drawPile: import('../store/gameStore
           flexShrink: 0,
         }}>
           <span style={{ fontWeight: 700, fontSize: '0.85rem', color: '#c7d2fe', letterSpacing: '0.12em' }}>
-            ✦ FORTUNE TELLER — Choose Your Next Die
+            ✦ FORTUNE TELLER — {picksLabel}
           </span>
           <button
             onClick={() => useGameStore.setState({ isChoosingNextDie: false })}

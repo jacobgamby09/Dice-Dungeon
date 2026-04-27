@@ -46,11 +46,12 @@ type ShopAction = 'purify' | 'craft' | 'merge' | null
 
 const CRAFT_TYPES: Array<DieFace['type']> = ['damage', 'shield', 'heal', 'lifesteal']
 
-function generateCraftOptions(): DieFace[] {
+function generateCraftOptions(mergeLevel: number): DieFace[] {
+  const multiplier = Math.pow(3, mergeLevel)
   const shuffled = [...CRAFT_TYPES].sort(() => Math.random() - 0.5)
   return shuffled.slice(0, 3).map((type) => ({
     type,
-    value: Math.floor(Math.random() * 6) + 1,
+    value: (Math.floor(Math.random() * 6) + 1) * multiplier,
   }))
 }
 
@@ -109,9 +110,9 @@ function ActionCard({
 // ── Die picker row ────────────────────────────────────────────────────────────
 
 function DiePickerRow({
-  die, isHighlighted, allowCursed, onClick,
+  die, isHighlighted, isHost, allowCursed, onClick,
 }: {
-  die: Die; isHighlighted?: boolean; allowCursed?: boolean; onClick: () => void
+  die: Die; isHighlighted?: boolean; isHost?: boolean; allowCursed?: boolean; onClick: () => void
 }) {
   const s        = dieTypeStyle[die.dieType]
   const name     = DIE_NAMES[die.dieType] ?? die.dieType.toUpperCase()
@@ -144,7 +145,9 @@ function DiePickerRow({
       </span>
       {disabled
         ? <span style={{ marginLeft: 'auto', fontSize: '0.6rem', color: '#ef4444', letterSpacing: '0.1em' }}>CANNOT MERGE</span>
-        : <span style={{ marginLeft: 'auto', fontSize: '0.6rem', color: '#6b7280', letterSpacing: '0.1em' }}>SELECT</span>
+        : isHost
+          ? <span style={{ marginLeft: 'auto', fontSize: '0.6rem', color: '#d97706', letterSpacing: '0.1em', fontWeight: 700 }}>HOST ✓</span>
+          : <span style={{ marginLeft: 'auto', fontSize: '0.6rem', color: '#6b7280', letterSpacing: '0.1em' }}>SELECT</span>
       }
     </button>
   )
@@ -247,7 +250,7 @@ export function ShopScreen() {
       setSelectedDieId(null)
     } else if (activeAction === 'craft') {
       setCraftFaceIndex(faceIndex)
-      setCraftOptions(generateCraftOptions())
+      setCraftOptions(generateCraftOptions(selectedDie?.mergeLevel ?? 0))
     }
   }
 
@@ -478,6 +481,7 @@ export function ShopScreen() {
                 key={die.id}
                 die={die}
                 isHighlighted={die.id === firstMergeId}
+                isHost={die.id === firstMergeId}
                 onClick={() => handleMergeSelect(die.id)}
               />
             ))}
