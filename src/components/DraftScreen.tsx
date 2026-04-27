@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { Coins, Swords, Shield, Heart, Skull, Droplets, Star, Shuffle, Lock, LockOpen } from 'lucide-react'
 import { useGameStore, DIE_TEMPLATES } from '../store/gameStore'
-import { dieTypeStyle, faceColor } from './DieCard'
-import type { DieType, DieFace } from '../store/gameStore'
+import { DieCard, dieTypeStyle, faceColor } from './DieCard'
+import { DiceInspectorModal } from './DiceInspectorModal'
+import type { DieType, DieFace, Die } from '../store/gameStore'
 
 // ── Die display names ─────────────────────────────────────────────────────────
 
@@ -149,7 +150,10 @@ function DieChoiceCard({
 
 export function DraftScreen() {
   const { draftChoices, lastGoldEarned, gold, rerollCost, selectDraftDie, rerollDraft } = useGameStore()
+  const inventory = useGameStore((s) => s.inventory)
   const [lockedIds, setLockedIds] = useState<Set<string>>(new Set())
+  const [showBagModal, setShowBagModal] = useState(false)
+  const [inspectorDie, setInspectorDie] = useState<Die | null>(null)
 
   function toggleLock(id: string) {
     setLockedIds((prev) => {
@@ -228,13 +232,21 @@ export function DraftScreen() {
         ))}
       </div>
 
-      {/* Re-roll footer */}
-      <div style={{ background: '#1a1a2e', padding: '12px 16px', borderTop: '3px solid #000' }}>
+      {/* Footer */}
+      <div style={{ background: '#1a1a2e', padding: '12px 16px', borderTop: '3px solid #000', display: 'flex', gap: 8 }}>
+        <button
+          onClick={() => setShowBagModal(true)}
+          className="pixel-btn"
+          style={{ background: '#1e293b', color: '#94a3b8', border: '2px solid #374151', flexShrink: 0, letterSpacing: '0.15em' }}
+        >
+          VIEW BAG
+        </button>
         <button
           onClick={() => rerollDraft([...lockedIds])}
           disabled={!canReroll}
           className="pixel-btn"
           style={{
+            flex: 1,
             background: canReroll ? '#7c3aed' : '#374151',
             color: '#e9d5ff',
             textShadow: '1px 1px 0 #000',
@@ -245,6 +257,56 @@ export function DraftScreen() {
           RE-ROLL DICE (-{rerollCost} Gold)
         </button>
       </div>
+
+      {/* Bag modal */}
+      {showBagModal && (
+        <div style={{
+          position: 'fixed', inset: 0,
+          background: 'rgba(0,0,0,0.88)',
+          zIndex: 100,
+          maxWidth: 384, margin: '0 auto',
+          display: 'flex', flexDirection: 'column',
+        }}>
+          <div style={{
+            background: '#1a1a2e', padding: '12px 16px',
+            borderBottom: '3px solid #000',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          }}>
+            <span style={{ fontSize: '0.65rem', color: '#9ca3af', letterSpacing: '0.3em', textTransform: 'uppercase' }}>
+              Your Bag
+            </span>
+            <span style={{ fontSize: '0.65rem', color: '#6b7280', letterSpacing: '0.1em' }}>
+              {inventory.length} dice
+            </span>
+          </div>
+          <div style={{
+            flex: 1, overflowY: 'auto', padding: '14px 16px',
+            display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10,
+          }}>
+            {inventory.map((die) => (
+              <DieCard key={die.id} die={die} onClick={() => setInspectorDie(die)} />
+            ))}
+          </div>
+          <div style={{ background: '#1a1a2e', padding: '12px 16px', borderTop: '3px solid #000' }}>
+            <button
+              onClick={() => { setShowBagModal(false); setInspectorDie(null) }}
+              className="pixel-btn"
+              style={{ background: '#374151' }}
+            >
+              BACK TO DRAFT
+            </button>
+          </div>
+        </div>
+      )}
+
+      {inspectorDie && (
+        <DiceInspectorModal
+          types={[inspectorDie.dieType]}
+          faces={inspectorDie.faces}
+          mergeLevel={inspectorDie.mergeLevel}
+          onClose={() => setInspectorDie(null)}
+        />
+      )}
     </div>
   )
 }
