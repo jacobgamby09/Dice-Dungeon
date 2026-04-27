@@ -87,9 +87,11 @@ export function DiePresentationModal({
         <div style={{
           position: 'relative',
           width: 96, height: 96,
-          background: s.bg,
+          background: 'transparent',
           border: ringBorder,
-          boxShadow: `4px 4px 0 ${s.shadow}, ${ringGlow}`,
+          boxShadow: ringGlow !== 'none'
+            ? `${ringGlow}, inset 0 0 18px rgba(255,255,255,0.06)`
+            : `0 0 12px rgba(255,255,255,0.08), inset 0 0 18px rgba(255,255,255,0.06)`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
           {mergeLevel > 0 && (
