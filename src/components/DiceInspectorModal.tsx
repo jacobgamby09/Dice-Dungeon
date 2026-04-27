@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { X, Swords, Shield, Heart, Skull, Coins, Droplets, Star, Shuffle } from 'lucide-react'
-import type { DieType, DieFace } from '../store/gameStore'
+import type { DieType, DieFace, Die } from '../store/gameStore'
 import { DIE_TEMPLATES } from '../store/gameStore'
 import { dieTypeStyle, faceColor } from './DieCard'
 
@@ -38,13 +38,16 @@ interface Props {
   initialType?: DieType
   mergeLevel?: number
   faces?: DieFace[]
+  dieLookup?: Partial<Record<DieType, Die>>
   onClose: () => void
 }
 
-export function DiceInspectorModal({ types, initialType, mergeLevel, faces, onClose }: Props) {
+export function DiceInspectorModal({ types, initialType, mergeLevel, faces, dieLookup, onClose }: Props) {
   const [selected, setSelected] = useState<DieType>(initialType ?? types[0])
   const template = DIE_TEMPLATES[selected]
-  const displayFaces = faces ?? template.faces
+  const instance = dieLookup?.[selected]
+  const displayFaces = instance?.faces ?? faces ?? template.faces
+  const displayMergeLevel = instance?.mergeLevel ?? mergeLevel
   const s = dieTypeStyle[selected]
 
   return (
@@ -127,8 +130,8 @@ export function DiceInspectorModal({ types, initialType, mergeLevel, faces, onCl
           }} />
           <span style={{ fontSize: '0.85rem', fontWeight: 700, color: s.bg }}>
             {TYPE_LABEL[selected]}
-            {(mergeLevel ?? 0) > 0 && (
-              <span style={{ color: '#f59e0b', fontWeight: 900, marginLeft: 5 }}>+{mergeLevel}</span>
+            {(displayMergeLevel ?? 0) > 0 && (
+              <span style={{ color: '#f59e0b', fontWeight: 900, marginLeft: 5 }}>+{displayMergeLevel}</span>
             )}
           </span>
           <span style={{ fontSize: '0.6rem', color: '#6b7280', marginLeft: 'auto' }}>

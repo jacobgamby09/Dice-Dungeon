@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Flame } from 'lucide-react'
 import { useGameStore, getClassPreviewDice } from '../store/gameStore'
-import type { DieType } from '../store/gameStore'
+import type { Die } from '../store/gameStore'
 import { DieCard } from './DieCard'
 import { DiceInspectorModal } from './DiceInspectorModal'
 import { SkillTree } from './SkillTree'
@@ -34,7 +34,7 @@ export function LoadoutScreen() {
   const previewDice = getClassPreviewDice(selectedClass)
   const canStart = true
 
-  const [inspectorType, setInspectorType] = useState<DieType | null>(null)
+  const [inspectorDie, setInspectorDie] = useState<Die | null>(null)
   const [showTalents, setShowTalents]   = useState(false)
   const [showLibrary, setShowLibrary]   = useState(false)
 
@@ -97,7 +97,7 @@ export function LoadoutScreen() {
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10 }}>
           {previewDice.map((die) => (
-            <DieCard key={die.id} die={die} onClick={() => setInspectorType(die.dieType)} />
+            <DieCard key={die.id} die={die} onClick={() => setInspectorDie(die)} />
           ))}
         </div>
       </div>
@@ -200,10 +200,11 @@ export function LoadoutScreen() {
         </div>
       </div>
 
-      {inspectorType && (
+      {inspectorDie && (
         <DiceInspectorModal
-          types={[inspectorType]}
-          onClose={() => setInspectorType(null)}
+          types={[inspectorDie.dieType]}
+          faces={inspectorDie.faces}
+          onClose={() => setInspectorDie(null)}
         />
       )}
       {showTalents  && <SkillTree    onClose={() => setShowTalents(false)}  />}

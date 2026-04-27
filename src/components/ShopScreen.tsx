@@ -327,6 +327,7 @@ export function ShopScreen() {
     inventory.some((d) => d.faces.some((f) => f.type === 'blank' || f.type === 'purified_skull'))
 
   const craftEligibleDice = inventory.filter((d) =>
+    d.dieType !== 'cursed' &&
     d.faces.some((f) => f.type === 'blank' || f.type === 'purified_skull')
   )
 

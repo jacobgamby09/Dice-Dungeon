@@ -804,7 +804,7 @@ export function CombatScreen() {
   const canBank = isIdle && playedDice.length > 0
 
   const [inspectorOpen, setInspectorOpen] = useState(false)
-  const [boardInspectorType, setBoardInspectorType] = useState<DieType | null>(null)
+  const [boardInspectorDieId, setBoardInspectorDieId] = useState<string | null>(null)
   const [jackpotVersion, setJackpotVersion] = useState(0)
   const [lifesteelOrbVersion, setLifesteelOrbVersion] = useState(0)
   const [showScout, setShowScout] = useState(false)
@@ -846,6 +846,9 @@ export function CombatScreen() {
   const stopAutoRoll = () => { autoRollRef.current = false }
 
   const bagTypes = [...new Set([...drawPile, ...playedDice].map((d) => d.dieType))] as DieType[]
+  const bagDieLookup = Object.fromEntries(
+    bagTypes.map((t) => [t, [...drawPile, ...playedDice].find((d) => d.dieType === t)])
+  ) as Partial<Record<DieType, Die>>
 
   const drawButtonLabel =
     turnPhase === 'drawing'      ? '⟳ DRAWING...'
@@ -1080,7 +1083,7 @@ export function CombatScreen() {
                 die={die}
                 isResolving={i === resolvingDieIndex}
                 resolvingPhase={resolvingPhase}
-                onClick={i !== resolvingDieIndex ? () => setBoardInspectorType(die.dieType) : undefined}
+                onClick={i !== resolvingDieIndex ? () => setBoardInspectorDieId(die.id) : undefined}
               />
             ))}
           </div>
@@ -1200,6 +1203,7 @@ export function CombatScreen() {
       {inspectorOpen && bagTypes.length > 0 && (
         <DiceInspectorModal
           types={bagTypes}
+          dieLookup={bagDieLookup}
           onClose={() => setInspectorOpen(false)}
         />
       )}
@@ -1260,12 +1264,18 @@ export function CombatScreen() {
         )}
       </AnimatePresence>
 
-      {boardInspectorType && (
-        <DiceInspectorModal
-          types={[boardInspectorType]}
-          onClose={() => setBoardInspectorType(null)}
-        />
-      )}
+      {boardInspectorDieId && (() => {
+        const die = playedDice.find((d) => d.id === boardInspectorDieId)
+        if (!die) return null
+        return (
+          <DiceInspectorModal
+            types={[die.dieType]}
+            mergeLevel={die.mergeLevel}
+            faces={die.faces}
+            onClose={() => setBoardInspectorDieId(null)}
+          />
+        )
+      })()}
     </div>
   )
 }

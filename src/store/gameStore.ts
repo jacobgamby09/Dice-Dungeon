@@ -950,7 +950,15 @@ export const useGameStore = create<GameState>()(
       if (s.gold < 10 || s.purifyUsesThisShop >= 3) return {}
       const newInventory = s.inventory.map((d) => {
         if (d.id !== dieId) return d
-        return { ...d, faces: d.faces.map((f, i) => (i === faceIndex ? { type: 'blank' as const, value: 0 } : f)) }
+        return {
+          ...d,
+          faces: d.faces.map((f, i) => {
+            if (i !== faceIndex) return f
+            return f.type === 'skull'
+              ? { type: 'purified_skull' as const, value: 0 }
+              : { type: 'blank' as const, value: 0 }
+          }),
+        }
       })
       return { gold: s.gold - 10, inventory: newInventory, purifyUsesThisShop: s.purifyUsesThisShop + 1 }
     })
