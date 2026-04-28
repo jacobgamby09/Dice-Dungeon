@@ -814,7 +814,7 @@ export const useGameStore = create<GameState>()(
       if (isBossFloor) {
         const curseId = uid()
         set((st) => ({
-          inventory: [...st.inventory, createDie('cursed', curseId)],
+          inventory: [...st.inventory, { ...createDie('cursed', curseId), isEquipped: true as const }],
           gold: st.gold + earned,
           lastGoldEarned: earned,
           metaSouls: st.metaSouls + soulsGained,
@@ -866,14 +866,13 @@ export const useGameStore = create<GameState>()(
   },
 
   selectDraftDie: (dieId, lockedOtherIds) => {
-    const { draftChoices, inventory, currentFloor, maxEquippedDice } = get()
+    const { draftChoices, inventory, currentFloor } = get()
     const chosen = draftChoices.find((d) => d.id === dieId)
     if (!chosen) return
     const lockedUnselected = draftChoices.filter((d) => d.id !== dieId && lockedOtherIds.includes(d.id))
     const nextFloor = currentFloor + 1
     const newEnemy  = spawnEnemy(nextFloor)
-    const autoEquip = chosen.dieType === 'cursed' ? true : equippedOnly(inventory).length < maxEquippedDice
-    const chosenWithEquip = { ...chosen, isEquipped: autoEquip }
+    const chosenWithEquip = { ...chosen, isEquipped: true as const }
     const newInv    = [...inventory, chosenWithEquip]
     set((s) => ({
       inventory:    newInv,
