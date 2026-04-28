@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Coins, Heart, Shield, Swords, Skull, Flame, ArrowLeft, Droplets, Star, Shuffle } from 'lucide-react'
-import { useGameStore } from '../store/gameStore'
+import { useGameStore, UNIQUE_DIE_TYPES } from '../store/gameStore'
 import { dieTypeStyle, faceColor } from './DieCard'
 import type { Die, DieFace } from '../store/gameStore'
 import { DiePresentationModal } from './DiePresentationModal'
@@ -23,6 +23,7 @@ const DIE_NAMES: Record<string, string> = {
   priest:         'The Priest',
   fortune_teller: 'The Fortune Teller',
   joker:          'The Joker',
+  unique:         'The Multiplier',
 }
 
 // ── Face icon ─────────────────────────────────────────────────────────────────
@@ -116,7 +117,7 @@ function DiePickerRow({
   die: Die; isHighlighted?: boolean; isHost?: boolean; allowCursed?: boolean; onClick: () => void
 }) {
   const s        = dieTypeStyle[die.dieType]
-  const name     = DIE_NAMES[die.dieType] ?? die.dieType.toUpperCase()
+  const name     = `${DIE_NAMES[die.dieType] ?? die.dieType.toUpperCase()}${UNIQUE_DIE_TYPES.has(die.dieType) ? ' ★' : ''}`
   const level    = die.mergeLevel ?? 0
   const isCursed = die.dieType === 'cursed'
   const disabled = isCursed && !allowCursed
