@@ -309,6 +309,8 @@ interface GameState {
   maxEquippedDice: number
   claimBossReward: () => void
   toggleEquipDie: (dieUid: string) => void
+  resetLoadout: () => void
+  equipBaseDie: (dieType: DieType) => void
   startCombat: () => void
   drawAndRoll: () => Promise<void>
   drawSpecificDie: (dieId: string) => Promise<void>
@@ -487,15 +489,39 @@ export const useGameStore = create<GameState>()(
       if (!die) return {}
       if (die.dieType === 'cursed') return {}
       const isCurrentlyEquipped = die.isEquipped !== false
-      if (!isCurrentlyEquipped && equippedOnly(s.inventory).length >= s.maxEquippedDice) {
-        console.warn(`Loadout full (${s.maxEquippedDice}/${s.maxEquippedDice})`)
-        return {}
+      if (isCurrentlyEquipped) {
+        const isUnmodifiedBase = (['white', 'blue', 'green'] as DieType[]).includes(die.dieType)
+          && !die.mergeLevel && !die.isCustomized
+        if (isUnmodifiedBase) {
+          return { inventory: s.inventory.filter((d) => d.id !== dieUid) }
+        }
+        return { inventory: s.inventory.map((d) => d.id === dieUid ? { ...d, isEquipped: false } : d) }
+      } else {
+        if (equippedOnly(s.inventory).length >= s.maxEquippedDice) {
+          console.warn(`Loadout full (${s.maxEquippedDice}/${s.maxEquippedDice})`)
+          return {}
+        }
+        return { inventory: s.inventory.map((d) => d.id === dieUid ? { ...d, isEquipped: true } : d) }
       }
-      return {
-        inventory: s.inventory.map((d) =>
-          d.id === dieUid ? { ...d, isEquipped: !isCurrentlyEquipped } : d
-        ),
-      }
+    })
+  },
+
+  resetLoadout: () => {
+    set((s) => ({
+      inventory: s.inventory
+        .filter((d) => {
+          const isUnmodifiedBase = (['white', 'blue', 'green'] as DieType[]).includes(d.dieType)
+            && !d.mergeLevel && !d.isCustomized
+          return !isUnmodifiedBase
+        })
+        .map((d) => ({ ...d, isEquipped: d.dieType === 'cursed' ? true : false })),
+    }))
+  },
+
+  equipBaseDie: (dieType) => {
+    set((s) => {
+      if (equippedOnly(s.inventory).length >= s.maxEquippedDice) return {}
+      return { inventory: [...s.inventory, { ...createDie(dieType, uid()), isEquipped: true }] }
     })
   },
 

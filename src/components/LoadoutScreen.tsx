@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Flame, Lock, ShieldAlert, Swords, Shield, Heart, Skull, Coins, Droplets, Star, Shuffle } from 'lucide-react'
-import { useGameStore, getCurrentAct, GAME_ACTS } from '../store/gameStore'
+import { useGameStore, getCurrentAct, GAME_ACTS, DIE_TEMPLATES } from '../store/gameStore'
 import type { Die, DieType, DieFace } from '../store/gameStore'
 import { dieTypeStyle, faceColor } from './DieCard'
 import { SkillTree } from './SkillTree'
@@ -35,10 +35,13 @@ const RARITY_COLOR: Record<string, string> = {
 }
 
 const MODIFIER_META: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  none:       { label: 'No Modifier', color: '#6b7280', icon: null },
-  thorns:     { label: 'Thorns Active',     color: '#ef4444', icon: <ShieldAlert size={11} strokeWidth={2.5} /> },
-  damage_cap: { label: 'Damage Cap Active', color: '#f59e0b', icon: <Swords      size={11} strokeWidth={2.5} /> },
+  none:       { label: 'No Modifier',      color: '#6b7280', icon: null },
+  thorns:     { label: 'Thorns Active',    color: '#ef4444', icon: <ShieldAlert size={11} strokeWidth={2.5} /> },
+  damage_cap: { label: 'Damage Cap Active',color: '#f59e0b', icon: <Swords      size={11} strokeWidth={2.5} /> },
 }
+
+// Infinite-supply base die types available in the pool
+const BASE_POOL: DieType[] = ['white', 'blue', 'green']
 
 // ── Face icon ─────────────────────────────────────────────────────────────────
 
@@ -54,16 +57,61 @@ function FaceIcon({ type, size = 13 }: { type: DieFace['type']; size?: number })
   return <Heart size={size} color={color} strokeWidth={2.5} />
 }
 
+// ── Face grid (shared by base pool cards and reserve die cards) ───────────────
+
+function FaceGrid({ faces, s }: { faces: DieFace[]; s: { bg: string; shadow: string; text: string } }) {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
+      {faces.map((face, i) => (
+        <div
+          key={i}
+          style={{
+            background: s.bg,
+            border: '2px solid #000',
+            boxShadow: `2px 2px 0 ${s.shadow}`,
+            padding: '5px 4px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3,
+            minHeight: 32,
+          }}
+        >
+          {face.type === 'blank' ? null
+            : face.type === 'multiplier' ? (
+              <span style={{ fontSize: '0.8rem', fontWeight: 900, color: s.text, lineHeight: 1 }}>
+                ×{face.value}
+              </span>
+            ) : face.type === 'purified_skull' ? (
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Skull size={15} color="#ffffff" strokeWidth={2.5} />
+                <svg style={{ position: 'absolute', pointerEvents: 'none' }} width="20" height="20" viewBox="0 0 20 20">
+                  <line x1="2" y1="2" x2="18" y2="18" stroke="#ef4444" strokeWidth="3" strokeLinecap="round" />
+                  <line x1="18" y1="2" x2="2" y2="18" stroke="#ef4444" strokeWidth="3" strokeLinecap="round" />
+                </svg>
+              </div>
+            ) : (face.type === 'skull' || face.type === 'choose_next' || face.type === 'wildcard') ? (
+              <FaceIcon type={face.type} size={15} />
+            ) : (
+              <>
+                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: s.text, lineHeight: 1 }}>
+                  {face.value}
+                </span>
+                <FaceIcon type={face.type} size={10} />
+              </>
+            )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 // ── Equipped chip (top zone) ──────────────────────────────────────────────────
 
-function EquippedChip({ die, onBench }: { die: Die; onBench: () => void }) {
+function EquippedChip({ die, onRemove }: { die: Die; onRemove: () => void }) {
   const s = dieTypeStyle[die.dieType]
   const locked = die.dieType === 'cursed'
   return (
     <button
-      onClick={locked ? undefined : onBench}
+      onClick={locked ? undefined : onRemove}
       style={{
-        position: 'relative',
         background: '#12121f',
         border: `2px solid ${locked ? '#7f1d1d' : s.shadow}`,
         boxShadow: `2px 2px 0 ${locked ? '#450a0a' : s.shadow}`,
@@ -71,52 +119,111 @@ function EquippedChip({ die, onBench }: { die: Die; onBench: () => void }) {
         cursor: locked ? 'default' : 'pointer',
         fontFamily: 'inherit',
         display: 'flex', alignItems: 'center', gap: 6,
-        minWidth: 0,
       }}
-      onMouseEnter={(e) => { if (!locked) e.currentTarget.style.opacity = '0.75' }}
+      onMouseEnter={(e) => { if (!locked) e.currentTarget.style.opacity = '0.7' }}
       onMouseLeave={(e) => { if (!locked) e.currentTarget.style.opacity = '1' }}
     >
       <div style={{
-        width: 11, height: 11, flexShrink: 0,
+        width: 10, height: 10, flexShrink: 0,
         background: s.bg, border: '2px solid #000',
         boxShadow: `1px 1px 0 ${s.shadow}`,
       }} />
       <span style={{
         fontSize: '0.62rem', fontWeight: 700, color: s.bg,
         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-        maxWidth: 80, flex: 1,
+        maxWidth: 82,
       }}>
         {DIE_NAMES[die.dieType] ?? die.dieType}
         {(die.mergeLevel ?? 0) > 0 && (
           <span style={{ color: '#f59e0b', marginLeft: 3 }}>+{die.mergeLevel}</span>
         )}
       </span>
-      {locked && <Lock size={9} color="#7f1d1d" strokeWidth={2.5} style={{ flexShrink: 0 }} />}
+      {locked
+        ? <Lock size={9} color="#7f1d1d" strokeWidth={2.5} style={{ flexShrink: 0 }} />
+        : <span style={{ fontSize: '0.5rem', color: '#6b7280', flexShrink: 0 }}>✕</span>
+      }
     </button>
   )
 }
 
-// ── Reserve die card (bottom list) ───────────────────────────────────────────
+// ── Infinite base pool card ───────────────────────────────────────────────────
 
-function ReserveDieCard({ die, onEquip }: { die: Die; onEquip: () => void }) {
-  const s = dieTypeStyle[die.dieType]
+function BasePoolCard({ dieType, onEquip, disabled }: { dieType: DieType; onEquip: () => void; disabled: boolean }) {
+  const s       = dieTypeStyle[dieType]
+  const tmpl    = DIE_TEMPLATES[dieType]
+  const name    = DIE_NAMES[dieType] ?? dieType
+  return (
+    <button
+      onClick={disabled ? undefined : onEquip}
+      style={{
+        background: disabled ? '#0d0d1a' : '#12121f',
+        border: `2px solid ${disabled ? '#1e293b' : s.shadow}`,
+        boxShadow: disabled ? 'none' : `3px 3px 0 ${s.shadow}`,
+        padding: '10px 12px',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        fontFamily: 'inherit',
+        display: 'flex', flexDirection: 'column', gap: 8,
+        textAlign: 'left', width: '100%',
+        opacity: disabled ? 0.45 : 1,
+        transition: 'opacity 0.15s',
+      }}
+      onMouseEnter={(e) => { if (!disabled) e.currentTarget.style.background = '#1a1a2e' }}
+      onMouseLeave={(e) => { if (!disabled) e.currentTarget.style.background = '#12121f' }}
+    >
+      {/* Header row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{
+          width: 14, height: 14, flexShrink: 0,
+          background: s.bg, border: '2px solid #000',
+          boxShadow: `2px 2px 0 ${s.shadow}`,
+        }} />
+        <span style={{ fontWeight: 700, fontSize: '0.8rem', color: s.bg, flex: 1 }}>
+          {name}
+        </span>
+        {/* ∞ badge */}
+        <span style={{
+          fontSize: '0.75rem', fontWeight: 900, color: '#22c55e',
+          background: 'rgba(34,197,94,0.1)',
+          border: '1px solid #166534',
+          padding: '1px 6px', letterSpacing: '0.05em',
+          flexShrink: 0,
+        }}>
+          ∞
+        </span>
+        <span style={{ fontSize: '0.55rem', color: '#22c55e', letterSpacing: '0.1em', flexShrink: 0 }}>
+          {disabled ? 'FULL' : 'ADD +'}
+        </span>
+      </div>
+
+      {/* Face grid using template faces */}
+      <FaceGrid faces={tmpl.faces} s={s} />
+    </button>
+  )
+}
+
+// ── Reserved die card (owned modified dice) ───────────────────────────────────
+
+function ReserveDieCard({ die, onEquip, disabled }: { die: Die; onEquip: () => void; disabled: boolean }) {
+  const s    = dieTypeStyle[die.dieType]
   const name = DIE_NAMES[die.dieType] ?? die.dieType
   return (
     <button
-      onClick={onEquip}
+      onClick={disabled ? undefined : onEquip}
       style={{
-        background: '#12121f',
-        border: `2px solid ${s.shadow}`,
-        boxShadow: `3px 3px 0 ${s.shadow}`,
+        background: disabled ? '#0d0d1a' : '#12121f',
+        border: `2px solid ${disabled ? '#1e293b' : s.shadow}`,
+        boxShadow: disabled ? 'none' : `3px 3px 0 ${s.shadow}`,
         padding: '10px 12px',
-        cursor: 'pointer', fontFamily: 'inherit',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        fontFamily: 'inherit',
         display: 'flex', flexDirection: 'column', gap: 8,
         textAlign: 'left', width: '100%',
+        opacity: disabled ? 0.45 : 1,
       }}
-      onMouseEnter={(e) => (e.currentTarget.style.background = '#1a1a2e')}
-      onMouseLeave={(e) => (e.currentTarget.style.background = '#12121f')}
+      onMouseEnter={(e) => { if (!disabled) e.currentTarget.style.background = '#1a1a2e' }}
+      onMouseLeave={(e) => { if (!disabled) e.currentTarget.style.background = '#12121f' }}
     >
-      {/* Die name row */}
+      {/* Header row */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <div style={{
           width: 14, height: 14, flexShrink: 0,
@@ -138,51 +245,13 @@ function ReserveDieCard({ die, onEquip }: { die: Die; onEquip: () => void }) {
         }}>
           {die.rarity}
         </span>
-        <span style={{ fontSize: '0.55rem', color: '#22c55e', letterSpacing: '0.1em', flexShrink: 0 }}>
-          EQUIP +
+        <span style={{ fontSize: '0.55rem', color: disabled ? '#4b5563' : '#22c55e', letterSpacing: '0.1em', flexShrink: 0 }}>
+          {disabled ? 'FULL' : 'EQUIP +'}
         </span>
       </div>
 
-      {/* 3×2 face grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
-        {die.faces.map((face, i) => (
-          <div
-            key={i}
-            style={{
-              background: s.bg,
-              border: '2px solid #000',
-              boxShadow: `2px 2px 0 ${s.shadow}`,
-              padding: '6px 4px',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3,
-              minHeight: 34,
-            }}
-          >
-            {face.type === 'blank' ? null
-              : face.type === 'multiplier' ? (
-                <span style={{ fontSize: '0.85rem', fontWeight: 900, color: s.text, lineHeight: 1 }}>
-                  ×{face.value}
-                </span>
-              ) : face.type === 'purified_skull' ? (
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Skull size={16} color="#ffffff" strokeWidth={2.5} />
-                  <svg style={{ position: 'absolute', pointerEvents: 'none' }} width="22" height="22" viewBox="0 0 22 22">
-                    <line x1="2" y1="2" x2="20" y2="20" stroke="#ef4444" strokeWidth="3" strokeLinecap="round" />
-                    <line x1="20" y1="2" x2="2" y2="20" stroke="#ef4444" strokeWidth="3" strokeLinecap="round" />
-                  </svg>
-                </div>
-              ) : (face.type === 'skull' || face.type === 'choose_next' || face.type === 'wildcard') ? (
-                <FaceIcon type={face.type} size={16} />
-              ) : (
-                <>
-                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: s.text, lineHeight: 1 }}>
-                    {face.value}
-                  </span>
-                  <FaceIcon type={face.type} size={10} />
-                </>
-              )}
-          </div>
-        ))}
-      </div>
+      {/* Actual modified faces */}
+      <FaceGrid faces={die.faces} s={s} />
     </button>
   )
 }
@@ -192,7 +261,8 @@ function ReserveDieCard({ die, onEquip }: { die: Die; onEquip: () => void }) {
 export function LoadoutScreen() {
   const {
     currentFloor, startCombat, devJumpToForge,
-    inventory, maxEquippedDice, toggleEquipDie,
+    inventory, maxEquippedDice,
+    toggleEquipDie, resetLoadout, equipBaseDie,
   } = useGameStore()
   const metaSouls        = useGameStore((s) => s.metaSouls)
   const unlockedNodes    = useGameStore((s) => s.unlockedNodes)
@@ -202,11 +272,15 @@ export function LoadoutScreen() {
   const [showTalents, setShowTalents] = useState(false)
   const [showLibrary, setShowLibrary] = useState(false)
 
-  const currentAct = getCurrentAct(currentFloor)
-  const modMeta    = MODIFIER_META[currentAct.modifier]
-  const equipped   = inventory.filter((d) => d.isEquipped !== false)
-  const unequipped = inventory.filter((d) => d.isEquipped === false)
-  const canStart   = equipped.length > 0
+  // Reset to clean slate on mount
+  useEffect(() => { resetLoadout() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const currentAct  = getCurrentAct(currentFloor)
+  const modMeta     = MODIFIER_META[currentAct.modifier]
+  const equipped    = inventory.filter((d) => d.isEquipped !== false)
+  const reserved    = inventory.filter((d) => d.isEquipped === false)
+  const atCapacity  = equipped.length >= maxEquippedDice
+  const canStart    = equipped.length > 0
 
   return (
     <div style={{
@@ -224,7 +298,7 @@ export function LoadoutScreen() {
         borderBottom: '3px solid #000',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
           <Flame size={14} color="#a855f7" strokeWidth={2.5} />
           <motion.span
             key={metaSouls}
@@ -238,8 +312,7 @@ export function LoadoutScreen() {
             Souls
           </span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          {/* Act dots */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
           {GAME_ACTS.map((a) => (
             <div key={a.id} style={{
               width: 7, height: 7,
@@ -255,17 +328,13 @@ export function LoadoutScreen() {
 
       {/* Act banner */}
       <div style={{
-        background: '#12121f', padding: '7px 16px',
+        background: '#12121f', padding: '6px 16px',
         borderBottom: '2px solid #000',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-          <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#e2e8f0', letterSpacing: '0.05em' }}>
-            {currentAct.name}
-          </span>
-          <span style={{ fontSize: '0.55rem', color: '#9ca3af' }}>
-            {currentAct.description}
-          </span>
+        <div>
+          <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#e2e8f0' }}>{currentAct.name}</div>
+          <div style={{ fontSize: '0.55rem', color: '#9ca3af' }}>{currentAct.description}</div>
         </div>
         {currentAct.modifier !== 'none' && (
           <div style={{
@@ -285,81 +354,84 @@ export function LoadoutScreen() {
       {/* ── Scrollable body ── */}
       <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
 
-        {/* Equipped section */}
-        <div style={{ padding: '12px 16px 8px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {/* Capacity label */}
+        {/* ── Equipped section ── */}
+        <div style={{ padding: '10px 16px 6px', display: 'flex', flexDirection: 'column', gap: 7 }}>
+          {/* Capacity heading */}
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-            <span style={{ fontSize: '0.6rem', color: '#9ca3af', letterSpacing: '0.25em', textTransform: 'uppercase' }}>
+            <span style={{ fontSize: '0.6rem', color: '#9ca3af', letterSpacing: '0.2em', textTransform: 'uppercase' }}>
               Choose Your {maxEquippedDice} Dice
             </span>
             <span style={{
-              fontSize: '0.8rem', fontWeight: 900, letterSpacing: '0.05em',
-              color: equipped.length === 0 ? '#ef4444'
-                   : equipped.length >= maxEquippedDice ? '#22c55e'
-                   : '#f59e0b',
+              fontSize: '0.85rem', fontWeight: 900,
+              color: equipped.length === 0 ? '#ef4444' : atCapacity ? '#22c55e' : '#f59e0b',
             }}>
               {equipped.length}/{maxEquippedDice}
             </span>
-            <span style={{ fontSize: '0.55rem', color: '#6b7280', letterSpacing: '0.1em' }}>
-              equipped
-            </span>
           </div>
 
-          {/* Chip grid */}
+          {/* Equipped chips */}
           {equipped.length === 0 ? (
             <div style={{
-              border: '2px dashed #374151', padding: '14px',
+              border: '2px dashed #374151', padding: '12px',
               textAlign: 'center', fontSize: '0.65rem', color: '#4b5563',
             }}>
-              No dice equipped — equip some from the list below
+              No dice equipped — pick from the pool below
             </div>
           ) : (
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(2, 1fr)',
-              gap: 5,
-            }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 4 }}>
               {equipped.map((die) => (
                 <EquippedChip
                   key={die.id}
                   die={die}
-                  onBench={() => toggleEquipDie(die.id)}
+                  onRemove={() => toggleEquipDie(die.id)}
                 />
               ))}
             </div>
           )}
         </div>
 
-        {/* Divider */}
-        <div style={{ borderTop: '2px solid #1e293b', margin: '0 16px' }} />
+        {/* ── Divider ── */}
+        <div style={{ borderTop: '2px solid #1e293b', margin: '4px 16px 0' }} />
 
-        {/* Reserve section */}
-        <div style={{ padding: '8px 16px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '0.6rem', color: '#6b7280', letterSpacing: '0.25em', textTransform: 'uppercase' }}>
-              Reserve
+        {/* ── Infinite base pool ── */}
+        <div style={{ padding: '10px 16px 4px', display: 'flex', flexDirection: 'column', gap: 7 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: '0.6rem', color: '#6b7280', letterSpacing: '0.2em', textTransform: 'uppercase' }}>
+              Base Dice
             </span>
-            <span style={{ fontSize: '0.55rem', color: '#4b5563', letterSpacing: '0.1em' }}>
-              {unequipped.length} dice benched
+            <span style={{ fontSize: '0.55rem', color: '#22c55e', letterSpacing: '0.1em' }}>
+              ∞ Unlimited Supply
             </span>
           </div>
-
-          {unequipped.length === 0 ? (
-            <p style={{ fontSize: '0.6rem', color: '#4b5563', margin: 0, fontStyle: 'italic', textAlign: 'center', padding: '8px 0' }}>
-              All dice are in your active loadout
-            </p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {unequipped.map((die) => (
-                <ReserveDieCard
-                  key={die.id}
-                  die={die}
-                  onEquip={() => toggleEquipDie(die.id)}
-                />
-              ))}
-            </div>
-          )}
+          {BASE_POOL.map((t) => (
+            <BasePoolCard
+              key={t}
+              dieType={t}
+              onEquip={() => equipBaseDie(t)}
+              disabled={atCapacity}
+            />
+          ))}
         </div>
+
+        {/* ── Reserved modified dice ── */}
+        {reserved.length > 0 && (
+          <div style={{ padding: '10px 16px 14px', display: 'flex', flexDirection: 'column', gap: 7 }}>
+            <div style={{ borderTop: '2px solid #1e293b', marginBottom: 3 }} />
+            <span style={{ fontSize: '0.6rem', color: '#6b7280', letterSpacing: '0.2em', textTransform: 'uppercase' }}>
+              Your Dice — {reserved.length} in reserve
+            </span>
+            {reserved.map((die) => (
+              <ReserveDieCard
+                key={die.id}
+                die={die}
+                onEquip={() => toggleEquipDie(die.id)}
+                disabled={atCapacity}
+              />
+            ))}
+          </div>
+        )}
+
+        <div style={{ height: 8 }} />
       </div>
 
       {/* ── Fixed footer ── */}
@@ -369,7 +441,6 @@ export function LoadoutScreen() {
         display: 'flex', flexDirection: 'column', gap: 7,
         flexShrink: 0,
       }}>
-        {/* Talents + Library */}
         <div style={{ display: 'flex', gap: 8 }}>
           <button
             onClick={() => setShowTalents(true)}
@@ -429,7 +500,6 @@ export function LoadoutScreen() {
           )
         })()}
 
-        {/* Start combat + dev */}
         <div style={{ display: 'flex', gap: 8 }}>
           <button
             onClick={startCombat}
