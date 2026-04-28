@@ -1,14 +1,13 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Flame, ShieldAlert, Swords } from 'lucide-react'
+import { Flame, Lock, ShieldAlert, Swords, Shield, Heart, Skull, Coins, Droplets, Star, Shuffle } from 'lucide-react'
 import { useGameStore, getCurrentAct, GAME_ACTS } from '../store/gameStore'
-import type { Die, DieType } from '../store/gameStore'
-import { dieTypeStyle } from './DieCard'
-import { DiceInspectorModal } from './DiceInspectorModal'
+import type { Die, DieType, DieFace } from '../store/gameStore'
+import { dieTypeStyle, faceColor } from './DieCard'
 import { SkillTree } from './SkillTree'
 import { DiceLibrary } from './DiceLibrary'
 
-// ── Die display names ─────────────────────────────────────────────────────────
+// ── Static data ───────────────────────────────────────────────────────────────
 
 const DIE_NAMES: Partial<Record<DieType, string>> = {
   white:          'The Basic',
@@ -28,94 +27,163 @@ const DIE_NAMES: Partial<Record<DieType, string>> = {
   unique:         'The Multiplier',
 }
 
-// ── Act modifier meta ─────────────────────────────────────────────────────────
-
-const MODIFIER_META: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  none:       { label: 'No Modifier',  color: '#6b7280', icon: null },
-  thorns:     { label: 'Thorns',       color: '#ef4444', icon: <ShieldAlert size={12} strokeWidth={2.5} /> },
-  damage_cap: { label: 'Damage Cap',   color: '#f59e0b', icon: <Swords      size={12} strokeWidth={2.5} /> },
+const RARITY_COLOR: Record<string, string> = {
+  common:    '#6b7280',
+  uncommon:  '#22c55e',
+  rare:      '#818cf8',
+  legendary: '#f59e0b',
 }
 
-// ── Compact die chip ──────────────────────────────────────────────────────────
+const MODIFIER_META: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
+  none:       { label: 'No Modifier', color: '#6b7280', icon: null },
+  thorns:     { label: 'Thorns Active',     color: '#ef4444', icon: <ShieldAlert size={11} strokeWidth={2.5} /> },
+  damage_cap: { label: 'Damage Cap Active', color: '#f59e0b', icon: <Swords      size={11} strokeWidth={2.5} /> },
+}
 
-function DieChip({ die, onClick }: { die: Die; onClick: () => void }) {
+// ── Face icon ─────────────────────────────────────────────────────────────────
+
+function FaceIcon({ type, size = 13 }: { type: DieFace['type']; size?: number }) {
+  const color = faceColor[type]
+  if (type === 'damage')      return <Swords   size={size} color={color} strokeWidth={2.5} />
+  if (type === 'shield')      return <Shield   size={size} color={color} strokeWidth={2.5} />
+  if (type === 'skull')       return <Skull    size={size} color={color} strokeWidth={2.5} />
+  if (type === 'gold')        return <Coins    size={size} color={color} strokeWidth={2.5} />
+  if (type === 'lifesteal')   return <Droplets size={size} color={color} strokeWidth={2.5} />
+  if (type === 'choose_next') return <Star     size={size} color={color} strokeWidth={2.5} />
+  if (type === 'wildcard')    return <Shuffle  size={size} color={color} strokeWidth={2.5} />
+  return <Heart size={size} color={color} strokeWidth={2.5} />
+}
+
+// ── Equipped chip (top zone) ──────────────────────────────────────────────────
+
+function EquippedChip({ die, onBench }: { die: Die; onBench: () => void }) {
   const s = dieTypeStyle[die.dieType]
+  const locked = die.dieType === 'cursed'
   return (
     <button
-      onClick={onClick}
+      onClick={locked ? undefined : onBench}
       style={{
-        background: s.bg,
-        border: '2px solid #000',
-        boxShadow: `2px 2px 0 ${s.shadow}`,
-        padding: '5px 8px',
-        cursor: 'pointer',
+        position: 'relative',
+        background: '#12121f',
+        border: `2px solid ${locked ? '#7f1d1d' : s.shadow}`,
+        boxShadow: `2px 2px 0 ${locked ? '#450a0a' : s.shadow}`,
+        padding: '5px 7px',
+        cursor: locked ? 'default' : 'pointer',
         fontFamily: 'inherit',
-        display: 'flex', alignItems: 'center', gap: 5,
-        color: s.text,
-        fontSize: '0.68rem', fontWeight: 700,
-        letterSpacing: '0.05em',
-        transition: 'opacity 0.1s',
+        display: 'flex', alignItems: 'center', gap: 6,
+        minWidth: 0,
       }}
-      onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.75')}
-      onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
+      onMouseEnter={(e) => { if (!locked) e.currentTarget.style.opacity = '0.75' }}
+      onMouseLeave={(e) => { if (!locked) e.currentTarget.style.opacity = '1' }}
     >
       <div style={{
-        width: 8, height: 8, flexShrink: 0,
-        background: s.text, border: '1px solid rgba(0,0,0,0.4)',
+        width: 11, height: 11, flexShrink: 0,
+        background: s.bg, border: '2px solid #000',
+        boxShadow: `1px 1px 0 ${s.shadow}`,
       }} />
-      <span>{DIE_NAMES[die.dieType] ?? die.dieType}</span>
-      {(die.mergeLevel ?? 0) > 0 && (
-        <span style={{ color: '#fbbf24', fontSize: '0.6rem', fontWeight: 900 }}>
-          +{die.mergeLevel}
-        </span>
-      )}
+      <span style={{
+        fontSize: '0.62rem', fontWeight: 700, color: s.bg,
+        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+        maxWidth: 80, flex: 1,
+      }}>
+        {DIE_NAMES[die.dieType] ?? die.dieType}
+        {(die.mergeLevel ?? 0) > 0 && (
+          <span style={{ color: '#f59e0b', marginLeft: 3 }}>+{die.mergeLevel}</span>
+        )}
+      </span>
+      {locked && <Lock size={9} color="#7f1d1d" strokeWidth={2.5} style={{ flexShrink: 0 }} />}
     </button>
   )
 }
 
-// ── Zone ─────────────────────────────────────────────────────────────────────
+// ── Reserve die card (bottom list) ───────────────────────────────────────────
 
-function Zone({
-  label, sublabel, accent, dice, emptyText, onChipClick,
-}: {
-  label: string; sublabel?: string; accent: string
-  dice: Die[]; emptyText: string
-  onChipClick: (die: Die) => void
-}) {
+function ReserveDieCard({ die, onEquip }: { die: Die; onEquip: () => void }) {
+  const s = dieTypeStyle[die.dieType]
+  const name = DIE_NAMES[die.dieType] ?? die.dieType
   return (
-    <div style={{
-      border: `2px solid ${accent}`,
-      background: '#0d0d1a',
-      display: 'flex', flexDirection: 'column', gap: 0,
-    }}>
-      {/* Zone header */}
-      <div style={{
-        background: '#1a1a2e',
-        borderBottom: `2px solid ${accent}`,
-        padding: '5px 10px',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      }}>
-        <span style={{ fontSize: '0.6rem', color: accent, letterSpacing: '0.25em', textTransform: 'uppercase', fontWeight: 700 }}>
-          {label}
+    <button
+      onClick={onEquip}
+      style={{
+        background: '#12121f',
+        border: `2px solid ${s.shadow}`,
+        boxShadow: `3px 3px 0 ${s.shadow}`,
+        padding: '10px 12px',
+        cursor: 'pointer', fontFamily: 'inherit',
+        display: 'flex', flexDirection: 'column', gap: 8,
+        textAlign: 'left', width: '100%',
+      }}
+      onMouseEnter={(e) => (e.currentTarget.style.background = '#1a1a2e')}
+      onMouseLeave={(e) => (e.currentTarget.style.background = '#12121f')}
+    >
+      {/* Die name row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{
+          width: 14, height: 14, flexShrink: 0,
+          background: s.bg, border: '2px solid #000',
+          boxShadow: `2px 2px 0 ${s.shadow}`,
+        }} />
+        <span style={{ fontWeight: 700, fontSize: '0.8rem', color: s.bg, flex: 1 }}>
+          {name}
+          {(die.mergeLevel ?? 0) > 0 && (
+            <span style={{ color: '#f59e0b', fontWeight: 900, marginLeft: 4 }}>+{die.mergeLevel}</span>
+          )}
         </span>
-        {sublabel && (
-          <span style={{ fontSize: '0.55rem', color: '#6b7280', letterSpacing: '0.1em' }}>
-            {sublabel}
-          </span>
-        )}
+        <span style={{
+          fontSize: '0.5rem', fontWeight: 700,
+          color: RARITY_COLOR[die.rarity] ?? '#6b7280',
+          letterSpacing: '0.15em', textTransform: 'uppercase',
+          border: `1px solid ${RARITY_COLOR[die.rarity] ?? '#6b7280'}`,
+          padding: '1px 4px', flexShrink: 0,
+        }}>
+          {die.rarity}
+        </span>
+        <span style={{ fontSize: '0.55rem', color: '#22c55e', letterSpacing: '0.1em', flexShrink: 0 }}>
+          EQUIP +
+        </span>
       </div>
 
-      {/* Chips */}
-      <div style={{ padding: '8px 10px', display: 'flex', flexWrap: 'wrap', gap: 5, minHeight: 48 }}>
-        {dice.length === 0 ? (
-          <span style={{ fontSize: '0.65rem', color: '#4b5563', fontStyle: 'italic', alignSelf: 'center' }}>
-            {emptyText}
-          </span>
-        ) : dice.map((die) => (
-          <DieChip key={die.id} die={die} onClick={() => onChipClick(die)} />
+      {/* 3×2 face grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
+        {die.faces.map((face, i) => (
+          <div
+            key={i}
+            style={{
+              background: s.bg,
+              border: '2px solid #000',
+              boxShadow: `2px 2px 0 ${s.shadow}`,
+              padding: '6px 4px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3,
+              minHeight: 34,
+            }}
+          >
+            {face.type === 'blank' ? null
+              : face.type === 'multiplier' ? (
+                <span style={{ fontSize: '0.85rem', fontWeight: 900, color: s.text, lineHeight: 1 }}>
+                  ×{face.value}
+                </span>
+              ) : face.type === 'purified_skull' ? (
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Skull size={16} color="#ffffff" strokeWidth={2.5} />
+                  <svg style={{ position: 'absolute', pointerEvents: 'none' }} width="22" height="22" viewBox="0 0 22 22">
+                    <line x1="2" y1="2" x2="20" y2="20" stroke="#ef4444" strokeWidth="3" strokeLinecap="round" />
+                    <line x1="20" y1="2" x2="2" y2="20" stroke="#ef4444" strokeWidth="3" strokeLinecap="round" />
+                  </svg>
+                </div>
+              ) : (face.type === 'skull' || face.type === 'choose_next' || face.type === 'wildcard') ? (
+                <FaceIcon type={face.type} size={16} />
+              ) : (
+                <>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: s.text, lineHeight: 1 }}>
+                    {face.value}
+                  </span>
+                  <FaceIcon type={face.type} size={10} />
+                </>
+              )}
+          </div>
         ))}
       </div>
-    </div>
+    </button>
   )
 }
 
@@ -126,24 +194,19 @@ export function LoadoutScreen() {
     currentFloor, startCombat, devJumpToForge,
     inventory, maxEquippedDice, toggleEquipDie,
   } = useGameStore()
-  const metaSouls       = useGameStore((s) => s.metaSouls)
-  const unlockedNodes   = useGameStore((s) => s.unlockedNodes)
-  const selectedClass   = useGameStore((s) => s.selectedClass)
+  const metaSouls        = useGameStore((s) => s.metaSouls)
+  const unlockedNodes    = useGameStore((s) => s.unlockedNodes)
+  const selectedClass    = useGameStore((s) => s.selectedClass)
   const setSelectedClass = useGameStore((s) => s.setSelectedClass)
 
-  const [inspectorDie, setInspectorDie] = useState<Die | null>(null)
-  const [showTalents, setShowTalents]   = useState(false)
-  const [showLibrary, setShowLibrary]   = useState(false)
+  const [showTalents, setShowTalents] = useState(false)
+  const [showLibrary, setShowLibrary] = useState(false)
 
-  const currentAct  = getCurrentAct(currentFloor)
-  const modMeta     = MODIFIER_META[currentAct.modifier]
-  const equipped    = inventory.filter((d) => d.isEquipped !== false)
-  const unequipped  = inventory.filter((d) => d.isEquipped === false)
-  const canStart    = equipped.length > 0
-
-  function handleChipClick(die: Die) {
-    toggleEquipDie(die.id)
-  }
+  const currentAct = getCurrentAct(currentFloor)
+  const modMeta    = MODIFIER_META[currentAct.modifier]
+  const equipped   = inventory.filter((d) => d.isEquipped !== false)
+  const unequipped = inventory.filter((d) => d.isEquipped === false)
+  const canStart   = equipped.length > 0
 
   return (
     <div style={{
@@ -153,124 +216,160 @@ export function LoadoutScreen() {
       position: 'relative',
     }}>
 
+      {/* ── Fixed top ── */}
+
       {/* Header */}
       <div style={{
         background: '#1a1a2e', padding: '10px 16px',
         borderBottom: '3px solid #000',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
       }}>
-        <span style={{ fontSize: '0.6rem', color: '#9ca3af', letterSpacing: '0.25em', textTransform: 'uppercase' }}>
-          Loadout
-        </span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: '0.6rem', color: '#6b7280', letterSpacing: '0.1em' }}>
-            Floor {currentFloor}
-          </span>
-          <span style={{
-            fontSize: '0.65rem', fontWeight: 700,
-            color: equipped.length > maxEquippedDice ? '#ef4444'
-                 : equipped.length === maxEquippedDice ? '#22c55e'
-                 : '#9ca3af',
-            letterSpacing: '0.1em',
-          }}>
-            {equipped.length} / {maxEquippedDice}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Flame size={14} color="#a855f7" strokeWidth={2.5} />
+          <motion.span
+            key={metaSouls}
+            animate={{ scale: [1, 1.2, 1] }}
+            transition={{ duration: 0.25 }}
+            style={{ fontSize: '0.9rem', fontWeight: 900, color: '#a855f7' }}
+          >
+            {metaSouls}
+          </motion.span>
+          <span style={{ fontSize: '0.55rem', color: '#7c3aed', letterSpacing: '0.2em', textTransform: 'uppercase' }}>
+            Souls
           </span>
         </div>
-      </div>
-
-      {/* Souls strip */}
-      <div style={{
-        background: '#0f0f1a', padding: '6px 16px',
-        borderBottom: '2px solid #000',
-        display: 'flex', alignItems: 'center', gap: 8,
-      }}>
-        <Flame size={14} color="#a855f7" strokeWidth={2.5} />
-        <motion.span
-          key={metaSouls}
-          animate={{ scale: [1, 1.25, 1] }}
-          transition={{ duration: 0.3 }}
-          style={{ fontSize: '1rem', fontWeight: 900, color: '#a855f7', lineHeight: 1 }}
-        >
-          {metaSouls}
-        </motion.span>
-        <span style={{ fontSize: '0.55rem', color: '#7c3aed', letterSpacing: '0.2em', textTransform: 'uppercase' }}>
-          Souls
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {/* Act dots */}
+          {GAME_ACTS.map((a) => (
+            <div key={a.id} style={{
+              width: 7, height: 7,
+              background: a.id === currentAct.id ? '#e2e8f0' : '#374151',
+              border: '1px solid #000',
+            }} />
+          ))}
+          <span style={{ fontSize: '0.55rem', color: '#6b7280', letterSpacing: '0.1em', marginLeft: 4 }}>
+            Floor {currentFloor}
+          </span>
+        </div>
       </div>
 
       {/* Act banner */}
       <div style={{
-        background: '#12121f', padding: '8px 16px',
+        background: '#12121f', padding: '7px 16px',
         borderBottom: '2px solid #000',
-        display: 'flex', flexDirection: 'column', gap: 3,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#e2e8f0', letterSpacing: '0.05em' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#e2e8f0', letterSpacing: '0.05em' }}>
             {currentAct.name}
           </span>
-          {/* Act dots */}
-          <div style={{ display: 'flex', gap: 4 }}>
-            {GAME_ACTS.map((a) => (
-              <div key={a.id} style={{
-                width: 8, height: 8,
-                background: a.id === currentAct.id ? '#e2e8f0' : '#374151',
-                border: '1px solid #000',
-              }} />
-            ))}
-          </div>
+          <span style={{ fontSize: '0.55rem', color: '#9ca3af' }}>
+            {currentAct.description}
+          </span>
         </div>
-        <span style={{ fontSize: '0.6rem', color: '#9ca3af', letterSpacing: '0.05em' }}>
-          {currentAct.description}
-        </span>
         {currentAct.modifier !== 'none' && (
           <div style={{
-            display: 'flex', alignItems: 'center', gap: 5,
-            marginTop: 2, padding: '3px 6px',
+            display: 'flex', alignItems: 'center', gap: 4,
+            padding: '3px 6px',
             background: 'rgba(239,68,68,0.08)',
             border: `1px solid ${modMeta.color}`,
           }}>
             <span style={{ color: modMeta.color, lineHeight: 0 }}>{modMeta.icon}</span>
-            <span style={{ fontSize: '0.55rem', color: modMeta.color, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase' }}>
-              {modMeta.label} Active
+            <span style={{ fontSize: '0.5rem', color: modMeta.color, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+              {modMeta.label}
             </span>
           </div>
         )}
       </div>
 
-      {/* Scrollable body: equip zones */}
-      <div style={{
-        flex: 1, overflowY: 'auto', padding: '12px 16px',
-        display: 'flex', flexDirection: 'column', gap: 10,
-      }}>
-        <Zone
-          label="Active Loadout"
-          sublabel={`tap to bench`}
-          accent="#22c55e"
-          dice={equipped}
-          emptyText="No dice equipped — add some from Reserve below"
-          onChipClick={handleChipClick}
-        />
-        <Zone
-          label="Reserve"
-          sublabel={`tap to equip`}
-          accent="#4b5563"
-          dice={unequipped}
-          emptyText="All dice are in your active loadout"
-          onChipClick={handleChipClick}
-        />
+      {/* ── Scrollable body ── */}
+      <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
 
-        {/* Hint */}
-        <p style={{ fontSize: '0.55rem', color: '#4b5563', textAlign: 'center', margin: 0, letterSpacing: '0.1em' }}>
-          Only equipped dice enter the draw bag · Max {maxEquippedDice} active
-        </p>
+        {/* Equipped section */}
+        <div style={{ padding: '12px 16px 8px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {/* Capacity label */}
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+            <span style={{ fontSize: '0.6rem', color: '#9ca3af', letterSpacing: '0.25em', textTransform: 'uppercase' }}>
+              Choose Your {maxEquippedDice} Dice
+            </span>
+            <span style={{
+              fontSize: '0.8rem', fontWeight: 900, letterSpacing: '0.05em',
+              color: equipped.length === 0 ? '#ef4444'
+                   : equipped.length >= maxEquippedDice ? '#22c55e'
+                   : '#f59e0b',
+            }}>
+              {equipped.length}/{maxEquippedDice}
+            </span>
+            <span style={{ fontSize: '0.55rem', color: '#6b7280', letterSpacing: '0.1em' }}>
+              equipped
+            </span>
+          </div>
+
+          {/* Chip grid */}
+          {equipped.length === 0 ? (
+            <div style={{
+              border: '2px dashed #374151', padding: '14px',
+              textAlign: 'center', fontSize: '0.65rem', color: '#4b5563',
+            }}>
+              No dice equipped — equip some from the list below
+            </div>
+          ) : (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, 1fr)',
+              gap: 5,
+            }}>
+              {equipped.map((die) => (
+                <EquippedChip
+                  key={die.id}
+                  die={die}
+                  onBench={() => toggleEquipDie(die.id)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Divider */}
+        <div style={{ borderTop: '2px solid #1e293b', margin: '0 16px' }} />
+
+        {/* Reserve section */}
+        <div style={{ padding: '8px 16px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '0.6rem', color: '#6b7280', letterSpacing: '0.25em', textTransform: 'uppercase' }}>
+              Reserve
+            </span>
+            <span style={{ fontSize: '0.55rem', color: '#4b5563', letterSpacing: '0.1em' }}>
+              {unequipped.length} dice benched
+            </span>
+          </div>
+
+          {unequipped.length === 0 ? (
+            <p style={{ fontSize: '0.6rem', color: '#4b5563', margin: 0, fontStyle: 'italic', textAlign: 'center', padding: '8px 0' }}>
+              All dice are in your active loadout
+            </p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {unequipped.map((die) => (
+                <ReserveDieCard
+                  key={die.id}
+                  die={die}
+                  onEquip={() => toggleEquipDie(die.id)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Footer */}
+      {/* ── Fixed footer ── */}
       <div style={{
-        background: '#1a1a2e', padding: '12px 16px',
+        background: '#1a1a2e', padding: '10px 16px',
         borderTop: '3px solid #000',
-        display: 'flex', flexDirection: 'column', gap: 8,
+        display: 'flex', flexDirection: 'column', gap: 7,
+        flexShrink: 0,
       }}>
+        {/* Talents + Library */}
         <div style={{ display: 'flex', gap: 8 }}>
           <button
             onClick={() => setShowTalents(true)}
@@ -305,36 +404,32 @@ export function LoadoutScreen() {
             (c) => c.unlockNode === null || unlockedNodes.includes(c.unlockNode)
           )
           return (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-              <span style={{ fontSize: '0.55rem', color: '#6b7280', letterSpacing: '0.2em', textTransform: 'uppercase' }}>
-                Class
-              </span>
-              <div style={{ display: 'flex', gap: 6 }}>
-                {available.map((cls) => {
-                  const theme = selectedClass === cls.id ? cls.active : cls.inactive
-                  return (
-                    <button
-                      key={cls.id}
-                      onClick={() => setSelectedClass(cls.id)}
-                      style={{
-                        flex: 1, padding: '7px 4px',
-                        fontFamily: 'inherit', fontSize: '0.65rem', fontWeight: 700,
-                        letterSpacing: '0.1em', textTransform: 'uppercase',
-                        background: theme.bg, color: theme.text,
-                        border: `2px solid ${theme.border}`,
-                        boxShadow: selectedClass === cls.id ? `3px 3px 0 ${'shadow' in theme ? theme.shadow : '#000'}` : '3px 3px 0 #000',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      {cls.label}
-                    </button>
-                  )
-                })}
-              </div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {available.map((cls) => {
+                const theme = selectedClass === cls.id ? cls.active : cls.inactive
+                return (
+                  <button
+                    key={cls.id}
+                    onClick={() => setSelectedClass(cls.id)}
+                    style={{
+                      flex: 1, padding: '6px 4px',
+                      fontFamily: 'inherit', fontSize: '0.62rem', fontWeight: 700,
+                      letterSpacing: '0.1em', textTransform: 'uppercase',
+                      background: theme.bg, color: theme.text,
+                      border: `2px solid ${theme.border}`,
+                      boxShadow: selectedClass === cls.id ? `3px 3px 0 ${'shadow' in theme ? theme.shadow : '#000'}` : '3px 3px 0 #000',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {cls.label}
+                  </button>
+                )
+              })}
             </div>
           )
         })()}
 
+        {/* Start combat + dev */}
         <div style={{ display: 'flex', gap: 8 }}>
           <button
             onClick={startCombat}
@@ -353,15 +448,12 @@ export function LoadoutScreen() {
           </button>
           <button
             onClick={devJumpToForge}
-            title="DEV: Jump to Forge with 150g + loot dice"
+            title="DEV: Jump to Forge"
             style={{
               width: 44, flexShrink: 0,
-              background: '#1c1c2e',
-              border: '2px dashed #4b5563',
-              color: '#6b7280',
+              background: '#1c1c2e', border: '2px dashed #4b5563', color: '#6b7280',
               fontSize: '0.55rem', fontWeight: 700, fontFamily: 'inherit',
-              letterSpacing: '0.05em',
-              cursor: 'pointer',
+              letterSpacing: '0.05em', cursor: 'pointer',
               display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2,
             }}
           >
@@ -371,13 +463,6 @@ export function LoadoutScreen() {
         </div>
       </div>
 
-      {inspectorDie && (
-        <DiceInspectorModal
-          types={[inspectorDie.dieType]}
-          faces={inspectorDie.faces}
-          onClose={() => setInspectorDie(null)}
-        />
-      )}
       {showTalents && <SkillTree   onClose={() => setShowTalents(false)} />}
       {showLibrary && <DiceLibrary onClose={() => setShowLibrary(false)} />}
 

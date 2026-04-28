@@ -479,12 +479,13 @@ export const useGameStore = create<GameState>()(
   purifyUsesThisShop: 0,
   activeMultiplier: 1,
   multiplierFiredVersion: 0,
-  maxEquippedDice: 6,
+  maxEquippedDice: 10,
 
   toggleEquipDie: (dieUid) => {
     set((s) => {
       const die = s.inventory.find((d) => d.id === dieUid)
       if (!die) return {}
+      if (die.dieType === 'cursed') return {}
       const isCurrentlyEquipped = die.isEquipped !== false
       if (!isCurrentlyEquipped && equippedOnly(s.inventory).length >= s.maxEquippedDice) {
         console.warn(`Loadout full (${s.maxEquippedDice}/${s.maxEquippedDice})`)
@@ -907,7 +908,8 @@ export const useGameStore = create<GameState>()(
     const lockedUnselected = draftChoices.filter((d) => d.id !== dieId && lockedOtherIds.includes(d.id))
     const nextFloor = currentFloor + 1
     const newEnemy  = spawnEnemy(nextFloor)
-    const chosenWithEquip = { ...chosen, isEquipped: equippedOnly(inventory).length < maxEquippedDice }
+    const autoEquip = chosen.dieType === 'cursed' ? true : equippedOnly(inventory).length < maxEquippedDice
+    const chosenWithEquip = { ...chosen, isEquipped: autoEquip }
     const newInv    = [...inventory, chosenWithEquip]
     set((s) => ({
       inventory:    newInv,
