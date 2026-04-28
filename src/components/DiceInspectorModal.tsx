@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { X, Swords, Shield, Heart, Skull, Coins, Droplets, Star, Shuffle } from 'lucide-react'
 import type { DieType, DieFace, Die } from '../store/gameStore'
-import { DIE_TEMPLATES } from '../store/gameStore'
+import { DIE_TEMPLATES, UNIQUE_DIE_TYPES } from '../store/gameStore'
 import { dieTypeStyle, faceColor } from './DieCard'
 
 const TYPE_LABEL: Record<DieType, string> = {
@@ -21,6 +21,8 @@ const TYPE_LABEL: Record<DieType, string> = {
   joker:          'The Joker',
   unique:         'The Multiplier',
 }
+
+function dieName(t: DieType) { return `${TYPE_LABEL[t]}${UNIQUE_DIE_TYPES.has(t) ? ' ★' : ''}` }
 
 function FaceIcon({ type, size = 13 }: { type: DieFace['type']; size?: number }) {
   const color = faceColor[type]
@@ -110,7 +112,7 @@ export function DiceInspectorModal({ types, initialType, mergeLevel, faces, dieL
                     minWidth: 48,
                   }}
                 >
-                  {TYPE_LABEL[t]}
+                  {dieName(t)}
                 </button>
               )
             })}
@@ -130,13 +132,13 @@ export function DiceInspectorModal({ types, initialType, mergeLevel, faces, dieL
             boxShadow: `2px 2px 0 ${s.shadow}`, flexShrink: 0,
           }} />
           <span style={{ fontSize: '0.85rem', fontWeight: 700, color: s.bg }}>
-            {TYPE_LABEL[selected]}
+            {dieName(selected)}
             {(displayMergeLevel ?? 0) > 0 && (
               <span style={{ color: '#f59e0b', fontWeight: 900, marginLeft: 5 }}>+{displayMergeLevel}</span>
             )}
           </span>
           <span style={{ fontSize: '0.6rem', color: '#6b7280', marginLeft: 'auto' }}>
-            {template.sides} sides · {template.rarity}
+            {template.sides} sides
           </span>
         </div>
 

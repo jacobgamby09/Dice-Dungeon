@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Coins, Swords, Shield, Heart, Skull, Droplets, Star, Shuffle, Lock, LockOpen } from 'lucide-react'
-import { useGameStore, DIE_TEMPLATES } from '../store/gameStore'
+import { useGameStore, DIE_TEMPLATES, UNIQUE_DIE_TYPES } from '../store/gameStore'
 import { dieTypeStyle, faceColor } from './DieCard'
 import { DiceInspectorModal } from './DiceInspectorModal'
 import type { DieType, DieFace, Die } from '../store/gameStore'
@@ -39,15 +39,6 @@ function FaceIcon({ type, size = 13 }: { type: DieFace['type']; size?: number })
   return <Heart size={size} color={color} strokeWidth={2.5} />
 }
 
-// ── Rarity color ──────────────────────────────────────────────────────────────
-
-const RARITY_COLOR: Record<string, string> = {
-  common:    '#6b7280',
-  uncommon:  '#22c55e',
-  rare:      '#818cf8',
-  legendary: '#f59e0b',
-}
-
 // ── Single die choice card ────────────────────────────────────────────────────
 
 function DieChoiceCard({
@@ -58,7 +49,7 @@ function DieChoiceCard({
 }) {
   const template = DIE_TEMPLATES[dieType]
   const s = dieTypeStyle[dieType]
-  const name = DIE_NAMES[dieType] ?? dieType
+  const name = `${DIE_NAMES[dieType] ?? dieType}${UNIQUE_DIE_TYPES.has(dieType) ? ' ★' : ''}`
 
   return (
     <div style={{
@@ -78,15 +69,6 @@ function DieChoiceCard({
         }} />
         <span style={{ fontWeight: 700, fontSize: '0.9rem', color: s.bg, flex: 1 }}>
           {name}
-        </span>
-        <span style={{
-          fontSize: '0.55rem', fontWeight: 700,
-          color: RARITY_COLOR[template.rarity] ?? '#6b7280',
-          letterSpacing: '0.15em', textTransform: 'uppercase',
-          border: `1px solid ${RARITY_COLOR[template.rarity] ?? '#6b7280'}`,
-          padding: '2px 5px',
-        }}>
-          {template.rarity}
         </span>
         {/* Lock toggle */}
         <button
@@ -334,7 +316,7 @@ export function DraftScreen() {
                     boxShadow: `1px 1px 0 ${s.shadow}`,
                   }} />
                   <span style={{ fontSize: '0.75rem', fontWeight: 700, color: s.bg, flex: 1, letterSpacing: '0.05em' }}>
-                    {DIE_NAMES[die.dieType] ?? die.dieType}
+                    {DIE_NAMES[die.dieType] ?? die.dieType}{UNIQUE_DIE_TYPES.has(die.dieType) ? ' ★' : ''}
                     {(die.mergeLevel ?? 0) > 0 && (
                       <span style={{ color: '#f59e0b', fontWeight: 900, marginLeft: 4 }}>+{die.mergeLevel}</span>
                     )}

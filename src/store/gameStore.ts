@@ -19,12 +19,13 @@ export interface Die {
   sides: number
   faces: DieFace[]
   currentFace?: DieFace
-  rarity: 'common' | 'uncommon' | 'rare' | 'legendary'
   isMerged?: boolean
   mergeLevel?: number
   isCustomized?: boolean
   isEquipped?: boolean
 }
+
+export const UNIQUE_DIE_TYPES = new Set<DieType>(['jackpot', 'vampire', 'priest', 'fortune_teller', 'joker', 'unique'])
 
 export interface SkillNode {
   id: string
@@ -52,10 +53,9 @@ export type ResolvingPhase = 'spinning' | 'landed' | null
 
 // ── Die factory ──────────────────────────────────────────────────────────────
 
-export const DIE_TEMPLATES: Record<DieType, { sides: number; faces: DieFace[]; rarity: Die['rarity'] }> = {
+export const DIE_TEMPLATES: Record<DieType, { sides: number; faces: DieFace[] }> = {
   white: {
     sides: 6,
-    rarity: 'common',
     faces: [
       { type: 'damage', value: 1 },
       { type: 'damage', value: 2 },
@@ -67,7 +67,6 @@ export const DIE_TEMPLATES: Record<DieType, { sides: number; faces: DieFace[]; r
   },
   blue: {
     sides: 6,
-    rarity: 'common',
     faces: [
       { type: 'shield', value: 1 },
       { type: 'shield', value: 2 },
@@ -79,7 +78,6 @@ export const DIE_TEMPLATES: Record<DieType, { sides: number; faces: DieFace[]; r
   },
   green: {
     sides: 6,
-    rarity: 'common',
     faces: [
       { type: 'heal', value: 1 },
       { type: 'heal', value: 2 },
@@ -91,7 +89,6 @@ export const DIE_TEMPLATES: Record<DieType, { sides: number; faces: DieFace[]; r
   },
   cursed: {
     sides: 6,
-    rarity: 'uncommon',
     faces: [
       { type: 'skull', value: 1 },
       { type: 'skull', value: 1 },
@@ -103,7 +100,6 @@ export const DIE_TEMPLATES: Record<DieType, { sides: number; faces: DieFace[]; r
   },
   heavy: {
     sides: 6,
-    rarity: 'uncommon',
     faces: [
       { type: 'damage', value: 4 },
       { type: 'damage', value: 6 },
@@ -115,7 +111,6 @@ export const DIE_TEMPLATES: Record<DieType, { sides: number; faces: DieFace[]; r
   },
   paladin: {
     sides: 6,
-    rarity: 'uncommon',
     faces: [
       { type: 'shield', value: 1 },
       { type: 'shield', value: 1 },
@@ -127,7 +122,6 @@ export const DIE_TEMPLATES: Record<DieType, { sides: number; faces: DieFace[]; r
   },
   gambler: {
     sides: 6,
-    rarity: 'rare',
     faces: [
       { type: 'damage', value: 12 },
       { type: 'damage', value: 12 },
@@ -139,7 +133,6 @@ export const DIE_TEMPLATES: Record<DieType, { sides: number; faces: DieFace[]; r
   },
   scavenger: {
     sides: 6,
-    rarity: 'uncommon',
     faces: [
       { type: 'gold',   value: 3 },
       { type: 'gold',   value: 4 },
@@ -151,7 +144,6 @@ export const DIE_TEMPLATES: Record<DieType, { sides: number; faces: DieFace[]; r
   },
   wall: {
     sides: 6,
-    rarity: 'rare',
     faces: [
       { type: 'shield', value: 2 },
       { type: 'shield', value: 3 },
@@ -164,7 +156,6 @@ export const DIE_TEMPLATES: Record<DieType, { sides: number; faces: DieFace[]; r
 
   jackpot: {
     sides: 6,
-    rarity: 'legendary',
     faces: [
       { type: 'damage', value: 30 },
       { type: 'skull',  value: 1  },
@@ -176,7 +167,6 @@ export const DIE_TEMPLATES: Record<DieType, { sides: number; faces: DieFace[]; r
   },
   vampire: {
     sides: 6,
-    rarity: 'legendary',
     faces: [
       { type: 'lifesteal', value: 1 },
       { type: 'lifesteal', value: 2 },
@@ -188,7 +178,6 @@ export const DIE_TEMPLATES: Record<DieType, { sides: number; faces: DieFace[]; r
   },
   priest: {
     sides: 6,
-    rarity: 'legendary',
     faces: [
       { type: 'heal', value: 1 },
       { type: 'heal', value: 2 },
@@ -200,7 +189,6 @@ export const DIE_TEMPLATES: Record<DieType, { sides: number; faces: DieFace[]; r
   },
   fortune_teller: {
     sides: 6,
-    rarity: 'legendary',
     faces: [
       { type: 'choose_next', value: 0 },
       { type: 'choose_next', value: 0 },
@@ -212,7 +200,6 @@ export const DIE_TEMPLATES: Record<DieType, { sides: number; faces: DieFace[]; r
   },
   joker: {
     sides: 6,
-    rarity: 'rare',
     faces: [
       { type: 'wildcard', value: 0 },
       { type: 'wildcard', value: 0 },
@@ -224,21 +211,20 @@ export const DIE_TEMPLATES: Record<DieType, { sides: number; faces: DieFace[]; r
   },
   unique: {
     sides: 6,
-    rarity: 'legendary',
     faces: [
-      { type: 'multiplier', value: 2 },
-      { type: 'multiplier', value: 2 },
-      { type: 'multiplier', value: 2 },
-      { type: 'multiplier', value: 2 },
-      { type: 'multiplier', value: 2 },
-      { type: 'multiplier', value: 2 },
+      { type: 'multiplier', value: 3 },
+      { type: 'multiplier', value: 3 },
+      { type: 'multiplier', value: 3 },
+      { type: 'multiplier', value: 3 },
+      { type: 'multiplier', value: 3 },
+      { type: 'multiplier', value: 3 },
     ],
   },
 }
 
 function createDie(type: DieType, id: string): Die {
   const t = DIE_TEMPLATES[type]
-  return { id, dieType: type, sides: t.sides, faces: t.faces, rarity: t.rarity }
+  return { id, dieType: type, sides: t.sides, faces: t.faces }
 }
 
 function rollFace(die: Die): DieFace {
@@ -833,10 +819,11 @@ export const useGameStore = create<GameState>()(
           resolvingDieIndex: null, resolvingPhase: null,
         }))
       } else {
-        const { lockedDraftDice } = get()
-        const lockedTypes = new Set(lockedDraftDice.map((d) => d.dieType))
+        const { lockedDraftDice, inventory } = get()
+        const lockedTypes   = new Set(lockedDraftDice.map((d) => d.dieType))
+        const ownedUniques  = new Set(inventory.filter((d) => UNIQUE_DIE_TYPES.has(d.dieType)).map((d) => d.dieType))
         const slotsToFill = 3 - lockedDraftDice.length
-        const pool    = getDiceLootPool(unlockedNodes).filter((t) => !lockedTypes.has(t))
+        const pool    = getDiceLootPool(unlockedNodes).filter((t) => !lockedTypes.has(t) && !ownedUniques.has(t))
         const newDice = shuffleArray([...pool])
                           .slice(0, slotsToFill)
                           .map((t) => createDie(t, uid()))
@@ -900,12 +887,13 @@ export const useGameStore = create<GameState>()(
   claimBossReward: () => { set({ showBossRewardModal: false }) },
 
   rerollDraft: (lockedDieIds) => {
-    const { gold, rerollCost, unlockedNodes, draftChoices } = get()
+    const { gold, rerollCost, unlockedNodes, draftChoices, inventory } = get()
     if (gold < rerollCost) return
-    const lockedDice  = draftChoices.filter((d) => lockedDieIds.includes(d.id))
-    const lockedTypes = new Set(lockedDice.map((d) => d.dieType))
+    const lockedDice   = draftChoices.filter((d) => lockedDieIds.includes(d.id))
+    const lockedTypes  = new Set(lockedDice.map((d) => d.dieType))
+    const ownedUniques = new Set(inventory.filter((d) => UNIQUE_DIE_TYPES.has(d.dieType)).map((d) => d.dieType))
     const slotsToFill = 3 - lockedDice.length
-    const pool    = getDiceLootPool(unlockedNodes).filter((t) => !lockedTypes.has(t))
+    const pool    = getDiceLootPool(unlockedNodes).filter((t) => !lockedTypes.has(t) && !ownedUniques.has(t))
     const newDice = shuffleArray([...pool]).slice(0, slotsToFill).map((t) => createDie(t, uid()))
     set((s) => ({
       gold: s.gold - rerollCost,

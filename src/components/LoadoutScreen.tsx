@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Flame, Lock, ShieldAlert, Swords, Shield, Heart, Skull, Coins, Droplets, Star, Shuffle } from 'lucide-react'
-import { useGameStore, getCurrentAct, GAME_ACTS, DIE_TEMPLATES } from '../store/gameStore'
+import { useGameStore, getCurrentAct, GAME_ACTS, DIE_TEMPLATES, UNIQUE_DIE_TYPES } from '../store/gameStore'
 import type { Die, DieType, DieFace } from '../store/gameStore'
 import { dieTypeStyle, faceColor } from './DieCard'
 import { SkillTree } from './SkillTree'
@@ -25,13 +25,6 @@ const DIE_NAMES: Partial<Record<DieType, string>> = {
   fortune_teller: 'The Fortune Teller',
   joker:          'The Joker',
   unique:         'The Multiplier',
-}
-
-const RARITY_COLOR: Record<string, string> = {
-  common:    '#6b7280',
-  uncommon:  '#22c55e',
-  rare:      '#818cf8',
-  legendary: '#f59e0b',
 }
 
 const MODIFIER_META: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
@@ -133,7 +126,7 @@ function EquippedChip({ die, onRemove }: { die: Die; onRemove: () => void }) {
         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         maxWidth: 82,
       }}>
-        {DIE_NAMES[die.dieType] ?? die.dieType}
+        {DIE_NAMES[die.dieType] ?? die.dieType}{UNIQUE_DIE_TYPES.has(die.dieType) ? ' ★' : ''}
         {(die.mergeLevel ?? 0) > 0 && (
           <span style={{ color: '#f59e0b', marginLeft: 3 }}>+{die.mergeLevel}</span>
         )}
@@ -151,7 +144,7 @@ function EquippedChip({ die, onRemove }: { die: Die; onRemove: () => void }) {
 function BasePoolCard({ dieType, onEquip, disabled }: { dieType: DieType; onEquip: () => void; disabled: boolean }) {
   const s       = dieTypeStyle[dieType]
   const tmpl    = DIE_TEMPLATES[dieType]
-  const name    = DIE_NAMES[dieType] ?? dieType
+  const name    = `${DIE_NAMES[dieType] ?? dieType}${UNIQUE_DIE_TYPES.has(dieType) ? ' ★' : ''}`
   return (
     <button
       onClick={disabled ? undefined : onEquip}
@@ -205,7 +198,7 @@ function BasePoolCard({ dieType, onEquip, disabled }: { dieType: DieType; onEqui
 
 function ReserveDieCard({ die, onEquip, disabled }: { die: Die; onEquip: () => void; disabled: boolean }) {
   const s    = dieTypeStyle[die.dieType]
-  const name = DIE_NAMES[die.dieType] ?? die.dieType
+  const name = `${DIE_NAMES[die.dieType] ?? die.dieType}${UNIQUE_DIE_TYPES.has(die.dieType) ? ' ★' : ''}`
   return (
     <button
       onClick={disabled ? undefined : onEquip}
@@ -235,15 +228,6 @@ function ReserveDieCard({ die, onEquip, disabled }: { die: Die; onEquip: () => v
           {(die.mergeLevel ?? 0) > 0 && (
             <span style={{ color: '#f59e0b', fontWeight: 900, marginLeft: 4 }}>+{die.mergeLevel}</span>
           )}
-        </span>
-        <span style={{
-          fontSize: '0.5rem', fontWeight: 700,
-          color: RARITY_COLOR[die.rarity] ?? '#6b7280',
-          letterSpacing: '0.15em', textTransform: 'uppercase',
-          border: `1px solid ${RARITY_COLOR[die.rarity] ?? '#6b7280'}`,
-          padding: '1px 4px', flexShrink: 0,
-        }}>
-          {die.rarity}
         </span>
         <span style={{ fontSize: '0.55rem', color: disabled ? '#4b5563' : '#22c55e', letterSpacing: '0.1em', flexShrink: 0 }}>
           {disabled ? 'FULL' : 'EQUIP +'}

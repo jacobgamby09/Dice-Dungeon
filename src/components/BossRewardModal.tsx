@@ -75,7 +75,7 @@ export function BossRewardModal() {
             CURSED DIE
           </span>
           <span style={{ fontSize: '0.55rem', color: '#6b7280', marginLeft: 'auto', letterSpacing: '0.1em' }}>
-            {template.sides} sides · {template.rarity}
+            {template.sides} sides
           </span>
         </div>
 

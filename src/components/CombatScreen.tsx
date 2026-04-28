@@ -903,9 +903,6 @@ export function CombatScreen() {
       const s = useGameStore.getState()
       if (s.skullCount >= 2 || s.drawPile.length === 0 || s.turnPhase !== 'idle' || s.isChoosingNextDie) break
       await drawAndRoll()
-      const afterState = useGameStore.getState()
-      const lastPlayed = afterState.playedDice[afterState.playedDice.length - 1]
-      if (lastPlayed?.dieType === 'unique') { autoRollRef.current = false; break }
       await new Promise<void>((r) => setTimeout(r, 100))
     }
     autoRollRef.current = false

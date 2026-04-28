@@ -1,5 +1,5 @@
 import { X, Swords, Shield, Heart, Skull, Coins, Droplets, Star, Shuffle } from 'lucide-react'
-import { DIE_TEMPLATES } from '../store/gameStore'
+import { DIE_TEMPLATES, UNIQUE_DIE_TYPES } from '../store/gameStore'
 import type { DieType, DieFace } from '../store/gameStore'
 import { dieTypeStyle, faceColor } from './DieCard'
 
@@ -85,13 +85,13 @@ export function DiceLibrary({ onClose }: { onClose: () => void }) {
                   boxShadow: `2px 2px 0 ${s.shadow}`,
                 }} />
                 <span style={{ fontWeight: 700, fontSize: '0.85rem', color: s.bg, flex: 1 }}>
-                  {DIE_NAMES[type]}
+                  {DIE_NAMES[type]}{UNIQUE_DIE_TYPES.has(type) ? ' ★' : ''}
                 </span>
                 <span style={{
                   fontSize: '0.55rem', color: '#6b7280',
                   letterSpacing: '0.1em', textTransform: 'uppercase',
                 }}>
-                  {template.rarity} · {template.sides}d
+                  {template.sides}d
                 </span>
               </div>
 
