@@ -23,6 +23,7 @@ export interface Die {
   isMerged?: boolean
   mergeLevel?: number
   isCustomized?: boolean
+  isEquipped?: boolean
 }
 
 export interface SkillNode {
@@ -33,6 +34,17 @@ export interface SkillNode {
   x: number
   y: number
   requires: string[]
+}
+
+export type ActModifier = 'none' | 'thorns' | 'damage_cap'
+
+export interface Act {
+  id: number
+  name: string
+  description: string
+  modifier: ActModifier
+  startFloor: number
+  endFloor: number
 }
 
 export type TurnPhase = 'loadout' | 'idle' | 'drawing' | 'player_attack' | 'enemy_attack' | 'draft' | 'shop'
@@ -294,7 +306,9 @@ interface GameState {
   purifyUsesThisShop: number
   activeMultiplier: number
   multiplierFiredVersion: number
+  maxEquippedDice: number
   claimBossReward: () => void
+  toggleEquipDie: (dieUid: string) => void
   startCombat: () => void
   drawAndRoll: () => Promise<void>
   drawSpecificDie: (dieId: string) => Promise<void>
@@ -315,6 +329,7 @@ interface GameState {
 }
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
+const equippedOnly = (dice: Die[]) => dice.filter((d) => d.isEquipped !== false)
 
 // ── Bestiary ─────────────────────────────────────────────────────────────────
 
@@ -400,6 +415,16 @@ const INITIAL_INVENTORY: Die[] = [
   createDie('cursed', 'c1'), createDie('cursed', 'c2'), createDie('cursed', 'c3'),
 ]
 
+export const GAME_ACTS: Act[] = [
+  { id: 1, name: 'The Brute Tunnels', description: 'Crude warriors armed with raw power.',   modifier: 'none',       startFloor: 1,  endFloor: 15 },
+  { id: 2, name: 'The Spiked Depths', description: 'Every hit you take echoes back.',         modifier: 'thorns',     startFloor: 16, endFloor: 30 },
+  { id: 3, name: 'The Iron Fortress', description: 'Damage is capped. Outlast or perish.',   modifier: 'damage_cap', startFloor: 31, endFloor: 45 },
+]
+
+export function getCurrentAct(floor: number): Act {
+  return GAME_ACTS.find((a) => floor >= a.startFloor && floor <= a.endFloor) ?? GAME_ACTS[GAME_ACTS.length - 1]
+}
+
 function getDiceLootPool(unlockedNodes: string[]): DieType[] {
   const pool: DieType[] = ['heavy', 'paladin', 'gambler', 'scavenger', 'wall', 'joker', 'unique']
   if (unlockedNodes.includes('kec9ybn2')) pool.push('jackpot')
@@ -454,6 +479,24 @@ export const useGameStore = create<GameState>()(
   purifyUsesThisShop: 0,
   activeMultiplier: 1,
   multiplierFiredVersion: 0,
+  maxEquippedDice: 6,
+
+  toggleEquipDie: (dieUid) => {
+    set((s) => {
+      const die = s.inventory.find((d) => d.id === dieUid)
+      if (!die) return {}
+      const isCurrentlyEquipped = die.isEquipped !== false
+      if (!isCurrentlyEquipped && equippedOnly(s.inventory).length >= s.maxEquippedDice) {
+        console.warn(`Loadout full (${s.maxEquippedDice}/${s.maxEquippedDice})`)
+        return {}
+      }
+      return {
+        inventory: s.inventory.map((d) =>
+          d.id === dieUid ? { ...d, isEquipped: !isCurrentlyEquipped } : d
+        ),
+      }
+    })
+  },
 
   startCombat: () => {
     const { unlockedNodes, selectedClass } = get()
@@ -512,7 +555,7 @@ export const useGameStore = create<GameState>()(
       gold:         startGold,
       currentFloor: 1,
       enemy:        spawnEnemy(1),
-      drawPile:     shuffleArray([...startInventory]),
+      drawPile:     shuffleArray(equippedOnly(startInventory)),
       playedDice:   [],
       skullCount:   0,
       totalDamage: 0, totalHeal: 0, totalShield: 0, totalGold: 0,
@@ -858,13 +901,14 @@ export const useGameStore = create<GameState>()(
   },
 
   selectDraftDie: (dieId, lockedOtherIds) => {
-    const { draftChoices, inventory, currentFloor } = get()
+    const { draftChoices, inventory, currentFloor, maxEquippedDice } = get()
     const chosen = draftChoices.find((d) => d.id === dieId)
     if (!chosen) return
     const lockedUnselected = draftChoices.filter((d) => d.id !== dieId && lockedOtherIds.includes(d.id))
     const nextFloor = currentFloor + 1
     const newEnemy  = spawnEnemy(nextFloor)
-    const newInv    = [...inventory, chosen]
+    const chosenWithEquip = { ...chosen, isEquipped: equippedOnly(inventory).length < maxEquippedDice }
+    const newInv    = [...inventory, chosenWithEquip]
     set((s) => ({
       inventory:    newInv,
       currentFloor: nextFloor,
@@ -872,7 +916,7 @@ export const useGameStore = create<GameState>()(
       player:       { ...s.player, shield: 0 },
       draftChoices: [],
       lockedDraftDice: lockedUnselected,
-      drawPile:     shuffleArray([...newInv]),
+      drawPile:     shuffleArray(equippedOnly(newInv)),
       playedDice:   [],
       skullCount:   0,
       totalDamage: 0, totalHeal: 0, totalShield: 0, totalGold: 0,
@@ -912,7 +956,7 @@ export const useGameStore = create<GameState>()(
       enemy:        newEnemy,
       player:       { ...s.player, shield: 0 },
       draftChoices: [],
-      drawPile:     shuffleArray([...inventory]),
+      drawPile:     shuffleArray(equippedOnly(inventory)),
       playedDice:   [],
       skullCount:   0,
       totalDamage: 0, totalHeal: 0, totalShield: 0, totalGold: 0,
@@ -1150,7 +1194,7 @@ export const useGameStore = create<GameState>()(
       currentFloor: nextFloor,
       enemy:        newEnemy,
       player:       { ...s.player, shield: 0 },
-      drawPile:     shuffleArray([...s.inventory]),
+      drawPile:     shuffleArray(equippedOnly(s.inventory)),
       playedDice:   [],
       skullCount:   0,
       totalDamage: 0, totalHeal: 0, totalShield: 0, totalGold: 0,
@@ -1205,7 +1249,7 @@ async function runEnemyPhase() {
         turnPhase: 'idle',
         totalDamage: 0, totalHeal: 0, totalShield: 0, totalGold: 0,
         skullCount: 0,
-        drawPile: shuffleArray([...st.inventory]),
+        drawPile: shuffleArray(equippedOnly(st.inventory)),
         playedDice: [],
         lastEffects: { heal: 0, shield: 0, gold: 0 },
         resolvingDieIndex: null, resolvingPhase: null,
@@ -1238,7 +1282,7 @@ async function runEnemyPhase() {
       turnPhase: 'idle',
       totalDamage: 0, totalHeal: 0, totalShield: 0, totalGold: 0,
       skullCount: 0,
-      drawPile: shuffleArray([...s.inventory]),
+      drawPile: shuffleArray(equippedOnly(s.inventory)),
       playedDice: [],
       lastEffects: { heal: 0, shield: 0, gold: 0 },
       player: { ...s.player, shield: 0 },
