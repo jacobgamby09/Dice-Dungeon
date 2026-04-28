@@ -22,6 +22,7 @@ const DIE_NAMES: Partial<Record<DieType, string>> = {
   priest:         'The Priest',
   fortune_teller: 'The Fortune Teller',
   joker:          'The Joker',
+  unique:         'The Multiplier',
 }
 
 // ── Face icon ─────────────────────────────────────────────────────────────────

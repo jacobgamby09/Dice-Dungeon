@@ -760,6 +760,9 @@ export const useGameStore = create<GameState>()(
   bankAndAttack: async () => {
     if (get().turnPhase !== 'idle') return
 
+    // Discard any dangling multiplier — it only applies within the same turn
+    set({ activeMultiplier: 1 })
+
     const { totalDamage, totalHeal, totalShield, totalGold, enemy, player,
             currentFloor, inventory, unlockedNodes, firstAttackThisEncounter } = get()
 
