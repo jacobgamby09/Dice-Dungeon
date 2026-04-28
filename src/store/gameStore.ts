@@ -293,7 +293,6 @@ interface GameState {
   lastGoldEarned: number
   metaSouls: number
   unlockedNodes: string[]
-  selectedClass: string
   playerAttackAnimTier: 1 | 2 | 3 | null
   isChoosingNextDie: boolean
   fortuneTellerPicksRemaining: number
@@ -324,7 +323,6 @@ interface GameState {
   shopCraftFace: (dieId: string, faceIndex: number, newFace: DieFace) => void
   shopPurifyFace: (dieId: string, faceIndex: number) => void
   unlockNode: (nodeId: string) => void
-  setSelectedClass: (cls: string) => void
   leaveShop: () => void
   abandonRun: () => void
   devJumpToForge: () => void
@@ -342,8 +340,6 @@ interface EnemyTemplate {
 
 export const SKILL_TREE_NODES: SkillNode[] = [
   { id: 'sflz4yv3', name: 'The Awakening',        description: 'Your journey begins.',                              cost: 0,    x: -0.75,       y: -1,   requires: [] },
-  { id: 'c295l2dd', name: "Gambler's Pouch",       description: 'Unlocks the Gambler start class.',                 cost: 500,  x: -184.40625,  y: -134, requires: ['sflz4yv3'] },
-  { id: '6ts7gvct', name: 'Scavenger Pouch',       description: 'Unlocks the Scavenger start class.',               cost: 500,  x: -208.234375, y: -31,  requires: ['sflz4yv3'] },
   { id: 'tqo6xv7r', name: 'Pocket Change',         description: 'Start each run with 10 Gold.',                     cost: 100,  x: 202.703125,  y: -94,  requires: ['sflz4yv3'] },
   { id: 'fyuwvmzq', name: 'Vitality I',            description: '+10 Max HP.',                                      cost: 100,  x: 208.078125,  y: 71,   requires: ['sflz4yv3'] },
   { id: 'g1atjka6', name: 'First Blood',           description: 'First attack each encounter gives +1 damage.',     cost: 100,  x: 3.84375,     y: 141,  requires: ['sflz4yv3'] },
@@ -362,32 +358,6 @@ export const SKILL_TREE_NODES: SkillNode[] = [
   { id: 'qevchxm7', name: 'New Dice: The Fortune Teller',  description: 'Adds The Fortune Teller to the dice loot pool.', cost: 700,  x: -40.724,    y: -347, requires: ['kec9ybn2'] },
 ]
 
-export function getClassPreviewDice(cls: string): Die[] {
-  if (cls === 'gambler') {
-    return [
-      createDie('gambler', 'pv-g1'), createDie('gambler', 'pv-g2'),
-      createDie('white',   'pv-w1'), createDie('white',   'pv-w2'),
-      createDie('blue',    'pv-b1'), createDie('blue',    'pv-b2'),
-      createDie('green',   'pv-gr1'),
-      createDie('cursed',  'pv-c1'), createDie('cursed',  'pv-c2'), createDie('cursed', 'pv-c3'),
-    ]
-  }
-  if (cls === 'scavenger') {
-    return [
-      createDie('scavenger', 'pv-s1'), createDie('scavenger', 'pv-s2'),
-      createDie('white',     'pv-w1'), createDie('white',     'pv-w2'), createDie('white', 'pv-w3'),
-      createDie('blue',      'pv-b1'),
-      createDie('green',     'pv-gr1'),
-      createDie('cursed',    'pv-c1'), createDie('cursed',    'pv-c2'), createDie('cursed', 'pv-c3'),
-    ]
-  }
-  return [
-    createDie('white',  'pv-w1'), createDie('white',  'pv-w2'), createDie('white',  'pv-w3'), createDie('white', 'pv-w4'),
-    createDie('blue',   'pv-b1'), createDie('blue',   'pv-b2'),
-    createDie('green',  'pv-gr1'),
-    createDie('cursed', 'pv-c1'), createDie('cursed', 'pv-c2'), createDie('cursed', 'pv-c3'),
-  ]
-}
 
 const BESTIARY: EnemyTemplate[] = [
   { name: 'Slime',    baseHp: 28,  intentMin: 2,  intentMax: 4,  isBoss: false },
@@ -468,7 +438,6 @@ export const useGameStore = create<GameState>()(
   lastGoldEarned: 0,
   metaSouls: 0,
   unlockedNodes: ['sflz4yv3'],
-  selectedClass: 'standard',
   playerAttackAnimTier: null,
   isChoosingNextDie: false,
   fortuneTellerPicksRemaining: 0,
@@ -526,54 +495,23 @@ export const useGameStore = create<GameState>()(
   },
 
   startCombat: () => {
-    const { unlockedNodes, selectedClass } = get()
+    const { unlockedNodes, inventory } = get()
 
     const vitI  = unlockedNodes.includes('fyuwvmzq') ? 10 : 0
     const vitII = unlockedNodes.includes('co2xusrh') ? 15 : 0
-
-    let startInventory: Die[]
-    let baseHp: number
-
-    if (selectedClass === 'gambler') {
-      startInventory = [
-        createDie('gambler', uid()), createDie('gambler', uid()),
-        createDie('white',   uid()), createDie('white',   uid()),
-        createDie('blue',    uid()), createDie('blue',    uid()),
-        createDie('green',   uid()),
-        createDie('cursed',  uid()), createDie('cursed',  uid()), createDie('cursed', uid()),
-      ]
-      baseHp = 80 + vitI + vitII
-    } else if (selectedClass === 'scavenger') {
-      startInventory = [
-        createDie('scavenger', uid()), createDie('scavenger', uid()),
-        createDie('white',     uid()), createDie('white',     uid()), createDie('white', uid()),
-        createDie('blue',      uid()),
-        createDie('green',     uid()),
-        createDie('cursed',    uid()), createDie('cursed',    uid()), createDie('cursed', uid()),
-      ]
-      baseHp = 100 + vitI + vitII
-    } else {
-      startInventory = [
-        createDie('white',  uid()), createDie('white',  uid()), createDie('white',  uid()), createDie('white', uid()),
-        createDie('blue',   uid()), createDie('blue',   uid()),
-        createDie('green',  uid()),
-        createDie('cursed', uid()), createDie('cursed', uid()), createDie('cursed', uid()),
-      ]
-      baseHp = 100 + vitI + vitII
-    }
-
-    if (unlockedNodes.includes('hnwdjqof')) {
-      startInventory = startInventory.map((d) =>
-        d.dieType !== 'white' ? d : {
-          ...d,
-          faces: d.faces.map((f) =>
-            f.type === 'damage' && f.value === 1 ? { ...f, value: 2 } : f
-          ),
-        }
-      )
-    }
-
+    const baseHp    = 100 + vitI + vitII
     const startGold = unlockedNodes.includes('tqo6xv7r') ? 10 : 0
+
+    const startInventory = unlockedNodes.includes('hnwdjqof')
+      ? inventory.map((d) =>
+          d.dieType !== 'white' ? d : {
+            ...d,
+            faces: d.faces.map((f) =>
+              f.type === 'damage' && f.value === 1 ? { ...f, value: 2 } : f
+            ),
+          }
+        )
+      : inventory
 
     set((s) => ({
       turnPhase:    'idle',
@@ -1098,8 +1036,6 @@ export const useGameStore = create<GameState>()(
     })
   },
 
-  setSelectedClass: (cls) => set({ selectedClass: cls }),
-
   abandonRun: () => {
     set({
       player: { hp: 100, maxHp: 100, shield: 0 },
@@ -1122,38 +1058,16 @@ export const useGameStore = create<GameState>()(
   },
 
   devJumpToForge: () => {
-    const { unlockedNodes, selectedClass } = get()
+    const { unlockedNodes } = get()
     const vitI  = unlockedNodes.includes('fyuwvmzq') ? 10 : 0
     const vitII = unlockedNodes.includes('co2xusrh') ? 15 : 0
-    let startInventory: Die[]
-    let baseHp: number
-    if (selectedClass === 'gambler') {
-      startInventory = [
-        createDie('gambler', uid()), createDie('gambler', uid()),
-        createDie('white',   uid()), createDie('white',   uid()),
-        createDie('blue',    uid()), createDie('blue',    uid()),
-        createDie('green',   uid()),
-        createDie('cursed',  uid()), createDie('cursed',  uid()), createDie('cursed', uid()),
-      ]
-      baseHp = 80 + vitI + vitII
-    } else if (selectedClass === 'scavenger') {
-      startInventory = [
-        createDie('scavenger', uid()), createDie('scavenger', uid()),
-        createDie('white',     uid()), createDie('white',     uid()), createDie('white', uid()),
-        createDie('blue',      uid()),
-        createDie('green',     uid()),
-        createDie('cursed',    uid()), createDie('cursed',    uid()), createDie('cursed', uid()),
-      ]
-      baseHp = 100 + vitI + vitII
-    } else {
-      startInventory = [
-        createDie('white',  uid()), createDie('white',  uid()), createDie('white',  uid()), createDie('white', uid()),
-        createDie('blue',   uid()), createDie('blue',   uid()),
-        createDie('green',  uid()),
-        createDie('cursed', uid()), createDie('cursed', uid()), createDie('cursed', uid()),
-      ]
-      baseHp = 100 + vitI + vitII
-    }
+    const startInventory: Die[] = [
+      createDie('white',  uid()), createDie('white',  uid()),
+      createDie('blue',   uid()), createDie('blue',   uid()),
+      createDie('green',  uid()),
+      createDie('cursed', uid()), createDie('cursed', uid()), createDie('cursed', uid()),
+    ]
+    const baseHp = 100 + vitI + vitII
     const pool    = getDiceLootPool(unlockedNodes)
     const shuffled = shuffleArray(pool)
     const lootDice = shuffled.slice(0, 4).map((t, i) => {
@@ -1237,7 +1151,7 @@ export const useGameStore = create<GameState>()(
     }),
     {
       name: 'dice-dungeon-save',
-      partialize: (state) => ({ metaSouls: state.metaSouls, unlockedNodes: state.unlockedNodes, selectedClass: state.selectedClass }),
+      partialize: (state) => ({ metaSouls: state.metaSouls, unlockedNodes: state.unlockedNodes }),
     }
   )
 )

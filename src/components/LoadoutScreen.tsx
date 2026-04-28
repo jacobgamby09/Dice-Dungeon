@@ -265,9 +265,6 @@ export function LoadoutScreen() {
     toggleEquipDie, resetLoadout, equipBaseDie,
   } = useGameStore()
   const metaSouls        = useGameStore((s) => s.metaSouls)
-  const unlockedNodes    = useGameStore((s) => s.unlockedNodes)
-  const selectedClass    = useGameStore((s) => s.selectedClass)
-  const setSelectedClass = useGameStore((s) => s.setSelectedClass)
 
   const [showTalents, setShowTalents] = useState(false)
   const [showLibrary, setShowLibrary] = useState(false)
@@ -457,48 +454,6 @@ export function LoadoutScreen() {
             ✦ LIBRARY
           </button>
         </div>
-
-        {/* Class selector */}
-        {(() => {
-          const CLASSES = [
-            { id: 'standard',  label: 'Standard',  unlockNode: null,
-              active:   { bg: '#1f2937', border: '#9ca3af', text: '#f3f4f6', shadow: '#374151' },
-              inactive: { bg: '#12121f', border: '#374151', text: '#6b7280' } },
-            { id: 'gambler',   label: 'Gambler',   unlockNode: 'c295l2dd',
-              active:   { bg: '#4c1d95', border: '#7c3aed', text: '#c4b5fd', shadow: '#3b0764' },
-              inactive: { bg: '#12121f', border: '#374151', text: '#6b7280' } },
-            { id: 'scavenger', label: 'Scavenger', unlockNode: '6ts7gvct',
-              active:   { bg: '#451a03', border: '#d97706', text: '#fde68a', shadow: '#92400e' },
-              inactive: { bg: '#12121f', border: '#374151', text: '#6b7280' } },
-          ]
-          const available = CLASSES.filter(
-            (c) => c.unlockNode === null || unlockedNodes.includes(c.unlockNode)
-          )
-          return (
-            <div style={{ display: 'flex', gap: 6 }}>
-              {available.map((cls) => {
-                const theme = selectedClass === cls.id ? cls.active : cls.inactive
-                return (
-                  <button
-                    key={cls.id}
-                    onClick={() => setSelectedClass(cls.id)}
-                    style={{
-                      flex: 1, padding: '6px 4px',
-                      fontFamily: 'inherit', fontSize: '0.62rem', fontWeight: 700,
-                      letterSpacing: '0.1em', textTransform: 'uppercase',
-                      background: theme.bg, color: theme.text,
-                      border: `2px solid ${theme.border}`,
-                      boxShadow: selectedClass === cls.id ? `3px 3px 0 ${'shadow' in theme ? theme.shadow : '#000'}` : '3px 3px 0 #000',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {cls.label}
-                  </button>
-                )
-              })}
-            </div>
-          )
-        })()}
 
         <div style={{ display: 'flex', gap: 8 }}>
           <button
