@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Swords, Shield, Heart, Skull, Coins, Droplets, Star, Shuffle } from 'lucide-react'
+import { Swords, Shield, Heart, Skull, Coins, Droplets, Star, Shuffle, FlaskConical } from 'lucide-react'
 import type { Die, DieType, DieFace, ResolvingPhase } from '../store/gameStore'
 
 // ── Visual tables ────────────────────────────────────────────────────────────
@@ -21,10 +21,11 @@ export const dieTypeStyle: Record<DieType, { bg: string; shadow: string; text: s
   fortune_teller:{ bg: '#6366f1', shadow: '#1e1b4b',  text: '#e0e7ff' },
   joker:         { bg: '#d1d5db', shadow: '#6b7280',  text: '#111827' },
   unique:        { bg: '#06b6d4', shadow: '#0e7490',  text: '#ffffff' },
+  blight:        { bg: '#4d7c0f', shadow: '#1a2e05',  text: '#d9f99d' },
 }
 
 // Custom loot dice use their die text color for all face content (monochrome)
-const CUSTOM_LOOT_DIES = new Set<DieType>(['heavy', 'paladin', 'gambler', 'scavenger', 'wall', 'jackpot', 'vampire', 'priest', 'fortune_teller', 'joker', 'unique'])
+const CUSTOM_LOOT_DIES = new Set<DieType>(['heavy', 'paladin', 'gambler', 'scavenger', 'wall', 'jackpot', 'vampire', 'priest', 'fortune_teller', 'joker', 'unique', 'blight'])
 
 export const faceColor: Record<DieFace['type'], string> = {
   damage:         '#dc2626',
@@ -38,6 +39,7 @@ export const faceColor: Record<DieFace['type'], string> = {
   blank:          '#374151',
   purified_skull: '#ffffff',
   multiplier:     '#a3e635',
+  poison:         '#4ade80',
 }
 
 export const faceShadow: Record<DieFace['type'], string> = {
@@ -52,6 +54,7 @@ export const faceShadow: Record<DieFace['type'], string> = {
   blank:          '#1f2937',
   purified_skull: '#9f1239',
   multiplier:     '#3f6212',
+  poison:         '#15803d',
 }
 
 // ── Type icon ────────────────────────────────────────────────────────────────
@@ -63,9 +66,10 @@ function TypeIcon({ type, size = 13, forceColor }: { type: DieFace['type']; size
   if (type === 'skull')       return <Skull    size={size} color={color} strokeWidth={2.5} />
   if (type === 'gold')        return <Coins    size={size} color={color} strokeWidth={2.5} />
   if (type === 'lifesteal')   return <Droplets size={size} color={color} strokeWidth={2.5} />
-  if (type === 'choose_next') return <Star     size={size} color={color} strokeWidth={2.5} />
-  if (type === 'wildcard')    return <Shuffle  size={size} color={color} strokeWidth={2.5} />
-  return                             <Heart    size={size} color={color} strokeWidth={2.5} />
+  if (type === 'choose_next') return <Star          size={size} color={color} strokeWidth={2.5} />
+  if (type === 'wildcard')    return <Shuffle       size={size} color={color} strokeWidth={2.5} />
+  if (type === 'poison')      return <FlaskConical  size={size} color={color} strokeWidth={2.5} />
+  return                             <Heart         size={size} color={color} strokeWidth={2.5} />
 }
 
 // ── DiceFace ─────────────────────────────────────────────────────────────────

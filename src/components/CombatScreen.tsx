@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence, useMotionValue, useTransform, animate, useAnimate } from 'framer-motion'
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
-import { Shield, Heart, Swords, Library, Skull, Coins, Flame } from 'lucide-react'
+import { Shield, Heart, Swords, Library, Skull, Coins, Flame, FlaskConical, Biohazard } from 'lucide-react'
 import { useGameStore } from '../store/gameStore'
 import type { Die, EnemyIntent, ResolvingPhase, DieType } from '../store/gameStore'
 import { DieCard, faceColor, faceShadow, dieTypeStyle } from './DieCard'
@@ -253,7 +253,7 @@ function SkullJumpscareOverlay({ skullRolledVersion }: { skullRolledVersion: num
 // ── Flying orbs ──────────────────────────────────────────────────────────────
 type Orb = { id: number; color: string; shadow: string; sx: number; sy: number; ex: number; ey: number }
 
-function OrbLayer({ playedDice, orbVersion, resolvingDieIndex, damageRef, healRef, shieldRef, skullRef, goldRef }: {
+function OrbLayer({ playedDice, orbVersion, resolvingDieIndex, damageRef, healRef, shieldRef, skullRef, goldRef, poisonRef }: {
   playedDice: Die[]
   orbVersion: number
   resolvingDieIndex: number | null
@@ -262,6 +262,7 @@ function OrbLayer({ playedDice, orbVersion, resolvingDieIndex, damageRef, healRe
   shieldRef: React.RefObject<HTMLDivElement | null>
   skullRef: React.RefObject<HTMLDivElement | null>
   goldRef: React.RefObject<HTMLDivElement | null>
+  poisonRef: React.RefObject<HTMLDivElement | null>
 }) {
   const [orbs, setOrbs] = useState<Orb[]>([])
   const prevVersion = useRef(orbVersion)
@@ -285,6 +286,7 @@ function OrbLayer({ playedDice, orbVersion, resolvingDieIndex, damageRef, healRe
                     : faceType === 'heal'      ? healRef
                     : faceType === 'shield'    ? shieldRef
                     : faceType === 'gold'      ? goldRef
+                    : faceType === 'poison'    ? poisonRef
                     : skullRef
     const tr = targetRef.current?.getBoundingClientRect()
     if (!tr) return
@@ -682,6 +684,7 @@ const SCOUT_DIE_NAMES: Partial<Record<import('../store/gameStore').DieType, stri
   fortune_teller: 'The Fortune Teller',
   joker:          'The Joker',
   unique:         'The Multiplier',
+  blight:         'The Blight',
 }
 
 function ScoutModal({ drawPile, onClose }: { drawPile: import('../store/gameStore').Die[]; onClose: () => void }) {
@@ -781,7 +784,7 @@ export function CombatScreen() {
   const {
     player, enemy,
     drawPile, playedDice, skullCount, skullRolledVersion,
-    totalDamage, totalHeal, totalShield, totalGold,
+    totalDamage, totalHeal, totalShield, totalGold, totalPoison,
     lastEffects, turnPhase, playerAttackAnimTier,
     enemyHitVersion, playerHitVersion, playerEffectVersion,
     orbVersion, counterVersion, rollStartVersion, resolvingDieIndex, resolvingPhase, enemyAttackVersion,
@@ -837,6 +840,7 @@ export function CombatScreen() {
   const shieldRef   = useRef<HTMLDivElement>(null)
   const skullRef    = useRef<HTMLDivElement>(null)
   const goldRef     = useRef<HTMLDivElement>(null)
+  const poisonRef   = useRef<HTMLDivElement>(null)
   const playerHpRef = useRef<HTMLDivElement>(null)
 
   // Screen shake on every die slam
@@ -1018,6 +1022,26 @@ export function CombatScreen() {
                 {enemy.name}
               </span>
               <IntentBadge intent={enemy.intent} />
+              {enemy.poison > 0 && (
+                <motion.div
+                  animate={{
+                    boxShadow: [
+                      '0 0 4px rgba(74,222,128,0.5)',
+                      '0 0 12px rgba(74,222,128,0.9)',
+                      '0 0 4px rgba(74,222,128,0.5)',
+                    ],
+                  }}
+                  transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 3,
+                    background: '#052e16', border: '2px solid #15803d',
+                    padding: '2px 6px',
+                  }}
+                >
+                  <Biohazard size={12} color="#4ade80" strokeWidth={2.5} />
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#4ade80' }}>{enemy.poison}</span>
+                </motion.div>
+              )}
             </div>
             <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#d1d5db' }}>{enemy.hp} / {enemy.maxHp} HP</span>
             <HpBar hp={enemy.hp} maxHp={enemy.maxHp} color={enemy.isBoss ? '#b91c1c' : '#ef4444'} />
@@ -1105,6 +1129,15 @@ export function CombatScreen() {
                 counterVersion={counterVersion}
               />
             </div>
+            <div ref={poisonRef}>
+              <StatBadge
+                target={totalPoison}
+                color="#4ade80" shadow="#15803d"
+                icon={<FlaskConical size={14} color="#4ade80" strokeWidth={2.5} />}
+                rollStartVersion={rollStartVersion}
+                counterVersion={counterVersion}
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -1127,6 +1160,7 @@ export function CombatScreen() {
         shieldRef={shieldRef}
         skullRef={skullRef}
         goldRef={goldRef}
+        poisonRef={poisonRef}
       />
 
       {/* Zone C — Played Dice Tray */}
