@@ -285,7 +285,7 @@ function OrbLayer({ playedDice, orbVersion, resolvingDieIndex, damageRef, healRe
                     : faceType === 'lifesteal' ? damageRef
                     : faceType === 'heal'      ? healRef
                     : faceType === 'shield'    ? shieldRef
-                    : faceType === 'gold'      ? soulsRef
+                    : faceType === 'souls'     ? soulsRef
                     : faceType === 'poison'    ? poisonRef
                     : skullRef
     const tr = targetRef.current?.getBoundingClientRect()

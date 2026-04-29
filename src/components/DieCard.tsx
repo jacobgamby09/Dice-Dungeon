@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Swords, Shield, Heart, Skull, Coins, Droplets, Star, Shuffle, FlaskConical } from 'lucide-react'
+import { Swords, Shield, Heart, Skull, Flame, Droplets, Star, Shuffle, FlaskConical } from 'lucide-react'
 import type { Die, DieType, DieFace, ResolvingPhase } from '../store/gameStore'
 
 // ── Visual tables ────────────────────────────────────────────────────────────
@@ -32,7 +32,7 @@ export const faceColor: Record<DieFace['type'], string> = {
   shield:         '#38bdf8',
   heal:           '#22c55e',
   skull:          '#7c3aed',
-  gold:           '#fbbf24',
+  souls:          '#a855f7',
   lifesteal:      '#e879f9',
   choose_next:    '#a5b4fc',
   wildcard:       '#a8a29e',
@@ -47,7 +47,7 @@ export const faceShadow: Record<DieFace['type'], string> = {
   shield:         '#1e3a8a',
   heal:           '#15803d',
   skull:          '#3b0764',
-  gold:           '#78350f',
+  souls:          '#6d28d9',
   lifesteal:      '#701a75',
   choose_next:    '#3730a3',
   wildcard:       '#57534e',
@@ -64,7 +64,7 @@ function TypeIcon({ type, size = 13, forceColor }: { type: DieFace['type']; size
   if (type === 'damage')      return <Swords   size={size} color={color} strokeWidth={2.5} />
   if (type === 'shield')      return <Shield   size={size} color={color} strokeWidth={2.5} />
   if (type === 'skull')       return <Skull    size={size} color={color} strokeWidth={2.5} />
-  if (type === 'gold')        return <Coins    size={size} color={color} strokeWidth={2.5} />
+  if (type === 'souls')       return <Flame    size={size} color={color} strokeWidth={2.5} />
   if (type === 'lifesteal')   return <Droplets size={size} color={color} strokeWidth={2.5} />
   if (type === 'choose_next') return <Star          size={size} color={color} strokeWidth={2.5} />
   if (type === 'wildcard')    return <Shuffle       size={size} color={color} strokeWidth={2.5} />

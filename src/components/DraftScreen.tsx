@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Flame, Coins, Swords, Shield, Heart, Skull, Droplets, Star, Shuffle, Lock, LockOpen } from 'lucide-react'
+import { Flame, Swords, Shield, Heart, Skull, Droplets, Star, Shuffle, Lock, LockOpen } from 'lucide-react'
 import { useGameStore, DIE_TEMPLATES, UNIQUE_DIE_TYPES, DIE_NAMES } from '../store/gameStore'
 import { dieTypeStyle, faceColor } from './DieCard'
 import { DiceInspectorModal } from './DiceInspectorModal'
@@ -12,7 +12,7 @@ function FaceIcon({ type, size = 13 }: { type: DieFace['type']; size?: number })
   if (type === 'damage')      return <Swords   size={size} color={color} strokeWidth={2.5} />
   if (type === 'shield')      return <Shield   size={size} color={color} strokeWidth={2.5} />
   if (type === 'skull')       return <Skull    size={size} color={color} strokeWidth={2.5} />
-  if (type === 'gold')        return <Coins    size={size} color={color} strokeWidth={2.5} />
+  if (type === 'souls')       return <Flame    size={size} color={color} strokeWidth={2.5} />
   if (type === 'lifesteal')   return <Droplets size={size} color={color} strokeWidth={2.5} />
   if (type === 'choose_next') return <Star     size={size} color={color} strokeWidth={2.5} />
   if (type === 'wildcard')    return <Shuffle  size={size} color={color} strokeWidth={2.5} />

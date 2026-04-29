@@ -4,7 +4,7 @@ import { persist } from 'zustand/middleware'
 // ── Core types ───────────────────────────────────────────────────────────────
 
 export interface DieFace {
-  type: 'damage' | 'shield' | 'heal' | 'skull' | 'gold' | 'lifesteal' | 'choose_next' | 'wildcard' | 'blank' | 'purified_skull' | 'multiplier' | 'poison'
+  type: 'damage' | 'shield' | 'heal' | 'skull' | 'souls' | 'lifesteal' | 'choose_next' | 'wildcard' | 'blank' | 'purified_skull' | 'multiplier' | 'poison'
   value: number
 }
 
@@ -154,8 +154,8 @@ export const DIE_TEMPLATES: Record<DieType, { sides: number; faces: DieFace[] }>
   scavenger: {
     sides: 6,
     faces: [
-      { type: 'gold',   value: 3 },
-      { type: 'gold',   value: 4 },
+      { type: 'souls',   value: 3 },
+      { type: 'souls',   value: 4 },
       { type: 'shield', value: 1 },
       { type: 'shield', value: 2 },
       { type: 'shield', value: 3 },
@@ -616,7 +616,7 @@ export const useGameStore = create<GameState>()(
       const healGain      = face.type === 'heal'      ? face.value * mult : lifestealGain
       const shieldGain    = face.type === 'shield'    ? face.value * mult : 0
       const damageGain    = (face.type === 'damage' || face.type === 'lifesteal') ? face.value * mult : 0
-      const soulsGain      = face.type === 'gold'      ? face.value * mult : 0
+      const soulsGain      = face.type === 'souls'     ? face.value * mult : 0
       const poisonGain    = face.type === 'poison'    ? face.value * mult : 0
       const multiplierFired = mult > 1
 
@@ -725,7 +725,7 @@ export const useGameStore = create<GameState>()(
       const healGain      = face.type === 'heal'      ? face.value * mult2 : lifestealGain
       const shieldGain    = face.type === 'shield'    ? face.value * mult2 : 0
       const damageGain    = (face.type === 'damage' || face.type === 'lifesteal') ? face.value * mult2 : 0
-      const soulsGain      = face.type === 'gold'      ? face.value * mult2 : 0
+      const soulsGain      = face.type === 'souls'     ? face.value * mult2 : 0
       const poisonGain    = face.type === 'poison'    ? face.value * mult2 : 0
       const multiplierFired = mult2 > 1
 
