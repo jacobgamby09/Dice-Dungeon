@@ -24,6 +24,7 @@ const DIE_NAMES: Record<string, string> = {
   fortune_teller: 'The Fortune Teller',
   joker:          'The Joker',
   unique:         'The Multiplier',
+  blight:         'The Blight',
 }
 
 // ── Face icon ─────────────────────────────────────────────────────────────────

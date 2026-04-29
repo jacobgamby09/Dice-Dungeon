@@ -20,6 +20,7 @@ const TYPE_LABEL: Record<DieType, string> = {
   fortune_teller: 'The Fortune Teller',
   joker:          'The Joker',
   unique:         'The Multiplier',
+  blight:         'The Blight',
 }
 
 function dieName(t: DieType) { return `${TYPE_LABEL[t]}${UNIQUE_DIE_TYPES.has(t) ? ' ★' : ''}` }

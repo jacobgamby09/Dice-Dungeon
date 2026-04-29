@@ -3,7 +3,7 @@ import { DIE_TEMPLATES, UNIQUE_DIE_TYPES } from '../store/gameStore'
 import type { DieType, DieFace } from '../store/gameStore'
 import { dieTypeStyle, faceColor } from './DieCard'
 
-const LIBRARY_TYPES: DieType[] = ['white', 'blue', 'green', 'cursed', 'heavy', 'paladin', 'gambler', 'scavenger', 'wall', 'jackpot', 'vampire', 'priest', 'fortune_teller', 'joker', 'unique']
+const LIBRARY_TYPES: DieType[] = ['white', 'blue', 'green', 'cursed', 'heavy', 'paladin', 'gambler', 'scavenger', 'wall', 'jackpot', 'vampire', 'priest', 'fortune_teller', 'joker', 'unique', 'blight']
 
 const DIE_NAMES: Record<DieType, string> = {
   white:          'The Basic',
@@ -21,6 +21,7 @@ const DIE_NAMES: Record<DieType, string> = {
   fortune_teller: 'The Fortune Teller',
   joker:          'The Joker',
   unique:         'The Multiplier',
+  blight:         'The Blight',
 }
 
 function FaceIcon({ type, size = 11 }: { type: DieFace['type']; size?: number }) {
