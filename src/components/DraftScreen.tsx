@@ -127,6 +127,7 @@ function DieChoiceCard({
 export function DraftScreen() {
   const { draftChoices, lastSoulsEarned, runSouls, rerollCost, selectDraftDie, rerollDraft, extractToBase } = useGameStore()
   const inventory = useGameStore((s) => s.inventory)
+  const playerHp  = useGameStore((s) => s.player.hp)
   const [lockedIds, setLockedIds] = useState<Set<string>>(new Set())
   const [showBagModal, setShowBagModal] = useState(false)
   const [inspectorDie, setInspectorDie] = useState<Die | null>(null)
@@ -243,18 +244,20 @@ export function DraftScreen() {
           <Flame size={13} strokeWidth={2.5} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6 }} />
           RE-ROLL DICE (-{rerollCost} Souls)
         </button>
-        <button
-          onClick={extractToBase}
-          className="pixel-btn"
-          style={{ background: '#7f1d1d', color: '#fca5a5', textShadow: '1px 1px 0 #000' }}
-        >
-          FLEE THE DEPTHS
-          {runSouls > 0 && (
-            <span style={{ marginLeft: 8, fontSize: '0.7rem', color: '#fbbf24', fontWeight: 700 }}>
-              (bank {runSouls} Souls)
-            </span>
-          )}
-        </button>
+        {playerHp > 0 && (
+          <button
+            onClick={extractToBase}
+            className="pixel-btn"
+            style={{ background: '#7f1d1d', color: '#fca5a5', textShadow: '1px 1px 0 #000' }}
+          >
+            FLEE THE DEPTHS
+            {runSouls > 0 && (
+              <span style={{ marginLeft: 8, fontSize: '0.7rem', color: '#fbbf24', fontWeight: 700 }}>
+                (bank {runSouls} Souls)
+              </span>
+            )}
+          </button>
+        )}
       </div>
 
       {/* Bag modal */}
