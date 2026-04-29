@@ -1,4 +1,4 @@
-import { X, Swords, Shield, Heart, Skull, Flame, Droplets, Star, Shuffle } from 'lucide-react'
+import { X, Swords, Shield, Heart, Skull, Flame, FlaskConical, Droplets, Star, Shuffle } from 'lucide-react'
 import { DIE_TEMPLATES, UNIQUE_DIE_TYPES, DIE_NAMES } from '../store/gameStore'
 import type { DieType, DieFace } from '../store/gameStore'
 import { dieTypeStyle, faceColor } from './DieCard'
@@ -13,7 +13,8 @@ function FaceIcon({ type, size = 11 }: { type: DieFace['type']; size?: number })
   if (type === 'souls')     return <Flame    size={size} color={color} strokeWidth={2.5} />
   if (type === 'lifesteal')   return <Droplets size={size} color={color} strokeWidth={2.5} />
   if (type === 'choose_next') return <Star     size={size} color={color} strokeWidth={2.5} />
-  if (type === 'wildcard')    return <Shuffle  size={size} color={color} strokeWidth={2.5} />
+  if (type === 'wildcard')    return <Shuffle      size={size} color={color} strokeWidth={2.5} />
+  if (type === 'poison')      return <FlaskConical size={size} color={color} strokeWidth={2.5} />
   return <Heart size={size} color={color} strokeWidth={2.5} />
 }
 
