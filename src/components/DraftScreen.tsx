@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Coins, Swords, Shield, Heart, Skull, Droplets, Star, Shuffle, Lock, LockOpen } from 'lucide-react'
+import { Flame, Coins, Swords, Shield, Heart, Skull, Droplets, Star, Shuffle, Lock, LockOpen } from 'lucide-react'
 import { useGameStore, DIE_TEMPLATES, UNIQUE_DIE_TYPES, DIE_NAMES } from '../store/gameStore'
 import { dieTypeStyle, faceColor } from './DieCard'
 import { DiceInspectorModal } from './DiceInspectorModal'
@@ -125,7 +125,7 @@ function DieChoiceCard({
 // ── Draft screen ──────────────────────────────────────────────────────────────
 
 export function DraftScreen() {
-  const { draftChoices, lastGoldEarned, gold, rerollCost, selectDraftDie, rerollDraft } = useGameStore()
+  const { draftChoices, lastSoulsEarned, runSouls, rerollCost, selectDraftDie, rerollDraft, extractToBase } = useGameStore()
   const inventory = useGameStore((s) => s.inventory)
   const [lockedIds, setLockedIds] = useState<Set<string>>(new Set())
   const [showBagModal, setShowBagModal] = useState(false)
@@ -140,7 +140,7 @@ export function DraftScreen() {
   }
 
   const allLocked = draftChoices.length > 0 && draftChoices.every((d) => lockedIds.has(d.id))
-  const canReroll = gold >= rerollCost && !allLocked
+  const canReroll = runSouls >= rerollCost && !allLocked
 
   return (
     <div style={{
@@ -162,11 +162,11 @@ export function DraftScreen() {
         }}>
           VICTORY!
         </span>
-        {lastGoldEarned > 0 && (
+        {lastSoulsEarned > 0 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <Coins size={14} color="#fbbf24" strokeWidth={2.5} />
-            <span style={{ color: '#fbbf24', fontWeight: 700, fontSize: '0.85rem' }}>
-              +{lastGoldEarned} Gold
+            <Flame size={14} color="#a855f7" strokeWidth={2.5} />
+            <span style={{ color: '#a855f7', fontWeight: 700, fontSize: '0.85rem' }}>
+              +{lastSoulsEarned} Souls
             </span>
           </div>
         )}
@@ -227,8 +227,8 @@ export function DraftScreen() {
         </button>
       </div>
 
-      {/* Re-roll footer */}
-      <div style={{ background: '#1a1a2e', padding: '12px 16px', borderTop: '3px solid #000' }}>
+      {/* Footer */}
+      <div style={{ background: '#1a1a2e', padding: '12px 16px', borderTop: '3px solid #000', display: 'flex', flexDirection: 'column', gap: 8 }}>
         <button
           onClick={() => rerollDraft([...lockedIds])}
           disabled={!canReroll}
@@ -240,8 +240,20 @@ export function DraftScreen() {
             opacity: canReroll ? 1 : 0.5,
           }}
         >
-          <Coins size={13} strokeWidth={2.5} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6 }} />
-          RE-ROLL DICE (-{rerollCost} Gold)
+          <Flame size={13} strokeWidth={2.5} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6 }} />
+          RE-ROLL DICE (-{rerollCost} Souls)
+        </button>
+        <button
+          onClick={extractToBase}
+          className="pixel-btn"
+          style={{ background: '#7f1d1d', color: '#fca5a5', textShadow: '1px 1px 0 #000' }}
+        >
+          FLEE THE DEPTHS
+          {runSouls > 0 && (
+            <span style={{ marginLeft: 8, fontSize: '0.7rem', color: '#fbbf24', fontWeight: 700 }}>
+              (bank {runSouls} Souls)
+            </span>
+          )}
         </button>
       </div>
 

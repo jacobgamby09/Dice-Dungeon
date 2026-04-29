@@ -67,8 +67,8 @@ function ActionCard({
           {label}
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <Coins size={13} color="#fbbf24" strokeWidth={2.5} />
-          <span style={{ color: '#fbbf24', fontWeight: 700, fontSize: '0.85rem' }}>{cost}</span>
+          <Flame size={13} color="#a855f7" strokeWidth={2.5} />
+          <span style={{ color: '#a855f7', fontWeight: 700, fontSize: '0.85rem' }}>{cost}</span>
         </div>
       </div>
       <span style={{ fontSize: '0.7rem', color: '#9ca3af', lineHeight: 1.5 }}>
@@ -214,7 +214,7 @@ function FacePickerGrid({
 
 export function ShopScreen() {
   const {
-    player, gold, inventory,
+    player, runSouls, inventory,
     shopHeal, shopMergeDice, shopCraftFace, shopPurifyFace, leaveShop,
     purifyUsesThisShop,
   } = useGameStore()
@@ -320,7 +320,7 @@ export function ShopScreen() {
     }
   }
 
-  const canMerge = gold >= mergeCost &&
+  const canMerge = runSouls >= mergeCost &&
     inventory.some((d, i) => inventory.some((d2, j) => {
       if (i >= j) return false
       if (d.dieType === 'cursed' || d2.dieType === 'cursed') return false
@@ -332,7 +332,7 @@ export function ShopScreen() {
       return d.dieType === d2.dieType
     }))
 
-  const canCraft = gold >= 20 &&
+  const canCraft = runSouls >= 20 &&
     inventory.some((d) => d.faces.some((f) => f.type === 'blank' || f.type === 'purified_skull'))
 
   const craftEligibleDice = inventory.filter((d) =>
@@ -375,8 +375,8 @@ export function ShopScreen() {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <Coins size={13} color="#fbbf24" strokeWidth={2.5} />
-              <span style={{ color: '#fbbf24', fontWeight: 700, fontSize: '0.85rem' }}>{gold}</span>
+              <Flame size={13} color="#a855f7" strokeWidth={2.5} />
+              <span style={{ color: '#a855f7', fontWeight: 700, fontSize: '0.85rem' }}>{runSouls}</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <Heart size={13} color="#22c55e" strokeWidth={2.5} />
@@ -428,7 +428,7 @@ export function ShopScreen() {
               label="REST"
               cost={healCost}
               description={`Recover 30 HP. You currently have ${player.hp}/${player.maxHp} HP.`}
-              disabled={gold < healCost || player.hp >= player.maxHp}
+              disabled={runSouls < healCost || player.hp >= player.maxHp}
               accentColor="#22c55e"
               onSelect={() => shopHeal(healCost, 30)}
             />
@@ -436,7 +436,7 @@ export function ShopScreen() {
               label="PURIFY"
               cost={10}
               description={`Wipe any face clean, making it blank and available for crafting. ${3 - purifyUsesThisShop} use${3 - purifyUsesThisShop === 1 ? '' : 's'} remaining this visit.`}
-              disabled={gold < 10 || purifyUsesThisShop >= 3}
+              disabled={runSouls < 10 || purifyUsesThisShop >= 3}
               accentColor="#7c3aed"
               buttonLabel={`PURIFY (${3 - purifyUsesThisShop} left)`}
               onSelect={() => { setActiveAction('purify'); setSelectedDieId(null) }}

@@ -20,7 +20,7 @@ function isEligible(node: SkillNode, unlocked: string[]) {
 }
 
 export function SkillTree({ onClose }: { onClose: () => void }) {
-  const metaSouls    = useGameStore((s) => s.metaSouls)
+  const bankedSouls  = useGameStore((s) => s.bankedSouls)
   const unlockedNodes = useGameStore((s) => s.unlockedNodes)
   const unlockNode   = useGameStore((s) => s.unlockNode)
 
@@ -52,7 +52,7 @@ export function SkillTree({ onClose }: { onClose: () => void }) {
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <Flame size={14} color="#a855f7" strokeWidth={2.5} />
-          <span style={{ color: '#a855f7', fontWeight: 700, fontSize: '0.9rem' }}>{metaSouls}</span>
+          <span style={{ color: '#a855f7', fontWeight: 700, fontSize: '0.9rem' }}>{bankedSouls}</span>
           <button
             onClick={onClose}
             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#9ca3af' }}
@@ -124,7 +124,7 @@ export function SkillTree({ onClose }: { onClose: () => void }) {
           {SKILL_TREE_NODES.map((node) => {
             const unlocked   = unlockedNodes.includes(node.id)
             const eligible   = isEligible(node, unlockedNodes)
-            const affordable = metaSouls >= node.cost
+            const affordable = bankedSouls >= node.cost
             const selected   = selectedId === node.id
 
             const borderColor = unlocked          ? '#facc15'
@@ -196,7 +196,7 @@ export function SkillTree({ onClose }: { onClose: () => void }) {
       {selectedNode && (() => {
         const owned     = unlockedNodes.includes(selectedNode.id)
         const eligible  = isEligible(selectedNode, unlockedNodes)
-        const canAfford = metaSouls >= selectedNode.cost
+        const canAfford = bankedSouls >= selectedNode.cost
         const canBuy    = eligible && canAfford
         return (
           <div style={{

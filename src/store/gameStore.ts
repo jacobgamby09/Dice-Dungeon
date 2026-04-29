@@ -290,9 +290,9 @@ interface GameState {
   totalDamage: number
   totalHeal: number
   totalShield: number
-  totalGold: number
+  totalSouls: number
   totalPoison: number
-  lastEffects: { heal: number; shield: number; gold: number }
+  lastEffects: { heal: number; shield: number; souls: number }
   turnPhase: TurnPhase
   enemyHitVersion: number
   playerHitVersion: number
@@ -305,12 +305,13 @@ interface GameState {
   enemyAttackVersion: number
   skullRolledVersion: number
   currentFloor: number
-  gold: number
+  runSouls: number
   draftChoices: Die[]
   lockedDraftDice: Die[]
-  lastGoldEarned: number
-  metaSouls: number
+  lastSoulsEarned: number
+  bankedSouls: number
   unlockedNodes: string[]
+  showGameOver: boolean
   playerAttackAnimTier: 1 | 2 | 3 | null
   isChoosingNextDie: boolean
   fortuneTellerPicksRemaining: number
@@ -342,6 +343,7 @@ interface GameState {
   shopPurifyFace: (dieId: string, faceIndex: number) => void
   unlockNode: (nodeId: string) => void
   leaveShop: () => void
+  extractToBase: () => void
   abandonRun: () => void
   devJumpToForge: () => void
 }
@@ -436,9 +438,9 @@ export const useGameStore = create<GameState>()(
   totalDamage: 0,
   totalHeal: 0,
   totalShield: 0,
-  totalGold: 0,
+  totalSouls: 0,
   totalPoison: 0,
-  lastEffects: { heal: 0, shield: 0, gold: 0 },
+  lastEffects: { heal: 0, shield: 0, souls: 0 },
   turnPhase: 'loadout',
   enemyHitVersion: 0,
   playerHitVersion: 0,
@@ -451,11 +453,11 @@ export const useGameStore = create<GameState>()(
   enemyAttackVersion: 0,
   skullRolledVersion: 0,
   currentFloor: 1,
-  gold: 0,
+  runSouls: 0,
   draftChoices: [],
   lockedDraftDice: [],
-  lastGoldEarned: 0,
-  metaSouls: 0,
+  lastSoulsEarned: 0,
+  bankedSouls: 0,
   unlockedNodes: ['sflz4yv3'],
   playerAttackAnimTier: null,
   isChoosingNextDie: false,
@@ -466,6 +468,7 @@ export const useGameStore = create<GameState>()(
   justDefeatedBoss: false,
   secondWindTriggered: false,
   showBossRewardModal: false,
+  showGameOver: false,
   purifyUsesThisShop: 0,
   activeMultiplier: 1,
   multiplierFiredVersion: 0,
@@ -519,7 +522,7 @@ export const useGameStore = create<GameState>()(
     const vitI  = unlockedNodes.includes('fyuwvmzq') ? 10 : 0
     const vitII = unlockedNodes.includes('co2xusrh') ? 15 : 0
     const baseHp    = 100 + vitI + vitII
-    const startGold = unlockedNodes.includes('tqo6xv7r') ? 10 : 0
+    const startSouls = unlockedNodes.includes('tqo6xv7r') ? 10 : 0
 
     const startInventory = unlockedNodes.includes('hnwdjqof')
       ? inventory.map((d) =>
@@ -536,17 +539,17 @@ export const useGameStore = create<GameState>()(
       turnPhase:    'idle',
       player:       { hp: baseHp, maxHp: baseHp, shield: 0 },
       inventory:    startInventory,
-      gold:         startGold,
+      runSouls:     startSouls,
       currentFloor: 1,
       enemy:        spawnEnemy(1),
       drawPile:     shuffleArray(equippedOnly(startInventory)),
       playedDice:   [],
       skullCount:   0,
-      totalDamage: 0, totalHeal: 0, totalShield: 0, totalGold: 0, totalPoison: 0,
-      lastEffects:  { heal: 0, shield: 0, gold: 0 },
+      totalDamage: 0, totalHeal: 0, totalShield: 0, totalSouls: 0, totalPoison: 0,
+      lastEffects:  { heal: 0, shield: 0, souls: 0 },
       rollStartVersion: s.rollStartVersion + 1,
       resolvingDieIndex: null, resolvingPhase: null,
-      draftChoices: [], lockedDraftDice: [], lastGoldEarned: 0,
+      draftChoices: [], lockedDraftDice: [], lastSoulsEarned: 0,
       isChoosingNextDie: false,
       fortuneTellerPicksRemaining: 0,
       activeMultiplier: 1,
@@ -613,7 +616,7 @@ export const useGameStore = create<GameState>()(
       const healGain      = face.type === 'heal'      ? face.value * mult : lifestealGain
       const shieldGain    = face.type === 'shield'    ? face.value * mult : 0
       const damageGain    = (face.type === 'damage' || face.type === 'lifesteal') ? face.value * mult : 0
-      const goldGain      = face.type === 'gold'      ? face.value * mult : 0
+      const soulsGain      = face.type === 'gold'      ? face.value * mult : 0
       const poisonGain    = face.type === 'poison'    ? face.value * mult : 0
       const multiplierFired = mult > 1
 
@@ -621,15 +624,15 @@ export const useGameStore = create<GameState>()(
         totalDamage: st.totalDamage + damageGain,
         totalHeal:   st.totalHeal   + healGain,
         totalShield: st.totalShield + shieldGain,
-        totalGold:   st.totalGold   + goldGain,
+        totalSouls:   st.totalSouls   + soulsGain,
         totalPoison: st.totalPoison + poisonGain,
         skullCount:  newSkullCount,
         activeMultiplier: 1,
         counterVersion: st.counterVersion + 1,
-        lastEffects: { heal: healGain, shield: shieldGain, gold: goldGain },
+        lastEffects: { heal: healGain, shield: shieldGain, souls: soulsGain },
         ...(multiplierFired ? { multiplierFiredVersion: st.multiplierFiredVersion + 1 } : {}),
         ...(isSkull ? { skullRolledVersion: st.skullRolledVersion + 1 } : {}),
-        ...(healGain > 0 || shieldGain > 0 || goldGain > 0
+        ...(healGain > 0 || shieldGain > 0 || soulsGain > 0
           ? { playerEffectVersion: st.playerEffectVersion + 1 }
           : {}),
       }))
@@ -644,7 +647,7 @@ export const useGameStore = create<GameState>()(
       set((st) => ({
         totalDamage: 0,
         totalHeal:   0,
-        totalGold:   0,
+        totalSouls:   0,
         totalPoison: 0,
         counterVersion: st.counterVersion + 1,
       }))
@@ -722,7 +725,7 @@ export const useGameStore = create<GameState>()(
       const healGain      = face.type === 'heal'      ? face.value * mult2 : lifestealGain
       const shieldGain    = face.type === 'shield'    ? face.value * mult2 : 0
       const damageGain    = (face.type === 'damage' || face.type === 'lifesteal') ? face.value * mult2 : 0
-      const goldGain      = face.type === 'gold'      ? face.value * mult2 : 0
+      const soulsGain      = face.type === 'gold'      ? face.value * mult2 : 0
       const poisonGain    = face.type === 'poison'    ? face.value * mult2 : 0
       const multiplierFired = mult2 > 1
 
@@ -730,15 +733,15 @@ export const useGameStore = create<GameState>()(
         totalDamage: st.totalDamage + damageGain,
         totalHeal:   st.totalHeal   + healGain,
         totalShield: st.totalShield + shieldGain,
-        totalGold:   st.totalGold   + goldGain,
+        totalSouls:   st.totalSouls   + soulsGain,
         totalPoison: st.totalPoison + poisonGain,
         skullCount:  newSkullCount,
         activeMultiplier: 1,
         counterVersion: st.counterVersion + 1,
-        lastEffects: { heal: healGain, shield: shieldGain, gold: goldGain },
+        lastEffects: { heal: healGain, shield: shieldGain, souls: soulsGain },
         ...(multiplierFired ? { multiplierFiredVersion: st.multiplierFiredVersion + 1 } : {}),
         ...(isSkull ? { skullRolledVersion: st.skullRolledVersion + 1 } : {}),
-        ...(healGain > 0 || shieldGain > 0 || goldGain > 0
+        ...(healGain > 0 || shieldGain > 0 || soulsGain > 0
           ? { playerEffectVersion: st.playerEffectVersion + 1 }
           : {}),
       }))
@@ -749,7 +752,7 @@ export const useGameStore = create<GameState>()(
 
     if (newSkullCount >= 3) {
       set((st) => ({
-        totalDamage: 0, totalHeal: 0, totalGold: 0, totalPoison: 0,
+        totalDamage: 0, totalHeal: 0, totalSouls: 0, totalPoison: 0,
         counterVersion: st.counterVersion + 1,
       }))
       await sleep(300)
@@ -787,7 +790,7 @@ export const useGameStore = create<GameState>()(
     // Discard any dangling multiplier — it only applies within the same turn
     set({ activeMultiplier: 1 })
 
-    const { totalDamage, totalHeal, totalShield, totalGold, totalPoison, enemy, player,
+    const { totalDamage, totalHeal, totalShield, totalSouls, totalPoison, enemy, player,
             currentFloor, inventory, unlockedNodes, firstAttackThisEncounter } = get()
 
     // First Blood: +1 damage on first bank of each encounter
@@ -831,7 +834,7 @@ export const useGameStore = create<GameState>()(
 
       const isBossFloor = currentFloor % 5 === 0
       const bountyBonus = (unlockedNodes.includes('r9v5wdgh') && isBossFloor) ? 10 : 0
-      const earned      = currentFloor * 5 + totalGold + bountyBonus
+      const earned      = currentFloor * 5 + totalSouls + bountyBonus
       const soulsGained = currentFloor * 2 + (isBossFloor ? 25 : 0)
 
       // Thick Skin: heal 15% of max HP after defeating a boss
@@ -842,18 +845,18 @@ export const useGameStore = create<GameState>()(
         const curseId = uid()
         set((st) => ({
           inventory: [...st.inventory, { ...createDie('cursed', curseId), isEquipped: true as const }],
-          gold: st.gold + earned,
-          lastGoldEarned: earned,
-          metaSouls: st.metaSouls + soulsGained,
+          runSouls: st.runSouls + earned,
+          lastSoulsEarned: earned,
+          bankedSouls: st.bankedSouls + soulsGained,
           turnPhase: 'shop',
           justDefeatedBoss: true,
           showBossRewardModal: true,
           purifyUsesThisShop: 0,
           player: { ...st.player, hp: Math.min(st.player.maxHp, st.player.hp + thickSkinHeal) },
-          totalDamage: 0, totalHeal: 0, totalShield: 0, totalGold: 0, totalPoison: 0,
+          totalDamage: 0, totalHeal: 0, totalShield: 0, totalSouls: 0, totalPoison: 0,
           skullCount: 0,
           drawPile: [], playedDice: [],
-          lastEffects: { heal: 0, shield: 0, gold: 0 },
+          lastEffects: { heal: 0, shield: 0, souls: 0 },
           resolvingDieIndex: null, resolvingPhase: null,
         }))
       } else {
@@ -867,17 +870,17 @@ export const useGameStore = create<GameState>()(
                           .map((t) => createDie(t, uid()))
         const choices = [...lockedDraftDice, ...newDice]
         set((st) => ({
-          gold: st.gold + earned,
-          lastGoldEarned: earned,
-          metaSouls: st.metaSouls + soulsGained,
+          runSouls: st.runSouls + earned,
+          lastSoulsEarned: earned,
+          bankedSouls: st.bankedSouls + soulsGained,
           draftChoices: choices,
           lockedDraftDice: [],
           rerollCost: 5,
           turnPhase: 'draft',
-          totalDamage: 0, totalHeal: 0, totalShield: 0, totalGold: 0, totalPoison: 0,
+          totalDamage: 0, totalHeal: 0, totalShield: 0, totalSouls: 0, totalPoison: 0,
           skullCount: 0,
           drawPile: [], playedDice: [],
-          lastEffects: { heal: 0, shield: 0, gold: 0 },
+          lastEffects: { heal: 0, shield: 0, souls: 0 },
           resolvingDieIndex: null, resolvingPhase: null,
         }))
       }
@@ -900,7 +903,7 @@ export const useGameStore = create<GameState>()(
         await sleep(100)
         const isBossFloorP = currentFloor % 5 === 0
         const bountyBonusP = (unlockedNodes.includes('r9v5wdgh') && isBossFloorP) ? 10 : 0
-        const earnedP      = currentFloor * 5 + totalGold + bountyBonusP
+        const earnedP      = currentFloor * 5 + totalSouls + bountyBonusP
         const soulsGainedP = currentFloor * 2 + (isBossFloorP ? 25 : 0)
         const thickSkinP   = (isBossFloorP && unlockedNodes.includes('aw2b29dw'))
           ? Math.floor(player.maxHp * 0.15) : 0
@@ -909,18 +912,18 @@ export const useGameStore = create<GameState>()(
           const curseId = uid()
           set((st) => ({
             inventory: [...st.inventory, { ...createDie('cursed', curseId), isEquipped: true as const }],
-            gold: st.gold + earnedP,
-            lastGoldEarned: earnedP,
-            metaSouls: st.metaSouls + soulsGainedP,
+            runSouls: st.runSouls + earnedP,
+            lastSoulsEarned: earnedP,
+            bankedSouls: st.bankedSouls + soulsGainedP,
             turnPhase: 'shop',
             justDefeatedBoss: true,
             showBossRewardModal: true,
             purifyUsesThisShop: 0,
             player: { ...st.player, hp: Math.min(st.player.maxHp, st.player.hp + thickSkinP) },
-            totalDamage: 0, totalHeal: 0, totalShield: 0, totalGold: 0, totalPoison: 0,
+            totalDamage: 0, totalHeal: 0, totalShield: 0, totalSouls: 0, totalPoison: 0,
             skullCount: 0,
             drawPile: [], playedDice: [],
-            lastEffects: { heal: 0, shield: 0, gold: 0 },
+            lastEffects: { heal: 0, shield: 0, souls: 0 },
             resolvingDieIndex: null, resolvingPhase: null,
           }))
         } else {
@@ -931,17 +934,17 @@ export const useGameStore = create<GameState>()(
           const poolP   = getDiceLootPool(unlockedNodes).filter((t) => !lockedTypesP.has(t) && !ownedUniquesP.has(t))
           const newDiceP = shuffleArray([...poolP]).slice(0, slotsP).map((t) => createDie(t, uid()))
           set((st) => ({
-            gold: st.gold + earnedP,
-            lastGoldEarned: earnedP,
-            metaSouls: st.metaSouls + soulsGainedP,
+            runSouls: st.runSouls + earnedP,
+            lastSoulsEarned: earnedP,
+            bankedSouls: st.bankedSouls + soulsGainedP,
             draftChoices: [...lockedDraftDice, ...newDiceP],
             lockedDraftDice: [],
             rerollCost: 5,
             turnPhase: 'draft',
-            totalDamage: 0, totalHeal: 0, totalShield: 0, totalGold: 0, totalPoison: 0,
+            totalDamage: 0, totalHeal: 0, totalShield: 0, totalSouls: 0, totalPoison: 0,
             skullCount: 0,
             drawPile: [], playedDice: [],
-            lastEffects: { heal: 0, shield: 0, gold: 0 },
+            lastEffects: { heal: 0, shield: 0, souls: 0 },
             resolvingDieIndex: null, resolvingPhase: null,
           }))
         }
@@ -953,8 +956,8 @@ export const useGameStore = create<GameState>()(
     }
 
     // Credit accumulated gold before runEnemyPhase clears it
-    if (totalGold > 0) {
-      set((st) => ({ gold: st.gold + totalGold }))
+    if (totalSouls > 0) {
+      set((st) => ({ runSouls: st.runSouls + totalSouls }))
     }
 
     await sleep(400)
@@ -980,8 +983,8 @@ export const useGameStore = create<GameState>()(
       drawPile:     shuffleArray(equippedOnly(newInv)),
       playedDice:   [],
       skullCount:   0,
-      totalDamage: 0, totalHeal: 0, totalShield: 0, totalGold: 0, totalPoison: 0,
-      lastEffects:  { heal: 0, shield: 0, gold: 0 },
+      totalDamage: 0, totalHeal: 0, totalShield: 0, totalSouls: 0, totalPoison: 0,
+      lastEffects:  { heal: 0, shield: 0, souls: 0 },
       resolvingDieIndex: null, resolvingPhase: null,
       rollStartVersion: s.rollStartVersion + 1,
       isChoosingNextDie: false,
@@ -993,8 +996,8 @@ export const useGameStore = create<GameState>()(
   claimBossReward: () => { set({ showBossRewardModal: false }) },
 
   rerollDraft: (lockedDieIds) => {
-    const { gold, rerollCost, unlockedNodes, draftChoices, inventory } = get()
-    if (gold < rerollCost) return
+    const { runSouls, rerollCost, unlockedNodes, draftChoices, inventory } = get()
+    if (runSouls < rerollCost) return
     const lockedDice   = draftChoices.filter((d) => lockedDieIds.includes(d.id))
     const lockedTypes  = new Set(lockedDice.map((d) => d.dieType))
     const ownedUniques = new Set(inventory.filter((d) => UNIQUE_DIE_TYPES.has(d.dieType)).map((d) => d.dieType))
@@ -1002,7 +1005,7 @@ export const useGameStore = create<GameState>()(
     const pool    = getDiceLootPool(unlockedNodes).filter((t) => !lockedTypes.has(t) && !ownedUniques.has(t))
     const newDice = shuffleArray([...pool]).slice(0, slotsToFill).map((t) => createDie(t, uid()))
     set((s) => ({
-      gold: s.gold - rerollCost,
+      runSouls: s.runSouls - rerollCost,
       rerollCost: s.rerollCost + 5,
       draftChoices: [...lockedDice, ...newDice],
     }))
@@ -1013,7 +1016,7 @@ export const useGameStore = create<GameState>()(
     const nextFloor = currentFloor + 1
     const newEnemy  = spawnEnemy(nextFloor)
     set((s) => ({
-      gold:         s.gold + 3,
+      runSouls:     s.runSouls + 3,
       currentFloor: nextFloor,
       enemy:        newEnemy,
       player:       { ...s.player, shield: 0 },
@@ -1021,8 +1024,8 @@ export const useGameStore = create<GameState>()(
       drawPile:     shuffleArray(equippedOnly(inventory)),
       playedDice:   [],
       skullCount:   0,
-      totalDamage: 0, totalHeal: 0, totalShield: 0, totalGold: 0, totalPoison: 0,
-      lastEffects:  { heal: 0, shield: 0, gold: 0 },
+      totalDamage: 0, totalHeal: 0, totalShield: 0, totalSouls: 0, totalPoison: 0,
+      lastEffects:  { heal: 0, shield: 0, souls: 0 },
       resolvingDieIndex: null, resolvingPhase: null,
       rollStartVersion: s.rollStartVersion + 1,
       isChoosingNextDie: false,
@@ -1033,9 +1036,9 @@ export const useGameStore = create<GameState>()(
 
   shopHeal: (cost, amount) => {
     set((s) => {
-      if (s.gold < cost || s.player.hp >= s.player.maxHp) return {}
+      if (s.runSouls < cost || s.player.hp >= s.player.maxHp) return {}
       return {
-        gold:   s.gold - cost,
+        runSouls: s.runSouls - cost,
         player: { ...s.player, hp: Math.min(s.player.maxHp, s.player.hp + amount) },
       }
     })
@@ -1043,7 +1046,7 @@ export const useGameStore = create<GameState>()(
 
   shopModifyFace: (dieId, faceIndex, newFace, cost) => {
     set((s) => {
-      if (s.gold < cost) return {}
+      if (s.runSouls < cost) return {}
       const isPurify = cost === 20
       if (isPurify && s.purifyUsesThisShop >= 3) return {}
       const newInventory = s.inventory.map((d) => {
@@ -1051,7 +1054,7 @@ export const useGameStore = create<GameState>()(
         return { ...d, faces: d.faces.map((f, i) => (i === faceIndex ? newFace : f)) }
       })
       return {
-        gold: s.gold - cost,
+        runSouls: s.runSouls - cost,
         inventory: newInventory,
         ...(isPurify ? { purifyUsesThisShop: s.purifyUsesThisShop + 1 } : {}),
       }
@@ -1060,7 +1063,7 @@ export const useGameStore = create<GameState>()(
 
   shopMergeDice: (die1Id, die2Id, cost) => {
     set((s) => {
-      if (s.gold < cost) return {}
+      if (s.runSouls < cost) return {}
       const die1 = s.inventory.find((d) => d.id === die1Id)
       const die2 = s.inventory.find((d) => d.id === die2Id)
       if (!die1 || !die2) return {}
@@ -1076,7 +1079,7 @@ export const useGameStore = create<GameState>()(
         const newInventory = s.inventory
           .filter((d) => d.id !== die2Id)
           .map((d) => d.id !== die1Id ? d : { ...d, isMerged: true, mergeLevel: level1 + 1 })
-        return { gold: s.gold - cost, inventory: newInventory }
+        return { runSouls: s.runSouls - cost, inventory: newInventory }
       }
       // die1Id is always the first die the player selected — that is the Host.
       // Exception: if die1 is a Joker, the non-Joker is the Host (Joker is always material).
@@ -1097,24 +1100,24 @@ export const useGameStore = create<GameState>()(
             ),
           }
         })
-      return { gold: s.gold - cost, inventory: newInventory }
+      return { runSouls: s.runSouls - cost, inventory: newInventory }
     })
   },
 
   shopCraftFace: (dieId, faceIndex, newFace) => {
     set((s) => {
-      if (s.gold < 20) return {}
+      if (s.runSouls < 20) return {}
       const newInventory = s.inventory.map((d) => {
         if (d.id !== dieId) return d
         return { ...d, isCustomized: true, faces: d.faces.map((f, i) => (i === faceIndex ? newFace : f)) }
       })
-      return { gold: s.gold - 20, inventory: newInventory }
+      return { runSouls: s.runSouls - 20, inventory: newInventory }
     })
   },
 
   shopPurifyFace: (dieId, faceIndex) => {
     set((s) => {
-      if (s.gold < 10 || s.purifyUsesThisShop >= 3) return {}
+      if (s.runSouls < 10 || s.purifyUsesThisShop >= 3) return {}
       const newInventory = s.inventory.map((d) => {
         if (d.id !== dieId) return d
         return {
@@ -1128,8 +1131,34 @@ export const useGameStore = create<GameState>()(
           }),
         }
       })
-      return { gold: s.gold - 10, inventory: newInventory, purifyUsesThisShop: s.purifyUsesThisShop + 1 }
+      return { runSouls: s.runSouls - 10, inventory: newInventory, purifyUsesThisShop: s.purifyUsesThisShop + 1 }
     })
+  },
+
+  extractToBase: () => {
+    const { runSouls } = get()
+    set((s) => ({
+      bankedSouls: s.bankedSouls + runSouls,
+      runSouls: 0,
+      player: { hp: 100, maxHp: 100, shield: 0 },
+      enemy: spawnEnemy(1),
+      currentFloor: 1,
+      drawPile: [], playedDice: [],
+      skullCount: 0,
+      totalDamage: 0, totalHeal: 0, totalShield: 0, totalSouls: 0, totalPoison: 0,
+      lastEffects: { heal: 0, shield: 0, souls: 0 },
+      resolvingDieIndex: null, resolvingPhase: null,
+      draftChoices: [], lockedDraftDice: [], lastSoulsEarned: 0,
+      isChoosingNextDie: false,
+      usedSecondWind: false,
+      firstAttackThisEncounter: true,
+      rerollCost: 5,
+      justDefeatedBoss: false,
+      secondWindTriggered: false,
+      showBossRewardModal: false,
+      purifyUsesThisShop: 0,
+      turnPhase: 'loadout',
+    }))
   },
 
   abandonRun: () => {
@@ -1137,14 +1166,14 @@ export const useGameStore = create<GameState>()(
       player: { hp: 100, maxHp: 100, shield: 0 },
       enemy: spawnEnemy(1),
       currentFloor: 1,
-      totalDamage: 0, totalHeal: 0, totalShield: 0, totalGold: 0, totalPoison: 0,
+      totalDamage: 0, totalHeal: 0, totalShield: 0, totalSouls: 0, totalPoison: 0,
       skullCount: 0,
       inventory: INITIAL_INVENTORY.map((d) => ({ ...d })),
       drawPile: [], playedDice: [],
-      lastEffects: { heal: 0, shield: 0, gold: 0 },
+      lastEffects: { heal: 0, shield: 0, souls: 0 },
       resolvingDieIndex: null, resolvingPhase: null,
-      draftChoices: [], lastGoldEarned: 0,
-      gold: 0,
+      draftChoices: [], lastSoulsEarned: 0,
+      runSouls: 0,
       isChoosingNextDie: false,
       usedSecondWind: false,
       firstAttackThisEncounter: true,
@@ -1192,17 +1221,17 @@ export const useGameStore = create<GameState>()(
       turnPhase:    'shop',
       player:       { hp: baseHp, maxHp: baseHp, shield: 0 },
       inventory,
-      gold:         150,
+      runSouls:     150,
       currentFloor: 6,
       enemy:        spawnEnemy(6),
       drawPile:     [],
       playedDice:   [],
       skullCount:   0,
-      totalDamage: 0, totalHeal: 0, totalShield: 0, totalGold: 0, totalPoison: 0,
-      lastEffects:  { heal: 0, shield: 0, gold: 0 },
+      totalDamage: 0, totalHeal: 0, totalShield: 0, totalSouls: 0, totalPoison: 0,
+      lastEffects:  { heal: 0, shield: 0, souls: 0 },
       rollStartVersion: s.rollStartVersion + 1,
       resolvingDieIndex: null, resolvingPhase: null,
-      draftChoices: [], lockedDraftDice: [], lastGoldEarned: 150,
+      draftChoices: [], lockedDraftDice: [], lastSoulsEarned: 150,
       isChoosingNextDie: false,
       usedSecondWind: false,
       firstAttackThisEncounter: true,
@@ -1215,11 +1244,11 @@ export const useGameStore = create<GameState>()(
   },
 
   unlockNode: (nodeId) => {
-    const { metaSouls, unlockedNodes } = get()
+    const { bankedSouls, unlockedNodes } = get()
     const node = SKILL_TREE_NODES.find((n) => n.id === nodeId)
-    if (!node || metaSouls < node.cost || unlockedNodes.includes(nodeId)) return
+    if (!node || bankedSouls < node.cost || unlockedNodes.includes(nodeId)) return
     set((s) => ({
-      metaSouls:     s.metaSouls - node.cost,
+      bankedSouls:     s.bankedSouls - node.cost,
       unlockedNodes: [...s.unlockedNodes, nodeId],
     }))
   },
@@ -1235,8 +1264,8 @@ export const useGameStore = create<GameState>()(
       drawPile:     shuffleArray(equippedOnly(s.inventory)),
       playedDice:   [],
       skullCount:   0,
-      totalDamage: 0, totalHeal: 0, totalShield: 0, totalGold: 0, totalPoison: 0,
-      lastEffects:  { heal: 0, shield: 0, gold: 0 },
+      totalDamage: 0, totalHeal: 0, totalShield: 0, totalSouls: 0, totalPoison: 0,
+      lastEffects:  { heal: 0, shield: 0, souls: 0 },
       resolvingDieIndex: null, resolvingPhase: null,
       rollStartVersion: s.rollStartVersion + 1,
       isChoosingNextDie: false,
@@ -1247,7 +1276,7 @@ export const useGameStore = create<GameState>()(
     }),
     {
       name: 'dice-dungeon-save',
-      partialize: (state) => ({ metaSouls: state.metaSouls, unlockedNodes: state.unlockedNodes }),
+      partialize: (state) => ({ bankedSouls: state.bankedSouls, unlockedNodes: state.unlockedNodes }),
     }
   )
 )
@@ -1285,11 +1314,11 @@ async function runEnemyPhase() {
         usedSecondWind: true,
         secondWindTriggered: true,
         turnPhase: 'idle',
-        totalDamage: 0, totalHeal: 0, totalShield: 0, totalGold: 0, totalPoison: 0,
+        totalDamage: 0, totalHeal: 0, totalShield: 0, totalSouls: 0, totalPoison: 0,
         skullCount: 0,
         drawPile: shuffleArray(equippedOnly(st.inventory)),
         playedDice: [],
-        lastEffects: { heal: 0, shield: 0, gold: 0 },
+        lastEffects: { heal: 0, shield: 0, souls: 0 },
         resolvingDieIndex: null, resolvingPhase: null,
         rollStartVersion: st.rollStartVersion + 1,
         isChoosingNextDie: false,
@@ -1302,27 +1331,29 @@ async function runEnemyPhase() {
       return
     }
     useGameStore.setState({
+      showGameOver: true,
+      runSouls: 0,
       player: { hp: 100, maxHp: 100, shield: 0 },
       enemy: spawnEnemy(1),
       currentFloor: 1,
-      totalDamage: 0, totalHeal: 0, totalShield: 0, totalGold: 0, totalPoison: 0,
+      totalDamage: 0, totalHeal: 0, totalShield: 0, totalSouls: 0, totalPoison: 0,
       skullCount: 0,
       inventory: INITIAL_INVENTORY.map((d) => ({ ...d })),
       drawPile: [], playedDice: [],
-      lastEffects: { heal: 0, shield: 0, gold: 0 },
+      lastEffects: { heal: 0, shield: 0, souls: 0 },
       resolvingDieIndex: null, resolvingPhase: null,
-      draftChoices: [], lastGoldEarned: 0,
+      draftChoices: [], lastSoulsEarned: 0,
       isChoosingNextDie: false,
       turnPhase: 'loadout',
     })
   } else {
     useGameStore.setState((s) => ({
       turnPhase: 'idle',
-      totalDamage: 0, totalHeal: 0, totalShield: 0, totalGold: 0, totalPoison: 0,
+      totalDamage: 0, totalHeal: 0, totalShield: 0, totalSouls: 0, totalPoison: 0,
       skullCount: 0,
       drawPile: shuffleArray(equippedOnly(s.inventory)),
       playedDice: [],
-      lastEffects: { heal: 0, shield: 0, gold: 0 },
+      lastEffects: { heal: 0, shield: 0, souls: 0 },
       player: { ...s.player, shield: 0 },
       enemy: {
         ...s.enemy,

@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence, useMotionValue, useTransform, animate, useAnimate } from 'framer-motion'
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
-import { Shield, Heart, Swords, Library, Skull, Coins, Flame, FlaskConical, Biohazard } from 'lucide-react'
+import { Shield, Heart, Swords, Library, Skull, Flame, FlaskConical, Biohazard } from 'lucide-react'
 import { useGameStore } from '../store/gameStore'
 import type { Die, EnemyIntent, ResolvingPhase, DieType } from '../store/gameStore'
 import { DieCard, faceColor, faceShadow, dieTypeStyle } from './DieCard'
@@ -253,7 +253,7 @@ function SkullJumpscareOverlay({ skullRolledVersion }: { skullRolledVersion: num
 // ── Flying orbs ──────────────────────────────────────────────────────────────
 type Orb = { id: number; color: string; shadow: string; sx: number; sy: number; ex: number; ey: number }
 
-function OrbLayer({ playedDice, orbVersion, resolvingDieIndex, damageRef, healRef, shieldRef, skullRef, goldRef, poisonRef }: {
+function OrbLayer({ playedDice, orbVersion, resolvingDieIndex, damageRef, healRef, shieldRef, skullRef, soulsRef, poisonRef }: {
   playedDice: Die[]
   orbVersion: number
   resolvingDieIndex: number | null
@@ -261,7 +261,7 @@ function OrbLayer({ playedDice, orbVersion, resolvingDieIndex, damageRef, healRe
   healRef: React.RefObject<HTMLDivElement | null>
   shieldRef: React.RefObject<HTMLDivElement | null>
   skullRef: React.RefObject<HTMLDivElement | null>
-  goldRef: React.RefObject<HTMLDivElement | null>
+  soulsRef: React.RefObject<HTMLDivElement | null>
   poisonRef: React.RefObject<HTMLDivElement | null>
 }) {
   const [orbs, setOrbs] = useState<Orb[]>([])
@@ -285,7 +285,7 @@ function OrbLayer({ playedDice, orbVersion, resolvingDieIndex, damageRef, healRe
                     : faceType === 'lifesteal' ? damageRef
                     : faceType === 'heal'      ? healRef
                     : faceType === 'shield'    ? shieldRef
-                    : faceType === 'gold'      ? goldRef
+                    : faceType === 'gold'      ? soulsRef
                     : faceType === 'poison'    ? poisonRef
                     : skullRef
     const tr = targetRef.current?.getBoundingClientRect()
@@ -395,7 +395,7 @@ function IntentBadge({ intent }: { intent: EnemyIntent }) {
 // ── Floating effect popups ───────────────────────────────────────────────────
 type FloatItem = { id: number; label: string; color: string; shadow: string; offset: number }
 
-function FloatingEffects({ heal, shield, gold, version }: { heal: number; shield: number; gold: number; version: number }) {
+function FloatingEffects({ heal, shield, gold: souls, version }: { heal: number; shield: number; gold: number; version: number }) {
   const [items, setItems] = useState<FloatItem[]>([])
   const prevVersion = useRef(version)
 
@@ -407,14 +407,14 @@ function FloatingEffects({ heal, shield, gold, version }: { heal: number; shield
     const next: FloatItem[] = []
     if (heal > 0)   next.push({ id: now,     label: `♥ +${heal}`,   color: '#4ade80', shadow: '#15803d', offset: -36 })
     if (shield > 0) next.push({ id: now + 1, label: `⬡ +${shield}`, color: '#38bdf8', shadow: '#1e3a8a', offset:   0 })
-    if (gold > 0)   next.push({ id: now + 2, label: `$ +${gold}`,   color: '#fbbf24', shadow: '#78350f', offset:  36 })
+    if (souls > 0)  next.push({ id: now + 2, label: `✦ +${souls} Souls`, color: '#a855f7', shadow: '#6d28d9', offset: 36 })
     if (!next.length) return
 
     setItems((prev) => [...prev, ...next])
     setTimeout(() => {
       setItems((prev) => prev.filter((i) => !next.find((n) => n.id === i.id)))
     }, 1150)
-  }, [version, heal, shield, gold])
+  }, [version, heal, shield, souls])
 
   return (
     <AnimatePresence>
@@ -765,15 +765,15 @@ export function CombatScreen() {
   const {
     player, enemy,
     drawPile, playedDice, skullCount, skullRolledVersion,
-    totalDamage, totalHeal, totalShield, totalGold, totalPoison,
+    totalDamage, totalHeal, totalShield, totalSouls, totalPoison,
     lastEffects, turnPhase, playerAttackAnimTier,
     enemyHitVersion, playerHitVersion, playerEffectVersion,
     orbVersion, counterVersion, rollStartVersion, resolvingDieIndex, resolvingPhase, enemyAttackVersion,
-    currentFloor, gold, drawAndRoll, bankAndAttack, unlockedNodes, isChoosingNextDie, abandonRun,
+    currentFloor, runSouls, drawAndRoll, bankAndAttack, unlockedNodes, isChoosingNextDie, abandonRun,
     secondWindTriggered, activeMultiplier, multiplierFiredVersion,
   } = useGameStore()
 
-  const metaSouls = useGameStore((s) => s.metaSouls)
+  const bankedSouls = useGameStore((s) => s.bankedSouls)
 
   const enemyScope  = useHitAnimation(enemyHitVersion,  'rgba(220,38,38,0.45)')
   const playerScope = useHitAnimation(playerHitVersion, 'rgba(220,38,38,0.45)')
@@ -820,7 +820,7 @@ export function CombatScreen() {
   const healRef     = useRef<HTMLDivElement>(null)
   const shieldRef   = useRef<HTMLDivElement>(null)
   const skullRef    = useRef<HTMLDivElement>(null)
-  const goldRef     = useRef<HTMLDivElement>(null)
+  const soulsRef    = useRef<HTMLDivElement>(null)
   const poisonRef   = useRef<HTMLDivElement>(null)
   const playerHpRef = useRef<HTMLDivElement>(null)
 
@@ -861,7 +861,7 @@ export function CombatScreen() {
   const [showScout, setShowScout] = useState(false)
   const [isAutoRolling, setIsAutoRolling] = useState(false)
   const autoRollRef = useRef(false)
-  const [floatingGold, setFloatingGold] = useState(0)
+  const [floatingSouls, setFloatingGold] = useState(0)
 
   useEffect(() => {
     if (!secondWindTriggered) return
@@ -870,7 +870,7 @@ export function CombatScreen() {
   }, [secondWindTriggered])
 
   const handleAttack = () => {
-    const g = useGameStore.getState().totalGold
+    const g = useGameStore.getState().totalSouls
     if (g > 0) {
       setFloatingGold(g)
       setTimeout(() => setFloatingGold(0), 1500)
@@ -921,25 +921,25 @@ export function CombatScreen() {
         padding: '4px 14px',
         display: 'flex', alignItems: 'center', gap: 10,
       }}>
-        <Coins size={15} color="#fbbf24" strokeWidth={2.5} />
-        <span style={{ fontSize: '1.1rem', fontWeight: 900, color: '#fbbf24', lineHeight: 1 }}>
-          {gold}
-        </span>
-        <span style={{ fontSize: '0.6rem', color: '#92400e', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
-          Gold
-        </span>
-        <span style={{ color: '#374151', fontSize: '0.7rem', margin: '0 2px' }}>|</span>
         <Flame size={15} color="#a855f7" strokeWidth={2.5} />
-        <motion.span
-          key={metaSouls}
-          animate={{ scale: [1, 1.3, 1] }}
-          transition={{ duration: 0.3 }}
-          style={{ fontSize: '1.1rem', fontWeight: 900, color: '#a855f7', lineHeight: 1 }}
-        >
-          {metaSouls}
-        </motion.span>
+        <span style={{ fontSize: '1.1rem', fontWeight: 900, color: '#a855f7', lineHeight: 1 }}>
+          {runSouls}
+        </span>
         <span style={{ fontSize: '0.6rem', color: '#7c3aed', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
           Souls
+        </span>
+        <span style={{ color: '#374151', fontSize: '0.7rem', margin: '0 2px' }}>|</span>
+        <Flame size={15} color="#6d28d9" strokeWidth={2.5} />
+        <motion.span
+          key={bankedSouls}
+          animate={{ scale: [1, 1.3, 1] }}
+          transition={{ duration: 0.3 }}
+          style={{ fontSize: '1.1rem', fontWeight: 900, color: '#6d28d9', lineHeight: 1 }}
+        >
+          {bankedSouls}
+        </motion.span>
+        <span style={{ fontSize: '0.6rem', color: '#4c1d95', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
+          Banked
         </span>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 4 }}>
           {([
@@ -1044,7 +1044,7 @@ export function CombatScreen() {
         <FloatingEffects
           heal={lastEffects.heal}
           shield={lastEffects.shield}
-          gold={lastEffects.gold}
+          gold={lastEffects.souls}
           version={playerEffectVersion}
         />
 
@@ -1101,11 +1101,11 @@ export function CombatScreen() {
                 counterVersion={counterVersion}
               />
             </div>
-            <div ref={goldRef}>
+            <div ref={soulsRef}>
               <StatBadge
-                target={totalGold}
-                color="#fbbf24" shadow="#78350f"
-                icon={<Coins size={14} color="#fbbf24" strokeWidth={2.5} />}
+                target={totalSouls}
+                color="#a855f7" shadow="#6d28d9"
+                icon={<Flame size={14} color="#a855f7" strokeWidth={2.5} />}
                 rollStartVersion={rollStartVersion}
                 counterVersion={counterVersion}
               />
@@ -1140,7 +1140,7 @@ export function CombatScreen() {
         healRef={healRef}
         shieldRef={shieldRef}
         skullRef={skullRef}
-        goldRef={goldRef}
+        soulsRef={soulsRef}
         poisonRef={poisonRef}
       />
 
@@ -1170,15 +1170,15 @@ export function CombatScreen() {
           </div>
         )}
         <AnimatePresence>
-          {floatingGold > 0 && (
+          {floatingSouls > 0 && (
             <motion.div
-              key={floatingGold}
+              key={floatingSouls}
               style={{
                 position: 'absolute', left: '50%', top: '40%',
                 transform: 'translateX(-50%)',
                 pointerEvents: 'none', zIndex: 50,
-                color: '#fbbf24', fontWeight: 700, fontSize: '1.1rem',
-                textShadow: '1px 1px 0 #000, 0 0 8px #fbbf24',
+                color: '#a855f7', fontWeight: 700, fontSize: '1.1rem',
+                textShadow: '1px 1px 0 #000, 0 0 8px #a855f7',
                 whiteSpace: 'nowrap',
               }}
               initial={{ y: 0, opacity: 1 }}
@@ -1186,7 +1186,7 @@ export function CombatScreen() {
               exit={{}}
               transition={{ duration: 1.4, ease: 'easeOut' }}
             >
-              +{floatingGold} Gold
+              +{floatingSouls} Souls
             </motion.div>
           )}
         </AnimatePresence>
