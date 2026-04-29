@@ -248,7 +248,7 @@ export function LoadoutScreen() {
     inventory, maxEquippedDice,
     toggleEquipDie, resetLoadout, equipBaseDie,
   } = useGameStore()
-  const metaSouls        = useGameStore((s) => s.metaSouls)
+  const bankedSouls        = useGameStore((s) => s.bankedSouls)
 
   const [showTalents, setShowTalents] = useState(false)
   const [showLibrary, setShowLibrary] = useState(false)
@@ -282,12 +282,12 @@ export function LoadoutScreen() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
           <Flame size={14} color="#a855f7" strokeWidth={2.5} />
           <motion.span
-            key={metaSouls}
+            key={bankedSouls}
             animate={{ scale: [1, 1.2, 1] }}
             transition={{ duration: 0.25 }}
             style={{ fontSize: '0.9rem', fontWeight: 900, color: '#a855f7' }}
           >
-            {metaSouls}
+            {bankedSouls}
           </motion.span>
           <span style={{ fontSize: '0.55rem', color: '#7c3aed', letterSpacing: '0.2em', textTransform: 'uppercase' }}>
             Souls
@@ -477,7 +477,7 @@ export function LoadoutScreen() {
 
       {/* DEV: grant souls */}
       <button
-        onClick={() => useGameStore.setState((s) => ({ metaSouls: s.metaSouls + 10000 }))}
+        onClick={() => useGameStore.setState((s) => ({ bankedSouls: s.bankedSouls + 10000 }))}
         style={{
           position: 'absolute', bottom: 8, left: 8,
           background: 'none', border: '1px solid #374151',
