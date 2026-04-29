@@ -118,9 +118,23 @@ The dungeon is divided into Acts. Each Act introduces mechanics that punish naiv
 
 ### Act 1 — The Brute Tunnels (Floors 1–15)
 
-**Modifier:** None
+**Modifier:** None  
+**Length:** 15 floors. **Floor 15 is the Act Boss.**
 
 The baseline Act. Any strategy is viable. Players learn push-your-luck tension and draft fundamentals without special pressure.
+
+### Act 1 → Act 2 Transition: The Culling
+
+Beating the Act 1 Boss triggers a forced extraction — the player's `runSouls` are automatically banked. There is **no shop** and **no opportunity to buy new dice** during this transition. What follows is a pure culling ritual:
+
+| Step | Rule |
+|------|------|
+| **Extraction** | All Run Souls from the Act 1 run are safely converted to Banked Souls. |
+| **Cull your bag** | The player typically has ~15 dice from Act 1. They must choose exactly **7 dice** to carry into Act 2. The rest are discarded permanently for this run. |
+| **The Curses** | Three pure Cursed dice (Skull × 6) are **forcefully added** to the bag — no choice, no opt-out. |
+| **Act 2 Start** | The player enters Floor 16 with exactly **10 dice** (7 chosen + 3 Cursed). |
+
+The culling forces the player to commit to an identity built in Act 1. Hedging every strategy is no longer possible.
 
 ### Act 2 — The Spiked Depths (Floors 16–30)
 
@@ -243,7 +257,7 @@ Spend Run Souls to restore HP (up to max).
 
 ### Floors & Enemies
 
-Enemies appear sequentially per floor. Boss fights occur every 5 floors. Stats scale with floor number.
+Enemies appear sequentially per floor. Boss fights occur every 5 floors (Floors 5, 10, 15, 20, 25, 30…). Floor 15 is the Act 1 Boss and triggers the Act 1 → Act 2 transition. Stats scale with floor number.
 
 | Enemy | Base HP | Intent |
 |-------|---------|--------|
