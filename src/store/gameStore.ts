@@ -832,6 +832,27 @@ export const useGameStore = create<GameState>()(
     if (newEnemyHp <= 0) {
       await sleep(450)
 
+      // Double K.O.: player also at 0 — defeat takes priority over victory
+      if (newPlayerHp <= 0) {
+        set({
+          showGameOver: true,
+          runSouls: 0,
+          player: { hp: 100, maxHp: 100, shield: 0 },
+          enemy: spawnEnemy(1),
+          currentFloor: 1,
+          totalDamage: 0, totalHeal: 0, totalShield: 0, totalSouls: 0, totalPoison: 0,
+          skullCount: 0,
+          inventory: INITIAL_INVENTORY.map((d) => ({ ...d })),
+          drawPile: [], playedDice: [],
+          lastEffects: { heal: 0, shield: 0, souls: 0 },
+          resolvingDieIndex: null, resolvingPhase: null,
+          draftChoices: [], lastSoulsEarned: 0,
+          isChoosingNextDie: false,
+          turnPhase: 'loadout',
+        })
+        return
+      }
+
       const isBossFloor = currentFloor % 5 === 0
       const bountyBonus = (unlockedNodes.includes('r9v5wdgh') && isBossFloor) ? 10 : 0
       const earned      = currentFloor * 5 + totalSouls + bountyBonus
@@ -901,6 +922,28 @@ export const useGameStore = create<GameState>()(
 
       if (postPoisonHp <= 0) {
         await sleep(100)
+
+        // Double K.O.: player also at 0 — defeat takes priority
+        if (newPlayerHp <= 0) {
+          set({
+            showGameOver: true,
+            runSouls: 0,
+            player: { hp: 100, maxHp: 100, shield: 0 },
+            enemy: spawnEnemy(1),
+            currentFloor: 1,
+            totalDamage: 0, totalHeal: 0, totalShield: 0, totalSouls: 0, totalPoison: 0,
+            skullCount: 0,
+            inventory: INITIAL_INVENTORY.map((d) => ({ ...d })),
+            drawPile: [], playedDice: [],
+            lastEffects: { heal: 0, shield: 0, souls: 0 },
+            resolvingDieIndex: null, resolvingPhase: null,
+            draftChoices: [], lastSoulsEarned: 0,
+            isChoosingNextDie: false,
+            turnPhase: 'loadout',
+          })
+          return
+        }
+
         const isBossFloorP = currentFloor % 5 === 0
         const bountyBonusP = (unlockedNodes.includes('r9v5wdgh') && isBossFloorP) ? 10 : 0
         const earnedP      = currentFloor * 5 + totalSouls + bountyBonusP
