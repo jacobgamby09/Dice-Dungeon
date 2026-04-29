@@ -6,27 +6,6 @@ import { dieTypeStyle, faceColor } from './DieCard'
 import type { Die, DieFace } from '../store/gameStore'
 import { DiePresentationModal } from './DiePresentationModal'
 
-// ── Die display names ─────────────────────────────────────────────────────────
-
-const DIE_NAMES: Record<string, string> = {
-  white:          'The Basic',
-  blue:           'The Guard',
-  green:          'The Mender',
-  cursed:         'The Cursed',
-  heavy:          'The Heavy',
-  paladin:        'The Paladin',
-  gambler:        'The Gambler',
-  scavenger:      'The Scavenger',
-  wall:           'The Wall',
-  jackpot:        'The Jackpot',
-  vampire:        'The Vampire',
-  priest:         'The Priest',
-  fortune_teller: 'The Fortune Teller',
-  joker:          'The Joker',
-  unique:         'The Multiplier',
-  blight:         'The Blight',
-}
-
 // ── Face icon ─────────────────────────────────────────────────────────────────
 
 function FaceIcon({ type, size = 13 }: { type: DieFace['type']; size?: number }) {
@@ -118,7 +97,7 @@ function DiePickerRow({
   die: Die; isHighlighted?: boolean; isHost?: boolean; allowCursed?: boolean; onClick: () => void
 }) {
   const s        = dieTypeStyle[die.dieType]
-  const name     = `${DIE_NAMES[die.dieType] ?? die.dieType.toUpperCase()}${UNIQUE_DIE_TYPES.has(die.dieType) ? ' ★' : ''}`
+  const name     = `${die.name}${UNIQUE_DIE_TYPES.has(die.dieType) ? ' ★' : ''}`
   const level    = die.mergeLevel ?? 0
   const isCursed = die.dieType === 'cursed'
   const disabled = isCursed && !allowCursed
@@ -540,7 +519,7 @@ export function ShopScreen() {
                 fontWeight: 700, fontSize: '0.85rem',
                 color: dieTypeStyle[selectedDie.dieType].bg,
               }}>
-                {DIE_NAMES[selectedDie.dieType] ?? selectedDie.dieType.toUpperCase()}
+                {selectedDie.name}
               </span>
             </div>
             <FacePickerGrid

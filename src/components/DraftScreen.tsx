@@ -1,30 +1,9 @@
 import { useState } from 'react'
 import { Coins, Swords, Shield, Heart, Skull, Droplets, Star, Shuffle, Lock, LockOpen } from 'lucide-react'
-import { useGameStore, DIE_TEMPLATES, UNIQUE_DIE_TYPES } from '../store/gameStore'
+import { useGameStore, DIE_TEMPLATES, UNIQUE_DIE_TYPES, DIE_NAMES } from '../store/gameStore'
 import { dieTypeStyle, faceColor } from './DieCard'
 import { DiceInspectorModal } from './DiceInspectorModal'
 import type { DieType, DieFace, Die } from '../store/gameStore'
-
-// ── Die display names ─────────────────────────────────────────────────────────
-
-const DIE_NAMES: Partial<Record<DieType, string>> = {
-  white:          'The Basic',
-  blue:           'The Guard',
-  green:          'The Mender',
-  cursed:         'The Cursed',
-  heavy:          'The Heavy',
-  paladin:        'The Paladin',
-  gambler:        'The Gambler',
-  scavenger:      'The Scavenger',
-  wall:           'The Wall',
-  jackpot:        'The Jackpot',
-  vampire:        'The Vampire',
-  priest:         'The Priest',
-  fortune_teller: 'The Fortune Teller',
-  joker:          'The Joker',
-  unique:         'The Multiplier',
-  blight:         'The Blight',
-}
 
 // ── Face icon ─────────────────────────────────────────────────────────────────
 

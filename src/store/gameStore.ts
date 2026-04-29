@@ -16,6 +16,7 @@ export type DieType = 'white' | 'blue' | 'green' | 'cursed'
 export interface Die {
   id: string
   dieType: DieType
+  name: string
   sides: number
   faces: DieFace[]
   currentFace?: DieFace
@@ -26,6 +27,25 @@ export interface Die {
 }
 
 export const UNIQUE_DIE_TYPES = new Set<DieType>(['unique'])
+
+export const DIE_NAMES: Record<DieType, string> = {
+  white:          'The Basic',
+  blue:           'The Guard',
+  green:          'The Mender',
+  cursed:         'The Cursed',
+  heavy:          'The Heavy',
+  paladin:        'The Paladin',
+  gambler:        'The Gambler',
+  scavenger:      'The Scavenger',
+  wall:           'The Wall',
+  jackpot:        'The Jackpot',
+  vampire:        'The Vampire',
+  priest:         'The Priest',
+  fortune_teller: 'The Fortune Teller',
+  joker:          'The Joker',
+  unique:         'The Multiplier',
+  blight:         'The Blight',
+}
 
 export interface SkillNode {
   id: string
@@ -235,7 +255,7 @@ export const DIE_TEMPLATES: Record<DieType, { sides: number; faces: DieFace[] }>
 
 function createDie(type: DieType, id: string): Die {
   const t = DIE_TEMPLATES[type]
-  return { id, dieType: type, sides: t.sides, faces: t.faces }
+  return { id, dieType: type, name: DIE_NAMES[type], sides: t.sides, faces: t.faces }
 }
 
 function rollFace(die: Die): DieFace {

@@ -633,7 +633,7 @@ function FortuneTellerModal({ drawPile }: { drawPile: import('../store/gameStore
                     boxShadow: `1px 1px 0 ${s.shadow}`,
                   }} />
                   <span style={{ fontSize: '0.75rem', fontWeight: 700, color: s.bg, flex: 1, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    {die.dieType.replace('_', ' ')}
+                    {die.name}
                     {(die.mergeLevel ?? 0) > 0 && (
                       <span style={{ color: '#f59e0b', fontWeight: 900, marginLeft: 4 }}>+{die.mergeLevel}</span>
                     )}
@@ -668,25 +668,6 @@ function FortuneTellerModal({ drawPile }: { drawPile: import('../store/gameStore
 }
 
 // ── Scout modal ──────────────────────────────────────────────────────────────
-const SCOUT_DIE_NAMES: Partial<Record<import('../store/gameStore').DieType, string>> = {
-  white:          'The Basic',
-  blue:           'The Guard',
-  green:          'The Mender',
-  cursed:         'The Cursed',
-  heavy:          'The Heavy',
-  paladin:        'The Paladin',
-  gambler:        'The Gambler',
-  scavenger:      'The Scavenger',
-  wall:           'The Wall',
-  jackpot:        'The Jackpot',
-  vampire:        'The Vampire',
-  priest:         'The Priest',
-  fortune_teller: 'The Fortune Teller',
-  joker:          'The Joker',
-  unique:         'The Multiplier',
-  blight:         'The Blight',
-}
-
 function ScoutModal({ drawPile, onClose }: { drawPile: import('../store/gameStore').Die[]; onClose: () => void }) {
   return (
     <div
@@ -745,7 +726,7 @@ function ScoutModal({ drawPile, onClose }: { drawPile: import('../store/gameStor
                     boxShadow: `1px 1px 0 ${s.shadow}`,
                   }} />
                   <span style={{ fontSize: '0.75rem', fontWeight: 700, color: s.bg, flex: 1, letterSpacing: '0.05em' }}>
-                    {SCOUT_DIE_NAMES[die.dieType] ?? die.dieType}
+                    {die.name}
                     {(die.mergeLevel ?? 0) > 0 && (
                       <span style={{ color: '#f59e0b', fontWeight: 900, marginLeft: 4 }}>+{die.mergeLevel}</span>
                     )}

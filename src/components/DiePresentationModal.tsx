@@ -4,25 +4,6 @@ import type { Die, DieFace } from '../store/gameStore'
 import { UNIQUE_DIE_TYPES } from '../store/gameStore'
 import { dieTypeStyle, faceColor } from './DieCard'
 
-const DIE_NAMES: Record<string, string> = {
-  white:          'The Basic',
-  blue:           'The Guard',
-  green:          'The Mender',
-  cursed:         'The Cursed',
-  heavy:          'The Heavy',
-  paladin:        'The Paladin',
-  gambler:        'The Gambler',
-  scavenger:      'The Scavenger',
-  wall:           'The Wall',
-  jackpot:        'The Jackpot',
-  vampire:        'The Vampire',
-  priest:         'The Priest',
-  fortune_teller: 'The Fortune Teller',
-  joker:          'The Joker',
-  unique:         'The Multiplier',
-  blight:         'The Blight',
-}
-
 function FaceIcon({ type, size = 13 }: { type: DieFace['type']; size?: number }) {
   const color = faceColor[type]
   if (type === 'damage')      return <Swords   size={size} color={color} strokeWidth={2.5} />
@@ -42,7 +23,7 @@ export function DiePresentationModal({
 }) {
   const s          = dieTypeStyle[die.dieType]
   const mergeLevel = die.mergeLevel ?? 0
-  const name       = `${DIE_NAMES[die.dieType] ?? die.dieType.toUpperCase()}${UNIQUE_DIE_TYPES.has(die.dieType) ? ' ★' : ''}`
+  const name       = `${die.name}${UNIQUE_DIE_TYPES.has(die.dieType) ? ' ★' : ''}`
   const actionColor = action === 'merge' ? '#d97706' : '#dc2626'
   const actionLabel = action === 'merge' ? 'MERGED!' : 'CRAFTED!'
 

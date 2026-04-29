@@ -1,29 +1,10 @@
 import { useState } from 'react'
 import { X, Swords, Shield, Heart, Skull, Coins, Droplets, Star, Shuffle } from 'lucide-react'
 import type { DieType, DieFace, Die } from '../store/gameStore'
-import { DIE_TEMPLATES, UNIQUE_DIE_TYPES } from '../store/gameStore'
+import { DIE_TEMPLATES, UNIQUE_DIE_TYPES, DIE_NAMES } from '../store/gameStore'
 import { dieTypeStyle, faceColor } from './DieCard'
 
-const TYPE_LABEL: Record<DieType, string> = {
-  white:          'The Basic',
-  blue:           'The Guard',
-  green:          'The Mender',
-  cursed:         'The Cursed',
-  heavy:          'The Heavy',
-  paladin:        'The Paladin',
-  gambler:        'The Gambler',
-  scavenger:      'The Scavenger',
-  wall:           'The Wall',
-  jackpot:        'The Jackpot',
-  vampire:        'The Vampire',
-  priest:         'The Priest',
-  fortune_teller: 'The Fortune Teller',
-  joker:          'The Joker',
-  unique:         'The Multiplier',
-  blight:         'The Blight',
-}
-
-function dieName(t: DieType) { return `${TYPE_LABEL[t]}${UNIQUE_DIE_TYPES.has(t) ? ' ★' : ''}` }
+function dieName(t: DieType) { return `${DIE_NAMES[t]}${UNIQUE_DIE_TYPES.has(t) ? ' ★' : ''}` }
 
 function FaceIcon({ type, size = 13 }: { type: DieFace['type']; size?: number }) {
   const color = faceColor[type]
