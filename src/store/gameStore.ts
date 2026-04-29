@@ -856,7 +856,6 @@ export const useGameStore = create<GameState>()(
       const isBossFloor = currentFloor % 5 === 0
       const bountyBonus = (unlockedNodes.includes('r9v5wdgh') && isBossFloor) ? 10 : 0
       const earned      = currentFloor * 5 + totalSouls + bountyBonus
-      const soulsGained = currentFloor * 2 + (isBossFloor ? 25 : 0)
 
       // Thick Skin: heal 15% of max HP after defeating a boss
       const thickSkinHeal = (isBossFloor && unlockedNodes.includes('aw2b29dw'))
@@ -868,7 +867,6 @@ export const useGameStore = create<GameState>()(
           inventory: [...st.inventory, { ...createDie('cursed', curseId), isEquipped: true as const }],
           runSouls: st.runSouls + earned,
           lastSoulsEarned: earned,
-          bankedSouls: st.bankedSouls + soulsGained,
           turnPhase: 'shop',
           justDefeatedBoss: true,
           showBossRewardModal: true,
@@ -893,7 +891,6 @@ export const useGameStore = create<GameState>()(
         set((st) => ({
           runSouls: st.runSouls + earned,
           lastSoulsEarned: earned,
-          bankedSouls: st.bankedSouls + soulsGained,
           draftChoices: choices,
           lockedDraftDice: [],
           rerollCost: 5,
@@ -947,7 +944,6 @@ export const useGameStore = create<GameState>()(
         const isBossFloorP = currentFloor % 5 === 0
         const bountyBonusP = (unlockedNodes.includes('r9v5wdgh') && isBossFloorP) ? 10 : 0
         const earnedP      = currentFloor * 5 + totalSouls + bountyBonusP
-        const soulsGainedP = currentFloor * 2 + (isBossFloorP ? 25 : 0)
         const thickSkinP   = (isBossFloorP && unlockedNodes.includes('aw2b29dw'))
           ? Math.floor(player.maxHp * 0.15) : 0
 
@@ -957,7 +953,6 @@ export const useGameStore = create<GameState>()(
             inventory: [...st.inventory, { ...createDie('cursed', curseId), isEquipped: true as const }],
             runSouls: st.runSouls + earnedP,
             lastSoulsEarned: earnedP,
-            bankedSouls: st.bankedSouls + soulsGainedP,
             turnPhase: 'shop',
             justDefeatedBoss: true,
             showBossRewardModal: true,
@@ -979,7 +974,6 @@ export const useGameStore = create<GameState>()(
           set((st) => ({
             runSouls: st.runSouls + earnedP,
             lastSoulsEarned: earnedP,
-            bankedSouls: st.bankedSouls + soulsGainedP,
             draftChoices: [...lockedDraftDice, ...newDiceP],
             lockedDraftDice: [],
             rerollCost: 5,
