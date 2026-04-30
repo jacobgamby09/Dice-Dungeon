@@ -381,7 +381,7 @@ function EnemyOrbLayer({ enemyAttackVersion, enemyEl, playerHpRef }: {
 }
 
 // ── Intent badge ──────────────────────────────────────────────────────────────
-function IntentBadge({ intent }: { intent: EnemyIntent }) {
+function IntentBadge({ intent, recoil = 0 }: { intent: EnemyIntent; recoil?: number }) {
   if (intent.type === 'shield') {
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -408,6 +408,11 @@ function IntentBadge({ intent }: { intent: EnemyIntent }) {
       <span style={{ fontSize: '1.6rem', fontWeight: 700, color: '#f87171', textShadow: '1px 1px 0 #000' }}>
         {intent.value}
       </span>
+      {recoil > 0 && (
+        <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#f97316', textShadow: '1px 1px 0 #000' }}>
+          (+{recoil})
+        </span>
+      )}
     </div>
   )
 }
@@ -1095,7 +1100,7 @@ export function CombatScreen() {
               }}>
                 {enemy.name}
               </span>
-              <IntentBadge intent={enemy.intent} />
+              <IntentBadge intent={enemy.intent} recoil={expectedRecoil} />
               {enemy.poison > 0 && (
                 <motion.div
                   animate={{
@@ -1208,19 +1213,6 @@ export function CombatScreen() {
               </div>
             )}
 
-            {/* Recoil preview — shown when player has queued damage against a recoil enemy */}
-            {expectedRecoil > 0 && (
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 4, marginTop: 3,
-                background: 'rgba(127,29,29,0.4)', border: '1px solid #991b1b',
-                padding: '2px 6px',
-              }}>
-                <Swords size={9} color="#fca5a5" strokeWidth={2.5} />
-                <span style={{ fontSize: '0.6rem', fontWeight: 700, color: '#fca5a5', letterSpacing: '0.06em' }}>
-                  RECOIL: {expectedRecoil} dmg on bank
-                </span>
-              </div>
-            )}
           </div>
         </motion.div>
       </div>
