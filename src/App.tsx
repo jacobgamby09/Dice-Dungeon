@@ -4,6 +4,7 @@ import { CombatScreen } from './components/CombatScreen'
 import { DraftScreen } from './components/DraftScreen'
 import { ShopScreen } from './components/ShopScreen'
 import { BossRewardModal } from './components/BossRewardModal'
+import { InterActScreen } from './components/InterActScreen'
 
 function App() {
   const turnPhase = useGameStore((s) => s.turnPhase)
@@ -11,9 +12,10 @@ function App() {
   const showGameOver = useGameStore((s) => s.showGameOver)
 
   let screen: React.ReactNode
-  if (turnPhase === 'loadout') screen = <LoadoutScreen />
-  else if (turnPhase === 'draft') screen = <DraftScreen />
-  else if (turnPhase === 'shop')  screen = <ShopScreen />
+  if (turnPhase === 'loadout')        screen = <LoadoutScreen />
+  else if (turnPhase === 'draft')     screen = <DraftScreen />
+  else if (turnPhase === 'shop')      screen = <ShopScreen />
+  else if (turnPhase === 'inter_act_cull') screen = <InterActScreen />
   else screen = <CombatScreen />
 
   return (

@@ -68,7 +68,7 @@ export interface Act {
   endFloor: number
 }
 
-export type TurnPhase = 'loadout' | 'idle' | 'drawing' | 'player_attack' | 'enemy_attack' | 'draft' | 'shop'
+export type TurnPhase = 'loadout' | 'idle' | 'drawing' | 'player_attack' | 'enemy_attack' | 'draft' | 'shop' | 'inter_act_cull'
 export type ResolvingPhase = 'spinning' | 'landed' | null
 
 // ── Die factory ──────────────────────────────────────────────────────────────
@@ -344,6 +344,7 @@ interface GameState {
   unlockNode: (nodeId: string) => void
   leaveShop: () => void
   extractToBase: () => void
+  cullInventory: (selectedIds: string[]) => void
   abandonRun: () => void
   devJumpToForge: () => void
 }
@@ -861,7 +862,22 @@ export const useGameStore = create<GameState>()(
       const thickSkinHeal = (isBossFloor && unlockedNodes.includes('aw2b29dw'))
         ? Math.floor(player.maxHp * 0.15) : 0
 
-      if (isBossFloor) {
+      if (isBossFloor && currentFloor === 15) {
+        // Act 1 → Act 2 transition: bank all souls, enter culling phase
+        set((st) => ({
+          bankedSouls: st.bankedSouls + st.runSouls + earned,
+          runSouls: 0,
+          lastSoulsEarned: earned,
+          turnPhase: 'inter_act_cull',
+          player: { ...st.player, hp: Math.min(st.player.maxHp, st.player.hp + thickSkinHeal), shield: 0 },
+          totalDamage: 0, totalHeal: 0, totalShield: 0, totalSouls: 0, totalPoison: 0,
+          skullCount: 0,
+          drawPile: [], playedDice: [],
+          lastEffects: { heal: 0, shield: 0, souls: 0 },
+          resolvingDieIndex: null, resolvingPhase: null,
+          justDefeatedBoss: false,
+        }))
+      } else if (isBossFloor) {
         const curseId = uid()
         set((st) => ({
           inventory: [...st.inventory, { ...createDie('cursed', curseId), isEquipped: true as const }],
@@ -947,7 +963,22 @@ export const useGameStore = create<GameState>()(
         const thickSkinP   = (isBossFloorP && unlockedNodes.includes('aw2b29dw'))
           ? Math.floor(player.maxHp * 0.15) : 0
 
-        if (isBossFloorP) {
+        if (isBossFloorP && currentFloor === 15) {
+          // Act 1 → Act 2 transition: bank all souls, enter culling phase
+          set((st) => ({
+            bankedSouls: st.bankedSouls + st.runSouls + earnedP,
+            runSouls: 0,
+            lastSoulsEarned: earnedP,
+            turnPhase: 'inter_act_cull',
+            player: { ...st.player, hp: Math.min(st.player.maxHp, st.player.hp + thickSkinP), shield: 0 },
+            totalDamage: 0, totalHeal: 0, totalShield: 0, totalSouls: 0, totalPoison: 0,
+            skullCount: 0,
+            drawPile: [], playedDice: [],
+            lastEffects: { heal: 0, shield: 0, souls: 0 },
+            resolvingDieIndex: null, resolvingPhase: null,
+            justDefeatedBoss: false,
+          }))
+        } else if (isBossFloorP) {
           const curseId = uid()
           set((st) => ({
             inventory: [...st.inventory, { ...createDie('cursed', curseId), isEquipped: true as const }],
@@ -1198,6 +1229,39 @@ export const useGameStore = create<GameState>()(
     }))
   },
 
+  cullInventory: (selectedIds: string[]) => {
+    const { inventory, player, rollStartVersion } = get()
+    const selected = selectedIds
+      .map((id) => inventory.find((d) => d.id === id))
+      .filter((d): d is Die => d !== undefined)
+      .map((d) => ({ ...d, isEquipped: true as const }))
+    const curses = Array.from({ length: 3 }, () => ({
+      ...createDie('cursed', uid()),
+      isEquipped: true as const,
+    }))
+    const newInventory = [...selected, ...curses]
+    set({
+      inventory: newInventory,
+      currentFloor: 16,
+      turnPhase: 'idle',
+      enemy: spawnEnemy(16),
+      player: { ...player, shield: 0 },
+      drawPile: shuffleArray(newInventory),
+      playedDice: [],
+      skullCount: 0,
+      totalDamage: 0, totalHeal: 0, totalShield: 0, totalSouls: 0, totalPoison: 0,
+      lastEffects: { heal: 0, shield: 0, souls: 0 },
+      resolvingDieIndex: null, resolvingPhase: null,
+      draftChoices: [], lockedDraftDice: [], lastSoulsEarned: 0,
+      isChoosingNextDie: false,
+      fortuneTellerPicksRemaining: 0,
+      activeMultiplier: 1,
+      firstAttackThisEncounter: true,
+      justDefeatedBoss: false,
+      rollStartVersion: rollStartVersion + 1,
+    })
+  },
+
   abandonRun: () => {
     set({
       player: { hp: 100, maxHp: 100, shield: 0 },
@@ -1221,62 +1285,70 @@ export const useGameStore = create<GameState>()(
 
   devJumpToForge: () => {
     const { unlockedNodes } = get()
-    const vitI  = unlockedNodes.includes('fyuwvmzq') ? 10 : 0
-    const vitII = unlockedNodes.includes('co2xusrh') ? 15 : 0
-    const startInventory: Die[] = [
-      createDie('white',  uid()), createDie('white',  uid()),
-      createDie('blue',   uid()), createDie('blue',   uid()),
-      createDie('green',  uid()),
-      createDie('cursed', uid()), createDie('cursed', uid()), createDie('cursed', uid()),
-    ]
+    const vitI   = unlockedNodes.includes('fyuwvmzq') ? 10 : 0
+    const vitII  = unlockedNodes.includes('co2xusrh') ? 15 : 0
     const baseHp = 100 + vitI + vitII
-    const pool    = getDiceLootPool(unlockedNodes)
-    const shuffled = shuffleArray(pool)
-    const lootDice = shuffled.slice(0, 4).map((t, i) => {
-      const die   = createDie(t, uid())
-      const level = i < 3 ? i + 1 : 0   // indices 0,1,2 → levels 1,2,3
-      if (level === 0) return die
+
+    function merged(type: DieType, level: number): Die {
+      const die  = createDie(type, uid())
       const mult = Math.pow(3, level)
       return {
         ...die,
         isMerged: true,
         mergeLevel: level,
+        isEquipped: true,
         faces: die.faces.map((f) =>
           (f.type === 'skull' || f.type === 'blank' || f.type === 'purified_skull')
             ? f
             : { ...f, value: f.value * mult }
         ),
       }
-    })
-    const inventory = [
-      ...startInventory,
-      ...lootDice,
-      createDie('cursed', uid()),
-      createDie('unique', uid()),
+    }
+
+    const inventory: Die[] = [
+      // Standard dice (11) — realistic Act 1 carry
+      { ...createDie('white',  uid()), isEquipped: true },
+      { ...createDie('white',  uid()), isEquipped: true },
+      { ...createDie('white',  uid()), isEquipped: true },
+      { ...createDie('white',  uid()), isEquipped: true },
+      { ...createDie('blue',   uid()), isEquipped: true },
+      { ...createDie('blue',   uid()), isEquipped: true },
+      { ...createDie('blue',   uid()), isEquipped: true },
+      { ...createDie('green',  uid()), isEquipped: true },
+      { ...createDie('green',  uid()), isEquipped: true },
+      { ...createDie('cursed', uid()), isEquipped: true }, // boss floor 5
+      { ...createDie('cursed', uid()), isEquipped: true }, // boss floor 10
+      // Advanced / merged dice (4)
+      merged('blight',    1), // Blight +1
+      merged('heavy',     1), // Heavy +1
+      merged('scavenger', 2), // Scavenger +2
+      { ...createDie('unique', uid()), isEquipped: true }, // The Multiplier (unique, no merge)
     ]
+
     set((s) => ({
-      turnPhase:    'shop',
+      turnPhase:    'idle',
       player:       { hp: baseHp, maxHp: baseHp, shield: 0 },
       inventory,
       runSouls:     150,
-      currentFloor: 6,
-      enemy:        spawnEnemy(6),
-      drawPile:     [],
+      currentFloor: 15,
+      enemy:        spawnEnemy(15),
+      drawPile:     shuffleArray(inventory),
       playedDice:   [],
       skullCount:   0,
       totalDamage: 0, totalHeal: 0, totalShield: 0, totalSouls: 0, totalPoison: 0,
       lastEffects:  { heal: 0, shield: 0, souls: 0 },
       rollStartVersion: s.rollStartVersion + 1,
       resolvingDieIndex: null, resolvingPhase: null,
-      draftChoices: [], lockedDraftDice: [], lastSoulsEarned: 150,
+      draftChoices: [], lockedDraftDice: [], lastSoulsEarned: 0,
       isChoosingNextDie: false,
       usedSecondWind: false,
       firstAttackThisEncounter: true,
       rerollCost: 5,
-      justDefeatedBoss: true,
+      justDefeatedBoss: false,
       secondWindTriggered: false,
       showBossRewardModal: false,
       purifyUsesThisShop: 0,
+      activeMultiplier: 1,
     }))
   },
 
