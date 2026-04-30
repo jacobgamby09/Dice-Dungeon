@@ -277,8 +277,11 @@ function shuffleArray<T>(arr: T[]): T[] {
 
 // ── Store ────────────────────────────────────────────────────────────────────
 
-export interface EnemyIntent { type: 'attack'; value: number }
-export interface Enemy { hp: number; maxHp: number; name: string; intent: EnemyIntent; isBoss: boolean; poison: number }
+export interface EnemyIntent { type: 'attack' | 'shield' | 'thorns_activate'; value: number }
+export interface Enemy {
+  hp: number; maxHp: number; name: string; intent: EnemyIntent; isBoss: boolean; poison: number
+  thorns?: number; barbs?: number; corrosive?: boolean; shield?: number; intentPhase?: number
+}
 
 interface GameState {
   player: { hp: number; maxHp: number; shield: number }
@@ -357,6 +360,8 @@ const equippedOnly = (dice: Die[]) => dice.filter((d) => d.isEquipped !== false)
 interface EnemyTemplate {
   name: string; baseHp: number
   intentMin: number; intentMax: number; isBoss: boolean
+  thorns?: number; barbs?: number; corrosive?: boolean
+  intentCycle?: Array<{ type: EnemyIntent['type']; value: number }>
 }
 
 export const SKILL_TREE_NODES: SkillNode[] = [
@@ -380,7 +385,7 @@ export const SKILL_TREE_NODES: SkillNode[] = [
 ]
 
 
-const BESTIARY: EnemyTemplate[] = [
+const ACT_1_BESTIARY: EnemyTemplate[] = [
   { name: 'Slime',    baseHp: 28,  intentMin: 2,  intentMax: 4,  isBoss: false },
   { name: 'Goblin',   baseHp: 42,  intentMin: 4,  intentMax: 6,  isBoss: false },
   { name: 'Skeleton', baseHp: 50,  intentMin: 3,  intentMax: 7,  isBoss: false },
@@ -388,16 +393,50 @@ const BESTIARY: EnemyTemplate[] = [
   { name: 'Demon',    baseHp: 70,  intentMin: 4,  intentMax: 7,  isBoss: true  },
 ]
 
-function rollIntent(template: EnemyTemplate, floor: number): EnemyIntent {
+const ACT_2_BESTIARY: EnemyTemplate[] = [
+  { name: 'Thorned Beetle', baseHp: 55,  intentMin: 5,  intentMax: 8,  isBoss: false, thorns: 0.2 },
+  { name: 'Porcupine',      baseHp: 40,  intentMin: 4,  intentMax: 7,  isBoss: false, barbs: 2 },
+  { name: 'Toxic Slime',    baseHp: 90,  intentMin: 7,  intentMax: 11, isBoss: false, corrosive: true },
+  {
+    name: 'Spiked Behemoth', baseHp: 160, intentMin: 18, intentMax: 24, isBoss: true, thorns: 0,
+    intentCycle: [
+      { type: 'shield',          value: 35 },
+      { type: 'attack',          value: 20 },
+      { type: 'thorns_activate', value: 0.5 },
+    ],
+  },
+]
+
+function rollIntent(template: EnemyTemplate, floor: number, intentPhase = 0): EnemyIntent {
+  if (template.intentCycle && template.intentCycle.length > 0) {
+    const def = template.intentCycle[intentPhase % template.intentCycle.length]
+    if (def.type === 'attack') return { type: 'attack', value: def.value + Math.floor((floor - 1) * 0.5) }
+    return { type: def.type, value: def.value }
+  }
   const base = template.intentMin + Math.floor(Math.random() * (template.intentMax - template.intentMin + 1))
   return { type: 'attack', value: base + Math.floor((floor - 1) * 0.5) }
 }
 
 function spawnEnemy(floor: number): Enemy {
   const isBossFloor = floor % 5 === 0
-  const template    = isBossFloor ? BESTIARY[4] : BESTIARY[(floor - 1) % 4]
+  const act         = getCurrentAct(floor)
+  const bestiary    = act.id >= 2 ? ACT_2_BESTIARY : ACT_1_BESTIARY
+  const bossT       = bestiary.find(t => t.isBoss)!
+  const nonBoss     = bestiary.filter(t => !t.isBoss)
+  const template    = isBossFloor ? bossT : nonBoss[(floor - 1) % nonBoss.length]
   const hp          = template.baseHp + (floor - 1) * 3
-  return { hp, maxHp: hp, name: template.name, intent: rollIntent(template, floor), isBoss: template.isBoss, poison: 0 }
+  return {
+    hp, maxHp: hp,
+    name:        template.name,
+    intent:      rollIntent(template, floor, 0),
+    isBoss:      template.isBoss,
+    poison:      0,
+    thorns:      template.thorns,
+    barbs:       template.barbs,
+    corrosive:   template.corrosive,
+    shield:      0,
+    intentPhase: 0,
+  }
 }
 
 const INITIAL_INVENTORY: Die[] = [
@@ -792,7 +831,7 @@ export const useGameStore = create<GameState>()(
     set({ activeMultiplier: 1 })
 
     const { totalDamage, totalHeal, totalShield, totalSouls, totalPoison, enemy, player,
-            currentFloor, inventory, unlockedNodes, firstAttackThisEncounter } = get()
+            currentFloor, inventory, unlockedNodes, firstAttackThisEncounter, playedDice } = get()
 
     // First Blood: +1 damage on first bank of each encounter
     const firstBloodBonus = (unlockedNodes.includes('g1atjka6') && firstAttackThisEncounter) ? 1 : 0
@@ -818,17 +857,74 @@ export const useGameStore = create<GameState>()(
     set({ turnPhase: 'player_attack', playerAttackAnimTier: tier, isChoosingNextDie: false })
     await sleep(800)
 
-    // Apply damage after animation window
-    const newEnemyHp  = Math.max(0, enemy.hp - effectiveDamage)
-    const newPlayerHp = Math.min(player.maxHp, player.hp + totalHeal)
-    const newShield   = player.shield + totalShield
+    // Apply damage after animation window (enemy shield absorbs first)
+    const enemyShieldAbsorb = Math.min(enemy.shield ?? 0, effectiveDamage)
+    let newEnemyHp    = Math.max(0, enemy.hp - (effectiveDamage - enemyShieldAbsorb))
+    let newEnemyShield = Math.max(0, (enemy.shield ?? 0) - enemyShieldAbsorb)
+    let newPlayerHp   = Math.min(player.maxHp, player.hp + totalHeal)
+    let newShield     = player.shield + totalShield
 
     set((st) => ({
       playerAttackAnimTier: null,
-      enemy:  { ...st.enemy,  hp: newEnemyHp },
+      enemy:  { ...st.enemy,  hp: newEnemyHp, shield: newEnemyShield },
       player: { ...st.player, hp: newPlayerHp, shield: newShield },
       playerEffectVersion: st.playerEffectVersion + 1,
     }))
+
+    // Thorns / Barbs recoil — only when enemy survived the hit, poison exempt
+    if (newEnemyHp > 0) {
+      const dmgFaces     = playedDice.filter(d => d.currentFace?.type === 'damage').length
+      const thornsRecoil = Math.floor(effectiveDamage * (enemy.thorns ?? 0))
+      const barbsRecoil  = dmgFaces * (enemy.barbs ?? 0)
+      const totalRecoil  = thornsRecoil + barbsRecoil
+      if (totalRecoil > 0) {
+        const shieldAbsorb = Math.min(newShield, totalRecoil)
+        newShield   = newShield - shieldAbsorb
+        newPlayerHp = Math.max(0, newPlayerHp - (totalRecoil - shieldAbsorb))
+        set((st) => ({
+          player: { ...st.player, hp: newPlayerHp, shield: newShield },
+          playerHitVersion: st.playerHitVersion + 1,
+        }))
+        await sleep(300)
+        if (newPlayerHp <= 0) {
+          const snap = get()
+          if (snap.unlockedNodes.includes('7nescabs') && !snap.usedSecondWind) {
+            const allB = [...ACT_1_BESTIARY, ...ACT_2_BESTIARY]
+            const tmpl = allB.find(t => t.name === snap.enemy.name) ?? ACT_1_BESTIARY[1]
+            const nxPh = (snap.enemy.intentPhase ?? 0) + 1
+            const nxIn = rollIntent(tmpl, currentFloor, nxPh)
+            set((st) => ({
+              player: { ...st.player, hp: 20, shield: 0 },
+              usedSecondWind: true, secondWindTriggered: true,
+              turnPhase: 'idle',
+              totalDamage: 0, totalHeal: 0, totalShield: 0, totalSouls: 0, totalPoison: 0,
+              skullCount: 0,
+              drawPile: shuffleArray(equippedOnly(st.inventory)),
+              playedDice: [], lastEffects: { heal: 0, shield: 0, souls: 0 },
+              resolvingDieIndex: null, resolvingPhase: null,
+              rollStartVersion: st.rollStartVersion + 1,
+              isChoosingNextDie: false, firstAttackThisEncounter: true,
+              enemy: { ...st.enemy, intent: nxIn, intentPhase: nxPh, thorns: nxIn.type === 'thorns_activate' ? nxIn.value : (tmpl.thorns ?? 0) },
+            }))
+          } else {
+            set({
+              showGameOver: true, runSouls: 0,
+              player: { hp: 100, maxHp: 100, shield: 0 },
+              enemy: spawnEnemy(1), currentFloor: 1,
+              totalDamage: 0, totalHeal: 0, totalShield: 0, totalSouls: 0, totalPoison: 0,
+              skullCount: 0,
+              inventory: INITIAL_INVENTORY.map(d => ({ ...d })),
+              drawPile: [], playedDice: [],
+              lastEffects: { heal: 0, shield: 0, souls: 0 },
+              resolvingDieIndex: null, resolvingPhase: null,
+              draftChoices: [], lastSoulsEarned: 0,
+              isChoosingNextDie: false, turnPhase: 'loadout',
+            })
+          }
+          return
+        }
+      }
+    }
 
     if (newEnemyHp <= 0) {
       await sleep(450)
@@ -1394,12 +1490,52 @@ export const useGameStore = create<GameState>()(
 async function runEnemyPhase() {
   const { enemy, player, currentFloor } = useGameStore.getState()
 
-  // Read shield from store — already applied during player_attack phase
+  // ── Non-attack intents (shield buff, thorns activation) ──────────────────
+  if (enemy.intent.type === 'shield' || enemy.intent.type === 'thorns_activate') {
+    useGameStore.setState((st) => {
+      const updatedEnemy = enemy.intent.type === 'shield'
+        ? { ...st.enemy, shield: (st.enemy.shield ?? 0) + enemy.intent.value }
+        : { ...st.enemy, thorns: enemy.intent.value }
+      return { turnPhase: 'enemy_attack', enemyAttackVersion: st.enemyAttackVersion + 1, enemy: updatedEnemy }
+    })
+    await sleep(450)
+    useGameStore.setState((s) => {
+      const allB = [...ACT_1_BESTIARY, ...ACT_2_BESTIARY]
+      const tmpl = allB.find(t => t.name === s.enemy.name) ?? ACT_1_BESTIARY[1]
+      const nxPh = (s.enemy.intentPhase ?? 0) + 1
+      const nxIn = rollIntent(tmpl, currentFloor, nxPh)
+      return {
+        turnPhase: 'idle',
+        totalDamage: 0, totalHeal: 0, totalShield: 0, totalSouls: 0, totalPoison: 0,
+        skullCount: 0,
+        drawPile: shuffleArray(equippedOnly(s.inventory)),
+        playedDice: [],
+        lastEffects: { heal: 0, shield: 0, souls: 0 },
+        player: { ...s.player, shield: 0 },
+        enemy: { ...s.enemy, intent: nxIn, intentPhase: nxPh, thorns: nxIn.type === 'thorns_activate' ? nxIn.value : (tmpl.thorns ?? 0) },
+        rollStartVersion: s.rollStartVersion + 1,
+        isChoosingNextDie: false,
+        firstAttackThisEncounter: true,
+        resolvingDieIndex: null, resolvingPhase: null,
+      }
+    })
+    return
+  }
+
+  // ── Attack intent ────────────────────────────────────────────────────────
   const eShield   = player.shield
   const rawDamage = enemy.intent.value
-  const absorbed  = Math.min(eShield, rawDamage)
-  const postHp    = Math.max(0, player.hp - (rawDamage - absorbed))
-  const postShield = eShield - absorbed
+  let postHp: number
+  let postShield: number
+  if (enemy.corrosive) {
+    // Corrosive: hits shield and HP simultaneously — shields provide no protection
+    postHp    = Math.max(0, player.hp - rawDamage)
+    postShield = Math.max(0, eShield - rawDamage)
+  } else {
+    const absorbed = Math.min(eShield, rawDamage)
+    postHp    = Math.max(0, player.hp - (rawDamage - absorbed))
+    postShield = eShield - absorbed
+  }
 
   useGameStore.setState((st) => ({
     turnPhase: 'enemy_attack',
@@ -1432,10 +1568,13 @@ async function runEnemyPhase() {
         rollStartVersion: st.rollStartVersion + 1,
         isChoosingNextDie: false,
         firstAttackThisEncounter: true,
-        enemy: { ...st.enemy, intent: rollIntent(
-          BESTIARY.find((t) => t.name === st.enemy.name) ?? BESTIARY[1],
-          st.currentFloor,
-        )},
+        enemy: (() => {
+          const allB = [...ACT_1_BESTIARY, ...ACT_2_BESTIARY]
+          const tmpl = allB.find(t => t.name === st.enemy.name) ?? ACT_1_BESTIARY[1]
+          const nxPh = (st.enemy.intentPhase ?? 0) + 1
+          const nxIn = rollIntent(tmpl, st.currentFloor, nxPh)
+          return { ...st.enemy, intent: nxIn, intentPhase: nxPh, thorns: nxIn.type === 'thorns_activate' ? nxIn.value : (tmpl.thorns ?? 0) }
+        })(),
       }))
       return
     }
@@ -1464,13 +1603,13 @@ async function runEnemyPhase() {
       playedDice: [],
       lastEffects: { heal: 0, shield: 0, souls: 0 },
       player: { ...s.player, shield: 0 },
-      enemy: {
-        ...s.enemy,
-        intent: rollIntent(
-          BESTIARY.find((t) => t.name === s.enemy.name) ?? BESTIARY[1],
-          currentFloor
-        ),
-      },
+      enemy: (() => {
+        const allB = [...ACT_1_BESTIARY, ...ACT_2_BESTIARY]
+        const tmpl = allB.find(t => t.name === s.enemy.name) ?? ACT_1_BESTIARY[1]
+        const nxPh = (s.enemy.intentPhase ?? 0) + 1
+        const nxIn = rollIntent(tmpl, currentFloor, nxPh)
+        return { ...s.enemy, intent: nxIn, intentPhase: nxPh, thorns: nxIn.type === 'thorns_activate' ? nxIn.value : (tmpl.thorns ?? 0) }
+      })(),
       rollStartVersion: s.rollStartVersion + 1,
       isChoosingNextDie: false,
       firstAttackThisEncounter: true,

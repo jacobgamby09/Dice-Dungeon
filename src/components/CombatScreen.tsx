@@ -382,11 +382,30 @@ function EnemyOrbLayer({ enemyAttackVersion, enemyEl, playerHpRef }: {
 
 // ── Intent badge ──────────────────────────────────────────────────────────────
 function IntentBadge({ intent }: { intent: EnemyIntent }) {
+  if (intent.type === 'shield') {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <Shield size={18} color="#38bdf8" strokeWidth={2.5} />
+        <span style={{ fontSize: '1.3rem', fontWeight: 700, color: '#38bdf8', textShadow: '1px 1px 0 #000' }}>
+          +{intent.value}
+        </span>
+      </div>
+    )
+  }
+  if (intent.type === 'thorns_activate') {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <Swords size={18} color="#f97316" strokeWidth={2.5} />
+        <span style={{ fontSize: '0.7rem', fontWeight: 900, color: '#f97316', textShadow: '1px 1px 0 #000', letterSpacing: '0.08em' }}>
+          THORNS!
+        </span>
+      </div>
+    )
+  }
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
       <Swords size={22} color="#f87171" strokeWidth={2.5} />
-      <span style={{ fontSize: '1.6rem', fontWeight: 700, color: '#f87171',
-                     textShadow: '1px 1px 0 #000' }}>
+      <span style={{ fontSize: '1.6rem', fontWeight: 700, color: '#f87171', textShadow: '1px 1px 0 #000' }}>
         {intent.value}
       </span>
     </div>
@@ -1083,6 +1102,56 @@ export function CombatScreen() {
             </div>
             <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#d1d5db' }}>{enemy.hp} / {enemy.maxHp} HP</span>
             <HpBar hp={enemy.hp} maxHp={enemy.maxHp} color={enemy.isBoss ? '#b91c1c' : '#ef4444'} />
+
+            {/* Enemy shield bar */}
+            {(enemy.shield ?? 0) > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 2 }}>
+                <Shield size={11} color="#38bdf8" strokeWidth={2.5} />
+                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#7dd3fc' }}>{enemy.shield}</span>
+                <div className="pixel-bar-track" style={{ flex: 1 }}>
+                  <div className="pixel-bar-fill" style={{ width: `${Math.min(100, ((enemy.shield ?? 0) / enemy.maxHp) * 100)}%`, background: '#38bdf8' }} />
+                </div>
+              </div>
+            )}
+
+            {/* Passive ability badges */}
+            {((enemy.thorns ?? 0) > 0 || (enemy.barbs ?? 0) > 0 || enemy.corrosive) && (
+              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 3 }}>
+                {(enemy.thorns ?? 0) > 0 && (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: 3,
+                    background: '#431407', border: '2px solid #c2410c', padding: '1px 5px',
+                  }}>
+                    <Swords size={9} color="#f97316" strokeWidth={2.5} />
+                    <span style={{ fontSize: '0.58rem', fontWeight: 700, color: '#f97316', letterSpacing: '0.08em' }}>
+                      THORNS {Math.round((enemy.thorns ?? 0) * 100)}%
+                    </span>
+                  </div>
+                )}
+                {(enemy.barbs ?? 0) > 0 && (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: 3,
+                    background: '#3b1f07', border: '2px solid #92400e', padding: '1px 5px',
+                  }}>
+                    <Swords size={9} color="#f59e0b" strokeWidth={2.5} />
+                    <span style={{ fontSize: '0.58rem', fontWeight: 700, color: '#f59e0b', letterSpacing: '0.08em' }}>
+                      BARBS {enemy.barbs}
+                    </span>
+                  </div>
+                )}
+                {enemy.corrosive && (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: 3,
+                    background: '#052e16', border: '2px solid #15803d', padding: '1px 5px',
+                  }}>
+                    <FlaskConical size={9} color="#4ade80" strokeWidth={2.5} />
+                    <span style={{ fontSize: '0.58rem', fontWeight: 700, color: '#4ade80', letterSpacing: '0.08em' }}>
+                      CORROSIVE
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </motion.div>
       </div>
