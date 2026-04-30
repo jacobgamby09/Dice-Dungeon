@@ -118,8 +118,8 @@ export function InterActScreen() {
               }} />
 
               {/* Name, with merge level / unique star on second line */}
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: isSelected ? '#a5b4fc' : s.bg, letterSpacing: '0.05em' }}>
+              <div style={{ width: 72, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: isSelected ? '#a5b4fc' : s.bg, letterSpacing: '0.05em', wordBreak: 'break-word' }}>
                   {baseName}
                 </span>
                 {UNIQUE_DIE_TYPES.has(die.dieType) && (
@@ -131,7 +131,7 @@ export function InterActScreen() {
               </div>
 
               {/* Face mini-cells */}
-              <div style={{ display: 'flex', gap: 3 }}>
+              <div style={{ display: 'flex', gap: 3, flexShrink: 0 }}>
                 {die.faces.map((face, i) => (
                   <div
                     key={i}
