@@ -1406,24 +1406,22 @@ export const useGameStore = create<GameState>()(
       }
     }
 
+    const DEV_STANDARD_POOL: DieType[] = ['white', 'blue', 'green', 'heavy', 'paladin', 'gambler', 'wall']
+    const DEV_SPECIAL_POOL:  DieType[] = ['scavenger', 'joker', 'unique', 'blight', 'jackpot', 'vampire', 'priest', 'fortune_teller']
+
+    function pickWithReplacement(pool: DieType[], count: number): DieType[] {
+      const result: DieType[] = []
+      for (let i = 0; i < count; i++) result.push(pool[Math.floor(Math.random() * pool.length)])
+      return result
+    }
+
+    const standardTypes = pickWithReplacement(DEV_STANDARD_POOL, 10)
+    const specialTypes  = pickWithReplacement(DEV_SPECIAL_POOL,  5)
+    const mergeIndices  = new Set(shuffleArray([0, 1, 2, 3, 4]).slice(0, 2))
+
     const inventory: Die[] = [
-      // Standard dice (11) — realistic Act 1 carry
-      { ...createDie('white',  uid()), isEquipped: true },
-      { ...createDie('white',  uid()), isEquipped: true },
-      { ...createDie('white',  uid()), isEquipped: true },
-      { ...createDie('white',  uid()), isEquipped: true },
-      { ...createDie('blue',   uid()), isEquipped: true },
-      { ...createDie('blue',   uid()), isEquipped: true },
-      { ...createDie('blue',   uid()), isEquipped: true },
-      { ...createDie('green',  uid()), isEquipped: true },
-      { ...createDie('green',  uid()), isEquipped: true },
-      { ...createDie('cursed', uid()), isEquipped: true }, // boss floor 5
-      { ...createDie('cursed', uid()), isEquipped: true }, // boss floor 10
-      // Advanced / merged dice (4)
-      merged('blight',    1), // Blight +1
-      merged('heavy',     1), // Heavy +1
-      merged('scavenger', 2), // Scavenger +2
-      { ...createDie('unique', uid()), isEquipped: true }, // The Multiplier (unique, no merge)
+      ...standardTypes.map((t)    => ({ ...createDie(t, uid()), isEquipped: true as const })),
+      ...specialTypes.map((t, i)  => mergeIndices.has(i) ? merged(t, 1) : { ...createDie(t, uid()), isEquipped: true as const }),
     ]
 
     set((s) => ({
