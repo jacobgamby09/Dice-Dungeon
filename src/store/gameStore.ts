@@ -704,7 +704,8 @@ export const useGameStore = create<GameState>()(
       }))
       await sleep(400)
 
-      await runEnemyPhase()
+      const bustDied1 = await applyBustPoisonTick()
+      if (bustDied1) { await handleBustEnemyVictory() } else { await runEnemyPhase() }
       return
     }
 
@@ -807,7 +808,8 @@ export const useGameStore = create<GameState>()(
       }))
       await sleep(400)
 
-      await runEnemyPhase()
+      const bustDied2 = await applyBustPoisonTick()
+      if (bustDied2) { await handleBustEnemyVictory() } else { await runEnemyPhase() }
       return
     }
 
@@ -1619,6 +1621,68 @@ async function runEnemyPhase() {
       isChoosingNextDie: false,
       firstAttackThisEncounter: true,
       resolvingDieIndex: null, resolvingPhase: null,
+    }))
+  }
+}
+
+// Applies the existing enemy poison stack during a bust turn. Returns true if the enemy died.
+async function applyBustPoisonTick(): Promise<boolean> {
+  const { enemy } = useGameStore.getState()
+  if (enemy.poison <= 0) return false
+  const postHp = Math.max(0, enemy.hp - enemy.poison)
+  useGameStore.setState((st) => ({
+    enemy: { ...st.enemy, hp: postHp },
+    enemyHitVersion: st.enemyHitVersion + 1,
+  }))
+  await sleep(350)
+  useGameStore.setState((st) => ({ enemy: { ...st.enemy, poison: Math.max(0, enemy.poison - 1) } }))
+  return postHp <= 0
+}
+
+// Handles the victory state transition when enemy dies during a bust poison tick.
+async function handleBustEnemyVictory() {
+  const { currentFloor, unlockedNodes, inventory, player, lockedDraftDice } = useGameStore.getState()
+  const isBossFloor  = currentFloor % 5 === 0
+  const bountyBonus  = (unlockedNodes.includes('r9v5wdgh') && isBossFloor) ? 10 : 0
+  const earned       = currentFloor * 5 + bountyBonus
+  const thickSkin    = (isBossFloor && unlockedNodes.includes('aw2b29dw'))
+    ? Math.floor(player.maxHp * 0.15) : 0
+  const resetFields = {
+    totalDamage: 0, totalHeal: 0, totalShield: 0, totalSouls: 0, totalPoison: 0,
+    skullCount: 0, drawPile: [] as Die[], playedDice: [] as Die[],
+    lastEffects: { heal: 0, shield: 0, souls: 0 },
+    resolvingDieIndex: null as null, resolvingPhase: null as null,
+  }
+
+  if (isBossFloor && currentFloor === 15) {
+    useGameStore.setState((st) => ({
+      ...resetFields,
+      bankedSouls: st.bankedSouls + st.runSouls + earned,
+      runSouls: 0, lastSoulsEarned: earned,
+      turnPhase: 'inter_act_cull',
+      player: { ...st.player, hp: Math.min(st.player.maxHp, st.player.hp + thickSkin), shield: 0 },
+      justDefeatedBoss: false,
+    }))
+  } else if (isBossFloor) {
+    const curseId = uid()
+    useGameStore.setState((st) => ({
+      ...resetFields,
+      inventory: [...st.inventory, { ...createDie('cursed', curseId), isEquipped: true as const }],
+      runSouls: st.runSouls + earned, lastSoulsEarned: earned,
+      turnPhase: 'shop', justDefeatedBoss: true, showBossRewardModal: true, purifyUsesThisShop: 0,
+      player: { ...st.player, hp: Math.min(st.player.maxHp, st.player.hp + thickSkin) },
+    }))
+  } else {
+    const lockedTypes   = new Set(lockedDraftDice.map((d) => d.dieType))
+    const ownedUniques  = new Set(inventory.filter((d) => UNIQUE_DIE_TYPES.has(d.dieType)).map((d) => d.dieType))
+    const slots         = 3 - lockedDraftDice.length
+    const pool          = getDiceLootPool(unlockedNodes).filter((t) => !lockedTypes.has(t) && !ownedUniques.has(t))
+    const newDice       = shuffleArray([...pool]).slice(0, slots).map((t) => createDie(t, uid()))
+    useGameStore.setState((st) => ({
+      ...resetFields,
+      runSouls: st.runSouls + earned, lastSoulsEarned: earned,
+      draftChoices: [...lockedDraftDice, ...newDice],
+      lockedDraftDice: [], rerollCost: 5, turnPhase: 'draft',
     }))
   }
 }

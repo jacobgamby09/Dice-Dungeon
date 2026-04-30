@@ -265,7 +265,7 @@ export function LoadoutScreen() {
   const equipped    = inventory.filter((d) => d.isEquipped !== false)
   const reserved    = inventory.filter((d) => d.isEquipped === false)
   const atCapacity  = equipped.length >= maxEquippedDice
-  const canStart    = equipped.length > 0
+  const canStart    = equipped.length === maxEquippedDice
 
   return (
     <div style={{
@@ -457,7 +457,7 @@ export function LoadoutScreen() {
               cursor: canStart ? 'pointer' : 'not-allowed',
             }}
           >
-            {canStart ? '▶ START COMBAT' : '⚠ EQUIP A DIE'}
+            {canStart ? '▶ START COMBAT' : `⚠ NEED ${maxEquippedDice - equipped.length} MORE`}
           </button>
           <button
             onClick={devJumpToForge}

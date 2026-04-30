@@ -1241,13 +1241,13 @@ export function CombatScreen() {
           alignItems: 'center', marginBottom: 2,
         }}>
           <div ref={playerHpRef} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <Heart size={13} color="#f472b6" strokeWidth={2.5} />
-            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#f9a8d4' }}>{player.hp}</span>
-            <span style={{ fontSize: '0.75rem', color: '#4b5563' }}>/ {player.maxHp}</span>
+            <Heart size={18} color="#f472b6" strokeWidth={2.5} />
+            <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#f9a8d4', textShadow: '1px 1px 0 #000' }}>{player.hp}</span>
+            <span style={{ fontSize: '0.85rem', color: '#4b5563', fontWeight: 600 }}>/ {player.maxHp}</span>
             {player.shield > 0 && (
               <>
-                <Shield size={13} color="#38bdf8" strokeWidth={2.5} style={{ marginLeft: 4 }} />
-                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#7dd3fc' }}>{player.shield}</span>
+                <Shield size={16} color="#38bdf8" strokeWidth={2.5} style={{ marginLeft: 4 }} />
+                <span style={{ fontSize: '1.3rem', fontWeight: 800, color: '#7dd3fc', textShadow: '1px 1px 0 #000' }}>{player.shield}</span>
               </>
             )}
           </div>
