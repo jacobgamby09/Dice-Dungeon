@@ -940,6 +940,7 @@ export function CombatScreen() {
   const [isAutoRolling, setIsAutoRolling] = useState(false)
   const autoRollRef = useRef(false)
   const [floatingSouls, setFloatingGold] = useState(0)
+  const [hoveredBadge, setHoveredBadge] = useState<null | 'thorns' | 'barbs'>(null)
 
   useEffect(() => {
     if (!secondWindTriggered) return
@@ -958,6 +959,11 @@ export function CombatScreen() {
 
   const hasScouting = unlockedNodes.includes('zmumocry')
   const hasAutoRoll = unlockedNodes.includes('w6bsuulh')
+
+  const damageDiceInPlay = playedDice.filter(d => d.currentFace?.type === 'damage').length
+  const expectedThorns   = Math.floor(totalDamage * (enemy?.thorns ?? 0))
+  const expectedBarbs    = damageDiceInPlay * (enemy?.barbs ?? 0)
+  const expectedRecoil   = expectedThorns + expectedBarbs
 
   const startAutoRoll = async () => {
     autoRollRef.current = true
@@ -1129,25 +1135,63 @@ export function CombatScreen() {
             {((enemy.thorns ?? 0) > 0 || (enemy.barbs ?? 0) > 0 || enemy.corrosive) && (
               <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 3 }}>
                 {(enemy.thorns ?? 0) > 0 && (
-                  <div style={{
-                    display: 'flex', alignItems: 'center', gap: 3,
-                    background: '#431407', border: '2px solid #c2410c', padding: '1px 5px',
-                  }}>
-                    <Swords size={9} color="#f97316" strokeWidth={2.5} />
-                    <span style={{ fontSize: '0.58rem', fontWeight: 700, color: '#f97316', letterSpacing: '0.08em' }}>
-                      THORNS {Math.round((enemy.thorns ?? 0) * 100)}%
-                    </span>
+                  <div
+                    style={{ position: 'relative', display: 'inline-flex' }}
+                    onMouseEnter={() => setHoveredBadge('thorns')}
+                    onMouseLeave={() => setHoveredBadge(null)}
+                  >
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: 3,
+                      background: '#431407', border: '2px solid #c2410c', padding: '1px 5px',
+                      cursor: 'help',
+                    }}>
+                      <Swords size={9} color="#f97316" strokeWidth={2.5} />
+                      <span style={{ fontSize: '0.58rem', fontWeight: 700, color: '#f97316', letterSpacing: '0.08em' }}>
+                        THORNS {Math.round((enemy.thorns ?? 0) * 100)}%
+                      </span>
+                    </div>
+                    {hoveredBadge === 'thorns' && (
+                      <div style={{
+                        position: 'absolute', bottom: 'calc(100% + 4px)', left: '50%',
+                        transform: 'translateX(-50%)',
+                        background: '#1c0a00', border: '2px solid #c2410c',
+                        padding: '5px 8px', width: 180, zIndex: 50,
+                        fontSize: '0.65rem', color: '#fed7aa', lineHeight: 1.4,
+                        pointerEvents: 'none',
+                      }}>
+                        Reflects <strong style={{ color: '#f97316' }}>{Math.round((enemy.thorns ?? 0) * 100)}%</strong> of incoming damage back to the attacker. Hits your Shield first.
+                      </div>
+                    )}
                   </div>
                 )}
                 {(enemy.barbs ?? 0) > 0 && (
-                  <div style={{
-                    display: 'flex', alignItems: 'center', gap: 3,
-                    background: '#3b1f07', border: '2px solid #92400e', padding: '1px 5px',
-                  }}>
-                    <Swords size={9} color="#f59e0b" strokeWidth={2.5} />
-                    <span style={{ fontSize: '0.58rem', fontWeight: 700, color: '#f59e0b', letterSpacing: '0.08em' }}>
-                      BARBS {enemy.barbs}
-                    </span>
+                  <div
+                    style={{ position: 'relative', display: 'inline-flex' }}
+                    onMouseEnter={() => setHoveredBadge('barbs')}
+                    onMouseLeave={() => setHoveredBadge(null)}
+                  >
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: 3,
+                      background: '#3b1f07', border: '2px solid #92400e', padding: '1px 5px',
+                      cursor: 'help',
+                    }}>
+                      <Swords size={9} color="#f59e0b" strokeWidth={2.5} />
+                      <span style={{ fontSize: '0.58rem', fontWeight: 700, color: '#f59e0b', letterSpacing: '0.08em' }}>
+                        BARBS {enemy.barbs}
+                      </span>
+                    </div>
+                    {hoveredBadge === 'barbs' && (
+                      <div style={{
+                        position: 'absolute', bottom: 'calc(100% + 4px)', left: '50%',
+                        transform: 'translateX(-50%)',
+                        background: '#1c0f00', border: '2px solid #92400e',
+                        padding: '5px 8px', width: 190, zIndex: 50,
+                        fontSize: '0.65rem', color: '#fde68a', lineHeight: 1.4,
+                        pointerEvents: 'none',
+                      }}>
+                        Deals <strong style={{ color: '#f59e0b' }}>{enemy.barbs}</strong> damage to the attacker for EVERY attack die played this turn. Hits your Shield first.
+                      </div>
+                    )}
                   </div>
                 )}
                 {enemy.corrosive && (
@@ -1161,6 +1205,20 @@ export function CombatScreen() {
                     </span>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Recoil preview — shown when player has queued damage against a recoil enemy */}
+            {expectedRecoil > 0 && (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 4, marginTop: 3,
+                background: 'rgba(127,29,29,0.4)', border: '1px solid #991b1b',
+                padding: '2px 6px',
+              }}>
+                <Swords size={9} color="#fca5a5" strokeWidth={2.5} />
+                <span style={{ fontSize: '0.6rem', fontWeight: 700, color: '#fca5a5', letterSpacing: '0.06em' }}>
+                  RECOIL: {expectedRecoil} dmg on bank
+                </span>
               </div>
             )}
           </div>
