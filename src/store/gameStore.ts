@@ -350,6 +350,8 @@ interface GameState {
   cullInventory: (selectedIds: string[]) => void
   abandonRun: () => void
   devJumpToForge: () => void
+  isAutoBankDevMode: boolean
+  toggleAutoBankDevMode: () => void
 }
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
@@ -511,6 +513,7 @@ export const useGameStore = create<GameState>()(
   showGameOver: false,
   purifyUsesThisShop: 0,
   activeMultiplier: 1,
+  isAutoBankDevMode: false,
   multiplierFiredVersion: 0,
   maxEquippedDice: 10,
 
@@ -1478,6 +1481,8 @@ export const useGameStore = create<GameState>()(
       turnPhase:    'idle',
     }))
   },
+
+  toggleAutoBankDevMode: () => set(s => ({ isAutoBankDevMode: !s.isAutoBankDevMode })),
     }),
     {
       name: 'dice-dungeon-save',

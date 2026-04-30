@@ -849,7 +849,9 @@ export function CombatScreen() {
     }))
   )
 
-  const bankedSouls = useGameStore(s => s.bankedSouls)
+  const bankedSouls           = useGameStore(s => s.bankedSouls)
+  const isAutoBankDevMode     = useGameStore(s => s.isAutoBankDevMode)
+  const toggleAutoBankDevMode = useGameStore(s => s.toggleAutoBankDevMode)
 
   const enemyScope  = useHitAnimation(enemyHitVersion,  'rgba(220,38,38,0.45)')
   const playerScope = useHitAnimation(playerHitVersion, 'rgba(220,38,38,0.45)')
@@ -962,7 +964,16 @@ export function CombatScreen() {
     setIsAutoRolling(true)
     while (autoRollRef.current) {
       const s = useGameStore.getState()
-      if (s.skullCount >= 2 || s.drawPile.length === 0 || s.turnPhase !== 'idle' || s.isChoosingNextDie) break
+      if (s.drawPile.length === 0 || s.turnPhase !== 'idle' || s.isChoosingNextDie) break
+      if (s.skullCount >= 2) {
+        if (s.isAutoBankDevMode) {
+          await bankAndAttack()
+          await new Promise<void>((r) => setTimeout(r, 300))
+          continue
+        } else {
+          break
+        }
+      }
       await drawAndRoll()
       await new Promise<void>((r) => setTimeout(r, 100))
     }
@@ -1344,6 +1355,21 @@ export function CombatScreen() {
                 {isAutoRolling ? '■ STOP' : '⚡ AUTO'}
               </button>
             )}
+            <button
+              onClick={toggleAutoBankDevMode}
+              className="pixel-btn"
+              style={{
+                height: 38, padding: '0 12px',
+                background: isAutoBankDevMode ? '#ea580c' : '#1c1917',
+                border: `2px solid ${isAutoBankDevMode ? '#fed7aa' : '#ea580c'}`,
+                color: isAutoBankDevMode ? '#fff' : '#fb923c',
+                fontSize: '0.7rem',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+              }}
+            >
+              {isAutoBankDevMode ? 'AFK ON' : 'AFK'}
+            </button>
             {hasScouting && (
               <button
                 onClick={() => setShowScout(true)}
