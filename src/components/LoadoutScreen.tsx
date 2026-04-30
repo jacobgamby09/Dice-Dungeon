@@ -244,11 +244,14 @@ function ReserveDieCard({ die, onEquip, disabled }: { die: Die; onEquip: () => v
 // ── Loadout screen ────────────────────────────────────────────────────────────
 
 export function LoadoutScreen() {
-  const {
-    currentFloor, startCombat, devJumpToForge,
-    inventory, maxEquippedDice,
-    toggleEquipDie, resetLoadout, equipBaseDie,
-  } = useGameStore()
+  const currentFloor   = useGameStore(s => s.currentFloor)
+  const startCombat    = useGameStore(s => s.startCombat)
+  const devJumpToForge = useGameStore(s => s.devJumpToForge)
+  const inventory      = useGameStore(s => s.inventory)
+  const maxEquippedDice = useGameStore(s => s.maxEquippedDice)
+  const toggleEquipDie = useGameStore(s => s.toggleEquipDie)
+  const resetLoadout   = useGameStore(s => s.resetLoadout)
+  const equipBaseDie   = useGameStore(s => s.equipBaseDie)
   const bankedSouls        = useGameStore((s) => s.bankedSouls)
 
   const [showTalents, setShowTalents] = useState(false)

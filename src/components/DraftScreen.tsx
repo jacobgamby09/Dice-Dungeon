@@ -126,7 +126,13 @@ function DieChoiceCard({
 // ── Draft screen ──────────────────────────────────────────────────────────────
 
 export function DraftScreen() {
-  const { draftChoices, lastSoulsEarned, runSouls, rerollCost, selectDraftDie, rerollDraft, extractToBase } = useGameStore()
+  const draftChoices    = useGameStore(s => s.draftChoices)
+  const lastSoulsEarned = useGameStore(s => s.lastSoulsEarned)
+  const runSouls        = useGameStore(s => s.runSouls)
+  const rerollCost      = useGameStore(s => s.rerollCost)
+  const selectDraftDie  = useGameStore(s => s.selectDraftDie)
+  const rerollDraft     = useGameStore(s => s.rerollDraft)
+  const extractToBase   = useGameStore(s => s.extractToBase)
   const inventory = useGameStore((s) => s.inventory)
   const [lockedIds, setLockedIds] = useState<Set<string>>(new Set())
   const [showBagModal, setShowBagModal] = useState(false)

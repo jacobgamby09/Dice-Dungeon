@@ -214,11 +214,15 @@ function FacePickerGrid({
 // ── Shop screen ───────────────────────────────────────────────────────────────
 
 export function ShopScreen() {
-  const {
-    player, runSouls, inventory,
-    shopHeal, shopMergeDice, shopCraftFace, shopPurifyFace, leaveShop,
-    purifyUsesThisShop,
-  } = useGameStore()
+  const player           = useGameStore(s => s.player)
+  const runSouls         = useGameStore(s => s.runSouls)
+  const inventory        = useGameStore(s => s.inventory)
+  const shopHeal         = useGameStore(s => s.shopHeal)
+  const shopMergeDice    = useGameStore(s => s.shopMergeDice)
+  const shopCraftFace    = useGameStore(s => s.shopCraftFace)
+  const shopPurifyFace   = useGameStore(s => s.shopPurifyFace)
+  const leaveShop        = useGameStore(s => s.leaveShop)
+  const purifyUsesThisShop = useGameStore(s => s.purifyUsesThisShop)
   const unlockedNodes = useGameStore((s) => s.unlockedNodes)
   const healCost  = unlockedNodes.includes('7jutuf9h') ? 5  : 10
   const mergeCost = unlockedNodes.includes('m1hjf9ac') ? 25 : 40

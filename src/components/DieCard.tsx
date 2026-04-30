@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Swords, Shield, Heart, Skull, Flame, Droplets, Star, Shuffle, FlaskConical } from 'lucide-react'
 import type { Die, DieType, DieFace, ResolvingPhase } from '../store/gameStore'
@@ -357,7 +357,7 @@ interface DieCardProps {
   resolvingPhase?: ResolvingPhase
 }
 
-export function DieCard({
+export const DieCard = React.memo(function DieCard({
   die, onClick, dimmed = false, isResolving = false, resolvingPhase = null,
 }: DieCardProps) {
   const s          = dieTypeStyle[die.dieType]
@@ -712,7 +712,7 @@ export function DieCard({
     </motion.div>
     </motion.div>
   )
-}
+})
 
 // ── EmptySlot ────────────────────────────────────────────────────────────────
 

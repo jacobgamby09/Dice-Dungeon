@@ -4,6 +4,7 @@ import { motion, AnimatePresence, useMotionValue, useTransform, animate, useAnim
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
 import { Shield, Heart, Swords, Library, Skull, Flame, FlaskConical, Biohazard } from 'lucide-react'
 import { useGameStore } from '../store/gameStore'
+import { useShallow } from 'zustand/shallow'
 import type { Die, EnemyIntent, ResolvingPhase, DieType } from '../store/gameStore'
 import { DieCard, faceColor, faceShadow, dieTypeStyle } from './DieCard'
 import { EnemySprite } from './EnemySprite'
@@ -762,18 +763,74 @@ function ScoutModal({ drawPile, onClose }: { drawPile: import('../store/gameStor
 
 // ── Main screen ──────────────────────────────────────────────────────────────
 export function CombatScreen() {
-  const {
-    player, enemy,
-    drawPile, playedDice, skullCount, skullRolledVersion,
-    totalDamage, totalHeal, totalShield, totalSouls, totalPoison,
-    lastEffects, turnPhase, playerAttackAnimTier,
-    enemyHitVersion, playerHitVersion, playerEffectVersion,
-    orbVersion, counterVersion, rollStartVersion, resolvingDieIndex, resolvingPhase, enemyAttackVersion,
-    currentFloor, runSouls, drawAndRoll, bankAndAttack, unlockedNodes, isChoosingNextDie, abandonRun,
-    secondWindTriggered, activeMultiplier, multiplierFiredVersion,
-  } = useGameStore()
+  // Actions — stable refs, never cause re-renders
+  const drawAndRoll   = useGameStore(s => s.drawAndRoll)
+  const bankAndAttack = useGameStore(s => s.bankAndAttack)
+  const abandonRun    = useGameStore(s => s.abandonRun)
 
-  const bankedSouls = useGameStore((s) => s.bankedSouls)
+  // Dice lists
+  const { drawPile, playedDice } = useGameStore(
+    useShallow(s => ({ drawPile: s.drawPile, playedDice: s.playedDice }))
+  )
+
+  // Resolving animation state
+  const { resolvingDieIndex, resolvingPhase } = useGameStore(
+    useShallow(s => ({ resolvingDieIndex: s.resolvingDieIndex, resolvingPhase: s.resolvingPhase }))
+  )
+
+  // Version counters
+  const {
+    rollStartVersion, counterVersion, skullRolledVersion, enemyHitVersion,
+    playerHitVersion, playerEffectVersion, orbVersion, enemyAttackVersion,
+    multiplierFiredVersion,
+  } = useGameStore(
+    useShallow(s => ({
+      rollStartVersion:       s.rollStartVersion,
+      counterVersion:         s.counterVersion,
+      skullRolledVersion:     s.skullRolledVersion,
+      enemyHitVersion:        s.enemyHitVersion,
+      playerHitVersion:       s.playerHitVersion,
+      playerEffectVersion:    s.playerEffectVersion,
+      orbVersion:             s.orbVersion,
+      enemyAttackVersion:     s.enemyAttackVersion,
+      multiplierFiredVersion: s.multiplierFiredVersion,
+    }))
+  )
+
+  // Totals
+  const { totalDamage, totalHeal, totalShield, totalSouls, totalPoison } = useGameStore(
+    useShallow(s => ({
+      totalDamage: s.totalDamage,
+      totalHeal:   s.totalHeal,
+      totalShield: s.totalShield,
+      totalSouls:  s.totalSouls,
+      totalPoison: s.totalPoison,
+    }))
+  )
+
+  // Core combat state
+  const {
+    player, enemy, skullCount, turnPhase, playerAttackAnimTier, lastEffects,
+    secondWindTriggered, isChoosingNextDie, activeMultiplier,
+    unlockedNodes, currentFloor, runSouls,
+  } = useGameStore(
+    useShallow(s => ({
+      player:               s.player,
+      enemy:                s.enemy,
+      skullCount:           s.skullCount,
+      turnPhase:            s.turnPhase,
+      playerAttackAnimTier: s.playerAttackAnimTier,
+      lastEffects:          s.lastEffects,
+      secondWindTriggered:  s.secondWindTriggered,
+      isChoosingNextDie:    s.isChoosingNextDie,
+      activeMultiplier:     s.activeMultiplier,
+      unlockedNodes:        s.unlockedNodes,
+      currentFloor:         s.currentFloor,
+      runSouls:             s.runSouls,
+    }))
+  )
+
+  const bankedSouls = useGameStore(s => s.bankedSouls)
 
   const enemyScope  = useHitAnimation(enemyHitVersion,  'rgba(220,38,38,0.45)')
   const playerScope = useHitAnimation(playerHitVersion, 'rgba(220,38,38,0.45)')
