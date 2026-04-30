@@ -93,7 +93,7 @@ export function InterActScreen() {
           const s = dieTypeStyle[die.dieType]
           const isSelected = selectedIds.has(die.id)
           const isDisabled = !isSelected && selectedIds.size >= CULL_TARGET
-          const name = `${DIE_NAMES[die.dieType] ?? die.dieType}${UNIQUE_DIE_TYPES.has(die.dieType) ? ' ★' : ''}`
+          const baseName = DIE_NAMES[die.dieType] ?? die.dieType
 
           return (
             <button
@@ -117,19 +117,18 @@ export function InterActScreen() {
                 boxShadow: `1px 1px 0 ${s.shadow}`,
               }} />
 
-              {/* Name + merge badge */}
-              <span style={{
-                fontSize: '0.75rem', fontWeight: 700,
-                color: isSelected ? '#a5b4fc' : s.bg,
-                flex: 1, letterSpacing: '0.05em',
-              }}>
-                {name}
-                {(die.mergeLevel ?? 0) > 0 && (
-                  <span style={{ color: '#f59e0b', fontWeight: 900, marginLeft: 4 }}>
-                    +{die.mergeLevel}
-                  </span>
+              {/* Name, with merge level / unique star on second line */}
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: isSelected ? '#a5b4fc' : s.bg, letterSpacing: '0.05em' }}>
+                  {baseName}
+                </span>
+                {UNIQUE_DIE_TYPES.has(die.dieType) && (
+                  <span style={{ fontSize: '0.6rem', fontWeight: 900, color: isSelected ? '#a5b4fc' : s.bg, lineHeight: 1 }}>★</span>
                 )}
-              </span>
+                {(die.mergeLevel ?? 0) > 0 && (
+                  <span style={{ fontSize: '0.6rem', fontWeight: 900, color: '#f59e0b', lineHeight: 1 }}>+{die.mergeLevel}</span>
+                )}
+              </div>
 
               {/* Face mini-cells */}
               <div style={{ display: 'flex', gap: 3 }}>
