@@ -1406,8 +1406,11 @@ export const useGameStore = create<GameState>()(
       }
     }
 
-    const DEV_STANDARD_POOL: DieType[] = ['white', 'blue', 'green', 'heavy', 'paladin', 'gambler', 'wall']
-    const DEV_SPECIAL_POOL:  DieType[] = ['scavenger', 'joker', 'unique', 'blight', 'jackpot', 'vampire', 'priest', 'fortune_teller']
+    const STARTING_POOL: DieType[] = ['white', 'blue', 'green']
+    const ADVANCED_POOL: DieType[] = [
+      'heavy', 'paladin', 'gambler', 'scavenger', 'wall',
+      'jackpot', 'vampire', 'priest', 'fortune_teller', 'joker', 'unique', 'blight',
+    ]
 
     function pickWithReplacement(pool: DieType[], count: number): DieType[] {
       const result: DieType[] = []
@@ -1415,14 +1418,30 @@ export const useGameStore = create<GameState>()(
       return result
     }
 
-    const standardTypes = pickWithReplacement(DEV_STANDARD_POOL, 10)
-    const specialTypes  = pickWithReplacement(DEV_SPECIAL_POOL,  5)
-    const mergeIndices  = new Set(shuffleArray([0, 1, 2, 3, 4]).slice(0, 2))
+    // 16 regular dice: 7 starting + 9 advanced, 3 random merges
+    const regularTypes  = [...pickWithReplacement(STARTING_POOL, 7), ...pickWithReplacement(ADVANCED_POOL, 9)]
+    const mergeIndices  = new Set(shuffleArray([...Array(16).keys()]).slice(0, 3))
+    const regularDice: Die[] = regularTypes.map((t, i) =>
+      mergeIndices.has(i) ? merged(t, 1) : { ...createDie(t, uid()), isEquipped: true as const }
+    )
 
-    const inventory: Die[] = [
-      ...standardTypes.map((t)    => ({ ...createDie(t, uid()), isEquipped: true as const })),
-      ...specialTypes.map((t, i)  => mergeIndices.has(i) ? merged(t, 1) : { ...createDie(t, uid()), isEquipped: true as const }),
-    ]
+    // 5 cursed dice with 6 of the 30 skull faces randomly purified
+    const cursedFaces: DieFace[][] = Array.from({ length: 5 }, () =>
+      Array.from({ length: 6 }, () => ({ type: 'skull' as const, value: 1 }))
+    )
+    const allSlots = cursedFaces.flatMap((_, di) =>
+      [0, 1, 2, 3, 4, 5].map((fi) => [di, fi] as [number, number])
+    )
+    shuffleArray(allSlots).slice(0, 6).forEach(([di, fi]) => {
+      cursedFaces[di][fi] = { type: 'purified_skull', value: 0 }
+    })
+    const cursedDice: Die[] = cursedFaces.map((faces) => ({
+      ...createDie('cursed', uid()),
+      isEquipped: true as const,
+      faces,
+    }))
+
+    const inventory: Die[] = [...regularDice, ...cursedDice]
 
     set((s) => ({
       turnPhase:    'idle',
