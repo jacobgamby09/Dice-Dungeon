@@ -84,7 +84,7 @@ function DamageCounter({ target, rollStartVersion, counterVersion, attackTier }:
   )
 }
 
-// ── Stat badge (heal / shield / gold secondary counter) ──────────────────────
+// ── Stat badge (heal / shield / souls secondary counter) ─────────────────────
 function StatBadge({
   target, color, shadow, icon, rollStartVersion, counterVersion,
 }: {
@@ -420,7 +420,7 @@ function IntentBadge({ intent, recoil = 0 }: { intent: EnemyIntent; recoil?: num
 // ── Floating effect popups ───────────────────────────────────────────────────
 type FloatItem = { id: number; label: string; color: string; shadow: string; offset: number }
 
-function FloatingEffects({ heal, shield, gold: souls, version }: { heal: number; shield: number; gold: number; version: number }) {
+function FloatingEffects({ heal, shield, souls, version }: { heal: number; shield: number; souls: number; version: number }) {
   const [items, setItems] = useState<FloatItem[]>([])
   const prevVersion = useRef(version)
 
@@ -944,7 +944,7 @@ export function CombatScreen() {
   const [showScout, setShowScout] = useState(false)
   const [isAutoRolling, setIsAutoRolling] = useState(false)
   const autoRollRef = useRef(false)
-  const [floatingSouls, setFloatingGold] = useState(0)
+  const [floatingSouls, setFloatingSouls] = useState(0)
   const [hoveredBadge, setHoveredBadge] = useState<null | 'thorns' | 'barbs' | 'corrosive'>(null)
 
   useEffect(() => {
@@ -956,8 +956,8 @@ export function CombatScreen() {
   const handleAttack = () => {
     const g = useGameStore.getState().totalSouls
     if (g > 0) {
-      setFloatingGold(g)
-      setTimeout(() => setFloatingGold(0), 1500)
+      setFloatingSouls(g)
+      setTimeout(() => setFloatingSouls(0), 1500)
     }
     bankAndAttack()
   }
@@ -1250,7 +1250,7 @@ export function CombatScreen() {
         <FloatingEffects
           heal={lastEffects.heal}
           shield={lastEffects.shield}
-          gold={lastEffects.souls}
+          souls={lastEffects.souls}
           version={playerEffectVersion}
         />
 

@@ -393,16 +393,16 @@ interface EnemyTemplate {
 
 export const SKILL_TREE_NODES: SkillNode[] = [
   { id: 'sflz4yv3', name: 'The Awakening',        description: 'Your journey begins.',                              cost: 0,    x: -0.75,       y: -1,   requires: [] },
-  { id: 'tqo6xv7r', name: 'Pocket Change',         description: 'Start each run with 10 Gold.',                     cost: 100,  x: 202.703125,  y: -94,  requires: ['sflz4yv3'] },
+  { id: 'tqo6xv7r', name: 'Pocket Change',         description: 'Start each run with 10 Run Souls.',               cost: 100,  x: 202.703125,  y: -94,  requires: ['sflz4yv3'] },
   { id: 'fyuwvmzq', name: 'Vitality I',            description: '+10 Max HP.',                                      cost: 100,  x: 208.078125,  y: 71,   requires: ['sflz4yv3'] },
   { id: 'g1atjka6', name: 'First Blood',           description: 'First attack each encounter gives +1 damage.',     cost: 100,  x: 3.84375,     y: 141,  requires: ['sflz4yv3'] },
   { id: 'kec9ybn2', name: 'New Dice: The Jackpot', description: 'Adds The Jackpot to the dice loot pool.',          cost: 700,  x: -43.828125,  y: -236, requires: ['sflz4yv3'] },
   { id: '60vc1fvg', name: 'New Dice: The Vampire', description: 'Adds The Vampire to the dice loot pool.',          cost: 700,  x: 145.847,     y: -358, requires: ['dx6jq5y5'] },
-  { id: '7jutuf9h', name: 'Haggler',               description: 'Rest costs 5 Gold instead of 10.',                 cost: 300,  x: 310.171875,  y: -223, requires: ['tqo6xv7r'] },
-  { id: 'r9v5wdgh', name: 'Bounty Hunter',         description: 'Bosses drop 10 extra Gold.',                       cost: 200,  x: 423.171875,  y: -98,  requires: ['tqo6xv7r'] },
+  { id: '7jutuf9h', name: 'Haggler',               description: 'Heal at the Forge costs 5 Souls instead of 10.',  cost: 300,  x: 310.171875,  y: -223, requires: ['tqo6xv7r'] },
+  { id: 'r9v5wdgh', name: 'Bounty Hunter',         description: 'Bosses drop 10 extra Run Souls.',                  cost: 200,  x: 423.171875,  y: -98,  requires: ['tqo6xv7r'] },
   { id: 'aw2b29dw', name: 'Thick Skin',            description: 'Heal 15% of max HP after defeating a boss.',       cost: 150,  x: 394.40625,   y: 14,   requires: ['fyuwvmzq'] },
   { id: 'hnwdjqof', name: 'Sharpened Edges',       description: 'White dice: 1-damage faces become 2-damage.',      cost: 500,  x: 9.046875,    y: 250,  requires: ['g1atjka6'] },
-  { id: 'm1hjf9ac', name: 'Forge Master',          description: 'Merge costs 25 Gold instead of 40.',               cost: 1000, x: 613.875,     y: -101, requires: ['r9v5wdgh'] },
+  { id: 'm1hjf9ac', name: 'Forge Master',          description: 'Merge costs 25 Souls instead of 40.',             cost: 1000, x: 613.875,     y: -101, requires: ['r9v5wdgh'] },
   { id: 'co2xusrh', name: 'Vitality II',           description: '+15 Max HP.',                                      cost: 300,  x: 594.46875,   y: 11,   requires: ['aw2b29dw'] },
   { id: '7nescabs', name: 'Second Wind',           description: 'Once per run, revive with 20 HP instead of dying.', cost: 1000, x: 776.84375,  y: 13,   requires: ['co2xusrh'] },
   { id: 'zmumocry', name: 'Scouting',              description: 'You can always see what dice are left in your bag.', cost: 500,  x: -194.9375,  y: 123,  requires: ['sflz4yv3'] },
@@ -754,7 +754,7 @@ export const useGameStore = create<GameState>()(
 
     // ── Bust check ──────────────────────────────────────────────────────
     if (newSkullCount >= 3) {
-      // Animate damage/heal/gold counters to 0
+      // Animate damage/heal/souls counters to 0
       set((st) => ({
         totalDamage: 0,
         totalHeal:   0,
@@ -1237,7 +1237,7 @@ export const useGameStore = create<GameState>()(
       set((st) => ({ enemy: { ...st.enemy, poison: Math.max(0, stackedPoison - 1) } }))
     }
 
-    // Credit accumulated gold before runEnemyPhase clears it
+    // Credit accumulated souls before runEnemyPhase clears it
     if (totalSouls > 0) {
       set((st) => ({ runSouls: st.runSouls + totalSouls }))
     }

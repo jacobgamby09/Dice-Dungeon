@@ -42,7 +42,7 @@ There is a single unified currency: **Souls**.
 
 | Type | Description | How Earned | How Spent |
 |------|-------------|------------|-----------|
-| **Run Souls** | Risk currency; held in-run, lost on death | Defeating enemies, gold die faces, boss bonuses | The Forge (merge, craft, purify, heal) |
+| **Run Souls** | Risk currency; held in-run, lost on death | Defeating enemies, souls die faces, boss bonuses | The Forge (merge, craft, purify, heal) |
 | **Banked Souls** | Safe currency; stored at the Hub permanently | Surviving a delve (Flee the Depths) | Hub meta-progression Skill Tree |
 
 Run Souls become Banked Souls only when the player successfully extracts. Dying forfeits all Run Souls accrued during that delve.
@@ -329,9 +329,10 @@ Only `metaSouls` (Banked Souls) and `unlockedNodes` are persisted between sessio
 ```typescript
 interface DieFace {
   type:
-    | 'damage' | 'shield' | 'heal' | 'skull' | 'gold'
+    | 'damage' | 'shield' | 'heal' | 'skull' | 'souls'
     | 'lifesteal' | 'choose_next' | 'wildcard'
     | 'blank' | 'purified_skull' | 'multiplier' | 'poison'
+    | 'hot' | 'mirror'
   value: number
 }
 
@@ -376,13 +377,13 @@ interface GameState {
   totalDamage: number
   totalShield: number
   totalHeal: number
-  totalGold: number        // Run Souls earned via die faces this turn
+  totalSouls: number       // Run Souls earned via die faces this turn
   totalPoison: number      // Poison stacked this turn; applied to enemy at bank
   activeMultiplier: number // Resets to 1 on bankAndAttack and each die resolution
 
   // Progression
   currentFloor: number
-  gold: number             // Total Run Souls held this delve
+  runSouls: number         // Total Run Souls held this delve
   draftChoices: Die[]
 
   // Meta (persisted)
