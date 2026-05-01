@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Swords, Shield, Heart, Skull, Flame, Droplets, Star, Shuffle, FlaskConical, Clock } from 'lucide-react'
+import { Swords, Shield, Heart, Skull, Flame, Droplets, Star, Shuffle, FlaskConical, Clock, RefreshCw } from 'lucide-react'
 import type { Die, DieType, DieFace, ResolvingPhase } from '../store/gameStore'
 
 // ── Visual tables ────────────────────────────────────────────────────────────
@@ -23,7 +23,7 @@ export const dieTypeStyle: Record<DieType, { bg: string; shadow: string; text: s
   unique:        { bg: '#06b6d4', shadow: '#0e7490',  text: '#ffffff' },
   blight:        { bg: '#4d7c0f', shadow: '#1a2e05',  text: '#d9f99d' },
   rejuvenator:   { bg: '#bbf7d0', shadow: '#15803d',  text: '#052e16' },
-  mirror:        { bg: '#bfdbfe', shadow: '#1d4ed8',  text: '#1e3a8a' },
+  mirror:        { bg: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 40%, #94a3b8 100%)', shadow: '#475569', text: '#0f172a' },
 }
 
 // Custom loot dice use their die text color for all face content (monochrome)
@@ -43,7 +43,7 @@ export const faceColor: Record<DieFace['type'], string> = {
   multiplier:     '#a3e635',
   poison:         '#4ade80',
   hot:            '#4ade80',
-  mirror:         '#93c5fd',
+  mirror:         '#334155',
 }
 
 export const faceShadow: Record<DieFace['type'], string> = {
@@ -60,7 +60,7 @@ export const faceShadow: Record<DieFace['type'], string> = {
   multiplier:     '#3f6212',
   poison:         '#15803d',
   hot:            '#15803d',
-  mirror:         '#1d4ed8',
+  mirror:         '#0f172a',
 }
 
 // ── Type icon ────────────────────────────────────────────────────────────────
@@ -142,12 +142,16 @@ function DiceFace({ face, textColor, dieType, mergeLevel = 0 }: { face: DieFace;
     )
   }
 
-  // Mirror face — reflect symbol
+  // Mirror face — circular refresh icon on glossy silver bg
   if (face.type === 'mirror') {
     const color = iconColor ?? faceColor.mirror
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
-        <span style={{ fontSize: '1.5rem', fontWeight: 900, color, lineHeight: 1 }}>↩</span>
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        width: '100%', height: '100%', position: 'relative',
+        boxShadow: 'inset 0 2px 5px rgba(255,255,255,0.85), inset 0 -1px 3px rgba(0,0,0,0.15)',
+      }}>
+        <RefreshCw size={28} color={color} strokeWidth={2.5} />
       </div>
     )
   }

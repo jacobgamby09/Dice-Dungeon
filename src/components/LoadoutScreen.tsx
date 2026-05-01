@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Flame, FlaskConical, Lock, ShieldAlert, Swords, Shield, Heart, Skull, Droplets, Star, Shuffle, Clock } from 'lucide-react'
+import { Flame, FlaskConical, Lock, ShieldAlert, Swords, Shield, Heart, Skull, Droplets, Star, Shuffle, Clock, RefreshCw } from 'lucide-react'
 import { useGameStore, getCurrentAct, GAME_ACTS, DIE_TEMPLATES, UNIQUE_DIE_TYPES } from '../store/gameStore'
 import type { Die, DieType, DieFace } from '../store/gameStore'
 import { dieTypeStyle, faceColor } from './DieCard'
@@ -74,7 +74,7 @@ function FaceGrid({ faces, s }: { faces: DieFace[]; s: { bg: string; shadow: str
                 ×{face.value}
               </span>
             ) : face.type === 'mirror' ? (
-              <span style={{ fontSize: '1rem', fontWeight: 900, color: '#93c5fd', lineHeight: 1 }}>↩</span>
+              <RefreshCw size={14} color="#334155" strokeWidth={2.5} />
             ) : face.type === 'hot' ? (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>

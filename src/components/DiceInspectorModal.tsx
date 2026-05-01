@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { X, Swords, Shield, Heart, Skull, Flame, FlaskConical, Droplets, Star, Shuffle, Clock } from 'lucide-react'
+import { X, Swords, Shield, Heart, Skull, Flame, FlaskConical, Droplets, Star, Shuffle, Clock, RefreshCw } from 'lucide-react'
 import type { DieType, DieFace, Die } from '../store/gameStore'
 import { DIE_TEMPLATES, UNIQUE_DIE_TYPES, DIE_NAMES } from '../store/gameStore'
 import { dieTypeStyle, faceColor } from './DieCard'
@@ -158,7 +158,7 @@ export function DiceInspectorModal({ types, initialType, mergeLevel, faces, dieL
                   </svg>
                 </>
               ) : face.type === 'mirror' ? (
-                <span style={{ fontSize: '1.4rem', fontWeight: 900, color: faceColor.mirror, lineHeight: 1 }}>↩</span>
+                <RefreshCw size={22} color="#334155" strokeWidth={2.5} />
               ) : face.type === 'hot' ? (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>

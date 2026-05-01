@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Heart, Shield, Swords, Skull, Flame, FlaskConical, ArrowLeft, Droplets, Star, Shuffle, Clock } from 'lucide-react'
+import { Heart, Shield, Swords, Skull, Flame, FlaskConical, ArrowLeft, Droplets, Star, Shuffle, Clock, RefreshCw } from 'lucide-react'
 import { useGameStore, UNIQUE_DIE_TYPES, CRAFTABLE_FACES } from '../store/gameStore'
 import { dieTypeStyle, faceColor } from './DieCard'
 import type { Die, DieFace } from '../store/gameStore'
@@ -18,7 +18,7 @@ function FaceIcon({ type, size = 13 }: { type: DieFace['type']; size?: number })
   if (type === 'choose_next') return <Star     size={size} color={color} strokeWidth={2.5} />
   if (type === 'wildcard')    return <Shuffle      size={size} color={color} strokeWidth={2.5} />
   if (type === 'poison')      return <FlaskConical size={size} color={color} strokeWidth={2.5} />
-  if (type === 'mirror')      return <span style={{ fontSize: size, color, lineHeight: 1 }}>↩</span>
+  if (type === 'mirror')      return <RefreshCw size={size} color="#334155" strokeWidth={2.5} />
   return <Heart size={size} color={color} strokeWidth={2.5} />
 }
 
@@ -202,7 +202,7 @@ function FacePickerGrid({
             ) : face.type === 'skull' ? (
               <Skull size={22} color={faceColor.skull} strokeWidth={2.5} />
             ) : face.type === 'mirror' ? (
-              <span style={{ fontSize: '1.3rem', fontWeight: 900, color: '#93c5fd', lineHeight: 1 }}>↩</span>
+              <RefreshCw size={22} color="#334155" strokeWidth={2.5} />
             ) : face.type === 'hot' ? (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>

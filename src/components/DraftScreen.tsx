@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Flame, FlaskConical, Swords, Shield, Heart, Skull, Droplets, Star, Shuffle, Lock, LockOpen, Clock } from 'lucide-react'
+import { Flame, FlaskConical, Swords, Shield, Heart, Skull, Droplets, Star, Shuffle, Lock, LockOpen, Clock, RefreshCw } from 'lucide-react'
 import { useGameStore, DIE_TEMPLATES, UNIQUE_DIE_TYPES, DIE_NAMES } from '../store/gameStore'
 import { dieTypeStyle, faceColor } from './DieCard'
 import { DiceInspectorModal } from './DiceInspectorModal'
@@ -90,7 +90,7 @@ function DieChoiceCard({
                   ×{face.value}
                 </span>
               ) : face.type === 'mirror' ? (
-                <span style={{ fontSize: '1.1rem', fontWeight: 900, color: '#93c5fd', lineHeight: 1 }}>↩</span>
+                <RefreshCw size={16} color="#334155" strokeWidth={2.5} />
               ) : face.type === 'hot' ? (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>

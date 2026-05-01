@@ -1,4 +1,4 @@
-import { X, Swords, Shield, Heart, Skull, Flame, FlaskConical, Droplets, Star, Shuffle, Clock } from 'lucide-react'
+import { X, Swords, Shield, Heart, Skull, Flame, FlaskConical, Droplets, Star, Shuffle, Clock, RefreshCw } from 'lucide-react'
 import { DIE_TEMPLATES, UNIQUE_DIE_TYPES, DIE_NAMES } from '../store/gameStore'
 import type { DieType, DieFace } from '../store/gameStore'
 import { dieTypeStyle, faceColor } from './DieCard'
@@ -99,7 +99,7 @@ export function DiceLibrary({ onClose }: { onClose: () => void }) {
                           ×{face.value}
                         </span>
                       ) : face.type === 'mirror' ? (
-                        <span style={{ fontSize: '0.9rem', fontWeight: 900, color: '#93c5fd', lineHeight: 1 }}>↩</span>
+                        <RefreshCw size={14} color="#334155" strokeWidth={2.5} />
                       ) : face.type === 'hot' ? (
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 1 }}>
