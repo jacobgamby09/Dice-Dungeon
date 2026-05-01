@@ -485,7 +485,7 @@ export function getCurrentAct(floor: number): Act {
 }
 
 function getDiceLootPool(unlockedNodes: string[]): DieType[] {
-  const pool: DieType[] = ['heavy', 'paladin', 'gambler', 'scavenger', 'wall', 'joker', 'unique', 'blight']
+  const pool: DieType[] = ['heavy', 'paladin', 'gambler', 'scavenger', 'wall', 'joker', 'unique', 'blight', 'rejuvenator', 'mirror']
   if (unlockedNodes.includes('kec9ybn2')) pool.push('jackpot')
   if (unlockedNodes.includes('60vc1fvg')) pool.push('vampire')
   if (unlockedNodes.includes('dx6jq5y5')) pool.push('priest')
