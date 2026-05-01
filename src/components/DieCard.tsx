@@ -384,6 +384,122 @@ function PriestBeam() {
   )
 }
 
+// ── Rejuvenator: soft green pulse aura + rising heal particles ───────────────
+
+const REJUVENATOR_PARTICLES = [
+  { left: '18%', delay: 0   },
+  { left: '48%', delay: 0.8 },
+  { left: '72%', delay: 1.6 },
+  { left: '33%', delay: 2.4 },
+]
+
+function RejuvenatorAura() {
+  return (
+    <>
+      <motion.div
+        style={{
+          position: 'absolute', inset: -3,
+          border: '2px solid #4ade80',
+          pointerEvents: 'none', zIndex: 0,
+        }}
+        animate={{
+          opacity: [0.25, 0.85, 0.25],
+          boxShadow: [
+            '0 0 6px 2px rgba(74,222,128,0.15)',
+            '0 0 18px 6px rgba(74,222,128,0.6)',
+            '0 0 6px 2px rgba(74,222,128,0.15)',
+          ],
+        }}
+        transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+      />
+      {REJUVENATOR_PARTICLES.map((p, i) => (
+        <motion.div
+          key={i}
+          style={{
+            position: 'absolute',
+            width: 4, height: 4,
+            borderRadius: '50%',
+            background: '#4ade80', border: '1px solid #15803d',
+            left: p.left, bottom: 4,
+            pointerEvents: 'none', zIndex: 40,
+          }}
+          animate={{ y: [0, -38], opacity: [0, 1, 0], scale: [0.6, 1, 0.3] }}
+          transition={{ duration: 2.0, delay: p.delay, repeat: Infinity, ease: 'easeOut' }}
+        />
+      ))}
+    </>
+  )
+}
+
+function RejuvenatorHealFlash() {
+  return (
+    <motion.div
+      style={{
+        position: 'absolute', inset: -4,
+        border: '3px solid #4ade80',
+        pointerEvents: 'none', zIndex: 20,
+      }}
+      initial={{ boxShadow: '0 0 26px 10px rgba(74,222,128,0.8)', opacity: 1 }}
+      animate={{ boxShadow: '0 0 0px 0px rgba(74,222,128,0)',     opacity: 0 }}
+      transition={{ duration: 0.6, ease: 'easeOut' }}
+    />
+  )
+}
+
+// ── Mirror: diagonal shine sweep + white flash on impact ──────────────────────
+
+function MirrorShimmer() {
+  return (
+    <>
+      <motion.div
+        style={{
+          position: 'absolute', inset: -2,
+          border: '2px solid #e2e8f0',
+          pointerEvents: 'none', zIndex: 0,
+        }}
+        animate={{
+          borderColor: ['#e2e8f0', '#ffffff', '#94a3b8', '#ffffff', '#e2e8f0'],
+          boxShadow: [
+            '0 0 4px 1px rgba(226,232,240,0.3)',
+            '0 0 14px 5px rgba(255,255,255,0.75)',
+            '0 0 4px 1px rgba(226,232,240,0.3)',
+          ],
+        }}
+        transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+      />
+      {/* Diagonal shine sweep — clipped to die bounds */}
+      <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none', zIndex: 25 }}>
+        <motion.div
+          style={{
+            position: 'absolute',
+            top: '-60%', width: '45%', height: '220%',
+            background: 'linear-gradient(to right, transparent 0%, rgba(255,255,255,0.7) 50%, transparent 100%)',
+            transform: 'skewX(-12deg)',
+            pointerEvents: 'none',
+          }}
+          animate={{ left: ['-60%', '140%'] }}
+          transition={{ duration: 1.0, repeat: Infinity, repeatDelay: 3.2, ease: 'easeInOut' }}
+        />
+      </div>
+    </>
+  )
+}
+
+function MirrorFlash() {
+  return (
+    <motion.div
+      style={{
+        position: 'absolute', inset: -4,
+        border: '3px solid #ffffff',
+        pointerEvents: 'none', zIndex: 20,
+      }}
+      initial={{ boxShadow: '0 0 30px 12px rgba(255,255,255,0.9)', opacity: 1 }}
+      animate={{ boxShadow: '0 0 0px 0px rgba(255,255,255,0)',     opacity: 0 }}
+      transition={{ duration: 0.5, ease: 'easeOut' }}
+    />
+  )
+}
+
 // ── DieCard ──────────────────────────────────────────────────────────────────
 
 interface DieCardProps {
@@ -744,6 +860,22 @@ export const DieCard = React.memo(function DieCard({
           {die.dieType === 'priest' && burst && face?.type === 'heal' && (
             <PriestBeam key="priest-beam" />
           )}
+        </AnimatePresence>
+
+        {/* Rejuvenator — soft green pulse + rising heal particles */}
+        {die.dieType === 'rejuvenator' && showPersistentEffects && <RejuvenatorAura />}
+
+        {/* Rejuvenator — green glow flash on impact */}
+        <AnimatePresence>
+          {die.dieType === 'rejuvenator' && burst && <RejuvenatorHealFlash key="rejuvenator-flash" />}
+        </AnimatePresence>
+
+        {/* Mirror — diagonal shine sweep + silver border shimmer */}
+        {die.dieType === 'mirror' && showPersistentEffects && <MirrorShimmer />}
+
+        {/* Mirror — white flash on impact */}
+        <AnimatePresence>
+          {die.dieType === 'mirror' && burst && <MirrorFlash key="mirror-flash" />}
         </AnimatePresence>
       </motion.div>
     </motion.div>
