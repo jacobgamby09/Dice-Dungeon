@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Swords, Shield, Heart, Skull, Flame, Droplets, Star, Shuffle, FlaskConical, Plus, Clock } from 'lucide-react'
+import { Swords, Shield, Heart, Skull, Flame, Droplets, Star, Shuffle, FlaskConical, Clock } from 'lucide-react'
 import type { Die, DieType, DieFace, ResolvingPhase } from '../store/gameStore'
 
 // ── Visual tables ────────────────────────────────────────────────────────────
@@ -132,7 +132,7 @@ function DiceFace({ face, textColor, dieType, mergeLevel = 0 }: { face: DieFace;
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', gap: 2 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <span style={{ fontSize: '1rem', fontWeight: 900, color: c, lineHeight: 1 }}>+{face.value}</span>
-          <Plus size={11} color={c} strokeWidth={3} />
+          <Heart size={11} color={c} strokeWidth={2.5} />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Clock size={10} color={c} strokeWidth={2.5} />

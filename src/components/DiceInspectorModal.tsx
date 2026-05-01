@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { X, Swords, Shield, Heart, Skull, Flame, FlaskConical, Droplets, Star, Shuffle } from 'lucide-react'
+import { X, Swords, Shield, Heart, Skull, Flame, FlaskConical, Droplets, Star, Shuffle, Clock } from 'lucide-react'
 import type { DieType, DieFace, Die } from '../store/gameStore'
 import { DIE_TEMPLATES, UNIQUE_DIE_TYPES, DIE_NAMES } from '../store/gameStore'
 import { dieTypeStyle, faceColor } from './DieCard'
@@ -160,9 +160,15 @@ export function DiceInspectorModal({ types, initialType, mergeLevel, faces, dieL
               ) : face.type === 'mirror' ? (
                 <span style={{ fontSize: '1.4rem', fontWeight: 900, color: faceColor.mirror, lineHeight: 1 }}>↩</span>
               ) : face.type === 'hot' ? (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
-                  <span style={{ fontSize: '0.85rem', fontWeight: 900, color: faceColor.hot, lineHeight: 1 }}>+{face.value}hp</span>
-                  <span style={{ fontSize: '0.6rem', fontWeight: 700, color: faceColor.hot, lineHeight: 1 }}>{face.duration ?? 1}t</span>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                    <span style={{ fontSize: '1rem', fontWeight: 900, color: '#064e3b', lineHeight: 1 }}>+{face.value}</span>
+                    <Heart size={13} color="#064e3b" strokeWidth={2.5} />
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                    <Clock size={11} color="#064e3b" strokeWidth={2.5} />
+                    <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#064e3b', lineHeight: 1 }}>{face.duration ?? 1}</span>
+                  </div>
                 </div>
               ) : (face.type === 'skull' || face.type === 'wildcard' || face.type === 'choose_next') ? (
                 <FaceIcon type={face.type} size={22} />

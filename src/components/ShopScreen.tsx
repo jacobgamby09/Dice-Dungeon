@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Heart, Shield, Swords, Skull, Flame, FlaskConical, ArrowLeft, Droplets, Star, Shuffle } from 'lucide-react'
+import { Heart, Shield, Swords, Skull, Flame, FlaskConical, ArrowLeft, Droplets, Star, Shuffle, Clock } from 'lucide-react'
 import { useGameStore, UNIQUE_DIE_TYPES, CRAFTABLE_FACES } from '../store/gameStore'
 import { dieTypeStyle, faceColor } from './DieCard'
 import type { Die, DieFace } from '../store/gameStore'
@@ -201,6 +201,19 @@ function FacePickerGrid({
               </div>
             ) : face.type === 'skull' ? (
               <Skull size={22} color={faceColor.skull} strokeWidth={2.5} />
+            ) : face.type === 'mirror' ? (
+              <span style={{ fontSize: '1.3rem', fontWeight: 900, color: '#93c5fd', lineHeight: 1 }}>↩</span>
+            ) : face.type === 'hot' ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <span style={{ fontSize: '1rem', fontWeight: 900, color: '#064e3b', lineHeight: 1 }}>+{face.value}</span>
+                  <Heart size={12} color="#064e3b" strokeWidth={2.5} />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Clock size={10} color="#064e3b" strokeWidth={2.5} />
+                  <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#064e3b', lineHeight: 1 }}>{face.duration ?? 1}</span>
+                </div>
+              </div>
             ) : (
               <>
                 <span style={{

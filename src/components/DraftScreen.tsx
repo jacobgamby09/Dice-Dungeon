@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Flame, FlaskConical, Swords, Shield, Heart, Skull, Droplets, Star, Shuffle, Lock, LockOpen } from 'lucide-react'
+import { Flame, FlaskConical, Swords, Shield, Heart, Skull, Droplets, Star, Shuffle, Lock, LockOpen, Clock } from 'lucide-react'
 import { useGameStore, DIE_TEMPLATES, UNIQUE_DIE_TYPES, DIE_NAMES } from '../store/gameStore'
 import { dieTypeStyle, faceColor } from './DieCard'
 import { DiceInspectorModal } from './DiceInspectorModal'
@@ -89,6 +89,19 @@ function DieChoiceCard({
                 <span style={{ fontSize: '0.9rem', fontWeight: 900, color: s.text, lineHeight: 1 }}>
                   ×{face.value}
                 </span>
+              ) : face.type === 'mirror' ? (
+                <span style={{ fontSize: '1.1rem', fontWeight: 900, color: '#93c5fd', lineHeight: 1 }}>↩</span>
+              ) : face.type === 'hot' ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#064e3b', lineHeight: 1 }}>+{face.value}</span>
+                    <Heart size={10} color="#064e3b" strokeWidth={2.5} />
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Clock size={9} color="#064e3b" strokeWidth={2.5} />
+                    <span style={{ fontSize: '0.6rem', fontWeight: 700, color: '#064e3b', lineHeight: 1 }}>{face.duration ?? 1}</span>
+                  </div>
+                </div>
               ) : face.type === 'purified_skull' ? (
                 <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Skull size={18} color="#ffffff" strokeWidth={2.5} />
