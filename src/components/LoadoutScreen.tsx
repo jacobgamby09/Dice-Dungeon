@@ -82,8 +82,8 @@ function FaceGrid({ faces, s }: { faces: DieFace[]; s: { bg: string; shadow: str
                   <Heart size={9} color="#064e3b" strokeWidth={2.5} />
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <span style={{ fontSize: '0.55rem', fontWeight: 700, color: '#064e3b', lineHeight: 1 }}>+{face.duration ?? 1}</span>
                   <Clock size={8} color="#064e3b" strokeWidth={2.5} />
-                  <span style={{ fontSize: '0.55rem', fontWeight: 700, color: '#064e3b', lineHeight: 1 }}>{face.duration ?? 1}</span>
                 </div>
               </div>
             ) : face.type === 'purified_skull' ? (

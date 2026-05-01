@@ -166,8 +166,8 @@ export function DiceInspectorModal({ types, initialType, mergeLevel, faces, dieL
                     <Heart size={13} color="#064e3b" strokeWidth={2.5} />
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                    <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#064e3b', lineHeight: 1 }}>+{face.duration ?? 1}</span>
                     <Clock size={11} color="#064e3b" strokeWidth={2.5} />
-                    <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#064e3b', lineHeight: 1 }}>{face.duration ?? 1}</span>
                   </div>
                 </div>
               ) : (face.type === 'skull' || face.type === 'wildcard' || face.type === 'choose_next') ? (

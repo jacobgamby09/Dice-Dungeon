@@ -135,7 +135,7 @@ function DiceFace({ face, textColor, dieType, mergeLevel = 0 }: { face: DieFace;
           <Heart size={11} color={c} strokeWidth={2.5} />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <span style={{ fontSize: '1rem', fontWeight: 900, color: c, lineHeight: 1 }}>{face.duration ?? 1}</span>
+          <span style={{ fontSize: '1rem', fontWeight: 900, color: c, lineHeight: 1 }}>+{face.duration ?? 1}</span>
           <Clock size={11} color={c} strokeWidth={2.5} />
         </div>
       </div>

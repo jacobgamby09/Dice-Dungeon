@@ -107,8 +107,8 @@ export function DiceLibrary({ onClose }: { onClose: () => void }) {
                             <Heart size={8} color="#064e3b" strokeWidth={2.5} />
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <span style={{ fontSize: '0.55rem', fontWeight: 700, color: '#064e3b', lineHeight: 1 }}>+{face.duration ?? 1}</span>
                             <Clock size={7} color="#064e3b" strokeWidth={2.5} />
-                            <span style={{ fontSize: '0.55rem', fontWeight: 700, color: '#064e3b', lineHeight: 1 }}>{face.duration ?? 1}</span>
                           </div>
                         </div>
                       ) : (face.type === 'skull' || face.type === 'purified_skull' || face.type === 'choose_next' || face.type === 'wildcard') ? (
