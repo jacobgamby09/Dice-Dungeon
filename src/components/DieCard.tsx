@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Swords, Shield, Heart, Skull, Flame, Droplets, Star, Shuffle, FlaskConical } from 'lucide-react'
+import { Swords, Shield, Heart, Skull, Flame, Droplets, Star, Shuffle, FlaskConical, Plus, Clock } from 'lucide-react'
 import type { Die, DieType, DieFace, ResolvingPhase } from '../store/gameStore'
 
 // ── Visual tables ────────────────────────────────────────────────────────────
@@ -42,7 +42,7 @@ export const faceColor: Record<DieFace['type'], string> = {
   purified_skull: '#ffffff',
   multiplier:     '#a3e635',
   poison:         '#4ade80',
-  hot:            '#86efac',
+  hot:            '#4ade80',
   mirror:         '#93c5fd',
 }
 
@@ -125,14 +125,19 @@ function DiceFace({ face, textColor, dieType, mergeLevel = 0 }: { face: DieFace;
     )
   }
 
-  // HoT face — shows +{value}hp / {duration}t
+  // HoT face — +value [Plus] on top, [Clock] duration on bottom, dark contrast on light-green bg
   if (face.type === 'hot') {
-    const color = iconColor ?? faceColor.hot
+    const c = '#064e3b'
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', gap: 1 }}>
-        <span style={{ fontSize: '0.85rem', fontWeight: 900, color, lineHeight: 1 }}>+{face.value}</span>
-        <Heart size={13} color={color} strokeWidth={2.5} />
-        <span style={{ fontSize: '0.5rem', fontWeight: 700, color, lineHeight: 1 }}>{face.duration ?? 1}t</span>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', gap: 2 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <span style={{ fontSize: '1rem', fontWeight: 900, color: c, lineHeight: 1 }}>+{face.value}</span>
+          <Plus size={11} color={c} strokeWidth={3} />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Clock size={10} color={c} strokeWidth={2.5} />
+          <span style={{ fontSize: '0.6rem', fontWeight: 700, color: c, lineHeight: 1 }}>{face.duration ?? 1}</span>
+        </div>
       </div>
     )
   }

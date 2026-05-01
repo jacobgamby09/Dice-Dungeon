@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence, useMotionValue, useTransform, animate, useAnimate } from 'framer-motion'
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
-import { Shield, Heart, Swords, Library, Skull, Flame, FlaskConical, Biohazard } from 'lucide-react'
+import { Shield, Heart, Swords, Library, Skull, Flame, FlaskConical, Biohazard, Plus } from 'lucide-react'
 import { useGameStore } from '../store/gameStore'
 import { useShallow } from 'zustand/shallow'
 import type { Die, EnemyIntent, ResolvingPhase, DieType } from '../store/gameStore'
@@ -1269,11 +1269,6 @@ export function CombatScreen() {
                 <span style={{ fontSize: '1.3rem', fontWeight: 800, color: '#7dd3fc', textShadow: '1px 1px 0 #000' }}>{player.shield}</span>
               </>
             )}
-            {player.hot.length > 0 && (
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#86efac', marginLeft: 4 }}>
-                +{player.hot.reduce((s, h) => s + h.amount, 0)}hp/turn
-              </span>
-            )}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <Swords size={12} color="#6b7280" />
@@ -1283,6 +1278,19 @@ export function CombatScreen() {
             <SkullTracker skullCount={skullCount} />
           </div>
         </div>
+
+        {/* HoT buff badge — shown below HP row when active */}
+        {player.hot.length > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5,
+            background: '#052e16', border: '2px solid #15803d',
+            padding: '3px 10px', alignSelf: 'flex-start',
+          }}>
+            <Plus size={11} color="#4ade80" strokeWidth={3} />
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#86efac' }}>
+              +{player.hot.reduce((s, h) => s + h.amount, 0)} HP / {Math.max(...player.hot.map(h => h.turnsRemaining))} turns
+            </span>
+          </div>
+        )}
 
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <div ref={damageRef}>
