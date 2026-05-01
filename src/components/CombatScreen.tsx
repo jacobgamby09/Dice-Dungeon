@@ -945,7 +945,7 @@ export function CombatScreen() {
   const [isAutoRolling, setIsAutoRolling] = useState(false)
   const autoRollRef = useRef(false)
   const [floatingSouls, setFloatingGold] = useState(0)
-  const [hoveredBadge, setHoveredBadge] = useState<null | 'thorns' | 'barbs'>(null)
+  const [hoveredBadge, setHoveredBadge] = useState<null | 'thorns' | 'barbs' | 'corrosive'>(null)
 
   useEffect(() => {
     if (!secondWindTriggered) return
@@ -1200,14 +1200,33 @@ export function CombatScreen() {
                   </div>
                 )}
                 {enemy.corrosive && (
-                  <div style={{
-                    display: 'flex', alignItems: 'center', gap: 3,
-                    background: '#052e16', border: '2px solid #15803d', padding: '1px 5px',
-                  }}>
-                    <FlaskConical size={9} color="#4ade80" strokeWidth={2.5} />
-                    <span style={{ fontSize: '0.58rem', fontWeight: 700, color: '#4ade80', letterSpacing: '0.08em' }}>
-                      CORROSIVE
-                    </span>
+                  <div
+                    style={{ position: 'relative', display: 'inline-flex' }}
+                    onMouseEnter={() => setHoveredBadge('corrosive')}
+                    onMouseLeave={() => setHoveredBadge(null)}
+                  >
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: 3,
+                      background: '#052e16', border: '2px solid #15803d', padding: '1px 5px',
+                      cursor: 'help',
+                    }}>
+                      <FlaskConical size={9} color="#4ade80" strokeWidth={2.5} />
+                      <span style={{ fontSize: '0.58rem', fontWeight: 700, color: '#4ade80', letterSpacing: '0.08em' }}>
+                        CORROSIVE
+                      </span>
+                    </div>
+                    {hoveredBadge === 'corrosive' && (
+                      <div style={{
+                        position: 'absolute', bottom: 'calc(100% + 4px)', left: '50%',
+                        transform: 'translateX(-50%)',
+                        background: '#021a0e', border: '2px solid #15803d',
+                        padding: '5px 8px', width: 185, zIndex: 50,
+                        fontSize: '0.65rem', color: '#bbf7d0', lineHeight: 1.4,
+                        pointerEvents: 'none',
+                      }}>
+                        Attacks <strong style={{ color: '#4ade80' }}>bypass your Shield entirely</strong> — full damage hits your HP regardless of how much Shield you have.
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -1249,6 +1268,11 @@ export function CombatScreen() {
                 <Shield size={16} color="#38bdf8" strokeWidth={2.5} style={{ marginLeft: 4 }} />
                 <span style={{ fontSize: '1.3rem', fontWeight: 800, color: '#7dd3fc', textShadow: '1px 1px 0 #000' }}>{player.shield}</span>
               </>
+            )}
+            {player.hot.length > 0 && (
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#86efac', marginLeft: 4 }}>
+                +{player.hot.reduce((s, h) => s + h.amount, 0)}hp/turn
+              </span>
             )}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>

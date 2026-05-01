@@ -22,6 +22,8 @@ export const dieTypeStyle: Record<DieType, { bg: string; shadow: string; text: s
   joker:         { bg: '#d1d5db', shadow: '#6b7280',  text: '#111827' },
   unique:        { bg: '#06b6d4', shadow: '#0e7490',  text: '#ffffff' },
   blight:        { bg: '#4d7c0f', shadow: '#1a2e05',  text: '#d9f99d' },
+  rejuvenator:   { bg: '#bbf7d0', shadow: '#15803d',  text: '#052e16' },
+  mirror:        { bg: '#bfdbfe', shadow: '#1d4ed8',  text: '#1e3a8a' },
 }
 
 // Custom loot dice use their die text color for all face content (monochrome)
@@ -40,6 +42,8 @@ export const faceColor: Record<DieFace['type'], string> = {
   purified_skull: '#ffffff',
   multiplier:     '#a3e635',
   poison:         '#4ade80',
+  hot:            '#86efac',
+  mirror:         '#93c5fd',
 }
 
 export const faceShadow: Record<DieFace['type'], string> = {
@@ -55,6 +59,8 @@ export const faceShadow: Record<DieFace['type'], string> = {
   purified_skull: '#9f1239',
   multiplier:     '#3f6212',
   poison:         '#15803d',
+  hot:            '#15803d',
+  mirror:         '#1d4ed8',
 }
 
 // ── Type icon ────────────────────────────────────────────────────────────────
@@ -115,6 +121,28 @@ function DiceFace({ face, textColor, dieType, mergeLevel = 0 }: { face: DieFace;
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
         <TypeIcon type={face.type} size={32} forceColor={iconColor} />
+      </div>
+    )
+  }
+
+  // HoT face — shows +{value}hp / {duration}t
+  if (face.type === 'hot') {
+    const color = iconColor ?? faceColor.hot
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', gap: 1 }}>
+        <span style={{ fontSize: '0.85rem', fontWeight: 900, color, lineHeight: 1 }}>+{face.value}</span>
+        <Heart size={13} color={color} strokeWidth={2.5} />
+        <span style={{ fontSize: '0.5rem', fontWeight: 700, color, lineHeight: 1 }}>{face.duration ?? 1}t</span>
+      </div>
+    )
+  }
+
+  // Mirror face — reflect symbol
+  if (face.type === 'mirror') {
+    const color = iconColor ?? faceColor.mirror
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
+        <span style={{ fontSize: '1.5rem', fontWeight: 900, color, lineHeight: 1 }}>↩</span>
       </div>
     )
   }

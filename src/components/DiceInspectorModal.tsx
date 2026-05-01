@@ -157,6 +157,13 @@ export function DiceInspectorModal({ types, initialType, mergeLevel, faces, dieL
                     <line x1="26" y1="2" x2="2" y2="26" stroke="#ef4444" strokeWidth="4" strokeLinecap="round" />
                   </svg>
                 </>
+              ) : face.type === 'mirror' ? (
+                <span style={{ fontSize: '1.4rem', fontWeight: 900, color: faceColor.mirror, lineHeight: 1 }}>↩</span>
+              ) : face.type === 'hot' ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 900, color: faceColor.hot, lineHeight: 1 }}>+{face.value}hp</span>
+                  <span style={{ fontSize: '0.6rem', fontWeight: 700, color: faceColor.hot, lineHeight: 1 }}>{face.duration ?? 1}t</span>
+                </div>
               ) : (face.type === 'skull' || face.type === 'wildcard' || face.type === 'choose_next') ? (
                 <FaceIcon type={face.type} size={22} />
               ) : (

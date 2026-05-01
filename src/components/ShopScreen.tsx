@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Heart, Shield, Swords, Skull, Flame, FlaskConical, ArrowLeft, Droplets, Star, Shuffle } from 'lucide-react'
-import { useGameStore, UNIQUE_DIE_TYPES } from '../store/gameStore'
+import { useGameStore, UNIQUE_DIE_TYPES, CRAFTABLE_FACES } from '../store/gameStore'
 import { dieTypeStyle, faceColor } from './DieCard'
 import type { Die, DieFace } from '../store/gameStore'
 import { DiePresentationModal } from './DiePresentationModal'
@@ -18,6 +18,7 @@ function FaceIcon({ type, size = 13 }: { type: DieFace['type']; size?: number })
   if (type === 'choose_next') return <Star     size={size} color={color} strokeWidth={2.5} />
   if (type === 'wildcard')    return <Shuffle      size={size} color={color} strokeWidth={2.5} />
   if (type === 'poison')      return <FlaskConical size={size} color={color} strokeWidth={2.5} />
+  if (type === 'mirror')      return <span style={{ fontSize: size, color, lineHeight: 1 }}>↩</span>
   return <Heart size={size} color={color} strokeWidth={2.5} />
 }
 
@@ -27,22 +28,29 @@ type ShopAction = 'purify' | 'craft' | 'merge' | null
 
 // ── Craft option generator ────────────────────────────────────────────────────
 
-const CRAFT_TYPES: Array<DieFace['type']> = ['damage', 'shield', 'heal', 'lifesteal']
+// Face types that carry no numeric value (displayed without a number)
+const VALUELESS_FACE_TYPES = new Set<DieFace['type']>(['choose_next', 'wildcard'])
 
 function generateCraftOptions(mergeLevel: number): DieFace[] {
   const multiplier = Math.pow(3, mergeLevel)
-  const shuffled = [...CRAFT_TYPES].sort(() => Math.random() - 0.5)
-  return shuffled.slice(0, 3).map((type) => ({
-    type,
-    value: (Math.floor(Math.random() * 6) + 1) * multiplier,
-  }))
+  const shuffled = [...CRAFTABLE_FACES].sort(() => Math.random() - 0.5)
+  return shuffled.slice(0, 3).map((type): DieFace => {
+    if (type === 'hot') {
+      return { type, value: Math.floor(Math.random() * 3) + 1, duration: Math.floor(Math.random() * 3) + 1 }
+    }
+    return { type, value: VALUELESS_FACE_TYPES.has(type) ? 0 : (Math.floor(Math.random() * 6) + 1) * multiplier }
+  })
 }
 
 const FACE_LABELS: Partial<Record<DieFace['type'], string>> = {
-  damage:    'Damage',
-  shield:    'Shield',
-  heal:      'Heal',
-  lifesteal: 'Lifesteal',
+  damage:      'Damage',
+  shield:      'Shield',
+  heal:        'Heal',
+  lifesteal:   'Lifesteal',
+  poison:      'Poison',
+  souls:       'Souls',
+  choose_next: 'Fortune',
+  hot:         'HoT',
 }
 
 // ── Action card ───────────────────────────────────────────────────────────────
@@ -572,9 +580,11 @@ export function ShopScreen() {
                     onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#000')}
                   >
                     <FaceIcon type={face.type} size={26} />
-                    <span style={{ fontSize: '1.4rem', fontWeight: 900, color, lineHeight: 1 }}>
-                      {face.value}
-                    </span>
+                    {!VALUELESS_FACE_TYPES.has(face.type) && (
+                      <span style={{ fontSize: '1.4rem', fontWeight: 900, color, lineHeight: 1 }}>
+                        {face.value}
+                      </span>
+                    )}
                     <span style={{
                       fontSize: '0.5rem', color: '#6b7280',
                       textTransform: 'uppercase', letterSpacing: '0.15em',

@@ -4,14 +4,22 @@ import { persist } from 'zustand/middleware'
 // ── Core types ───────────────────────────────────────────────────────────────
 
 export interface DieFace {
-  type: 'damage' | 'shield' | 'heal' | 'skull' | 'souls' | 'lifesteal' | 'choose_next' | 'wildcard' | 'blank' | 'purified_skull' | 'multiplier' | 'poison'
+  type: 'damage' | 'shield' | 'heal' | 'skull' | 'souls' | 'lifesteal' | 'choose_next' | 'wildcard' | 'blank' | 'purified_skull' | 'multiplier' | 'poison' | 'hot' | 'mirror'
   value: number
+  duration?: number
 }
+
+// IMPORTANT: All future non-unique die faces MUST be added to this array to appear
+// in the Forge crafting pool. Do NOT add unique faces (like multiplier) or penalty
+// faces (like skull, blank, or purified_skull) to this list.
+export const CRAFTABLE_FACES: Array<DieFace['type']> = [
+  'damage', 'shield', 'heal', 'lifesteal', 'poison', 'souls', 'choose_next', 'hot',
+]
 
 export type DieType = 'white' | 'blue' | 'green' | 'cursed'
                     | 'heavy' | 'paladin' | 'gambler' | 'scavenger' | 'wall'
                     | 'jackpot' | 'vampire' | 'priest' | 'fortune_teller'
-                    | 'joker' | 'unique' | 'blight'
+                    | 'joker' | 'unique' | 'blight' | 'rejuvenator' | 'mirror'
 
 export interface Die {
   id: string
@@ -26,7 +34,7 @@ export interface Die {
   isEquipped?: boolean
 }
 
-export const UNIQUE_DIE_TYPES = new Set<DieType>(['unique'])
+export const UNIQUE_DIE_TYPES = new Set<DieType>(['unique', 'mirror'])
 
 export const DIE_NAMES: Record<DieType, string> = {
   white:          'The Basic',
@@ -45,6 +53,8 @@ export const DIE_NAMES: Record<DieType, string> = {
   joker:          'The Joker',
   unique:         'The Multiplier',
   blight:         'The Blight',
+  rejuvenator:    'The Rejuvenator',
+  mirror:         'The Mirror',
 }
 
 export interface SkillNode {
@@ -251,6 +261,21 @@ export const DIE_TEMPLATES: Record<DieType, { sides: number; faces: DieFace[] }>
       { type: 'skull',  value: 1 },
     ],
   },
+  rejuvenator: {
+    sides: 6,
+    faces: [
+      { type: 'hot', value: 1, duration: 1 },
+      { type: 'hot', value: 1, duration: 2 },
+      { type: 'hot', value: 1, duration: 3 },
+      { type: 'hot', value: 2, duration: 2 },
+      { type: 'hot', value: 2, duration: 3 },
+      { type: 'hot', value: 3, duration: 3 },
+    ],
+  },
+  mirror: {
+    sides: 6,
+    faces: Array.from({ length: 6 }, () => ({ type: 'mirror' as const, value: 0 })),
+  },
 }
 
 function createDie(type: DieType, id: string): Die {
@@ -284,7 +309,7 @@ export interface Enemy {
 }
 
 interface GameState {
-  player: { hp: number; maxHp: number; shield: number }
+  player: { hp: number; maxHp: number; shield: number; hot: { amount: number; turnsRemaining: number }[] }
   enemy: Enemy
   inventory: Die[]
   drawPile: Die[]
@@ -471,7 +496,7 @@ function getDiceLootPool(unlockedNodes: string[]): DieType[] {
 export const useGameStore = create<GameState>()(
   persist(
     (set, get) => ({
-  player: { hp: 100, maxHp: 100, shield: 0 },
+  player: { hp: 100, maxHp: 100, shield: 0, hot: [] },
   enemy: spawnEnemy(1),
   inventory: INITIAL_INVENTORY.map((d) => ({ ...d })),
   drawPile: [],
@@ -580,7 +605,7 @@ export const useGameStore = create<GameState>()(
 
     set((s) => ({
       turnPhase:    'idle',
-      player:       { hp: baseHp, maxHp: baseHp, shield: 0 },
+      player:       { hp: baseHp, maxHp: baseHp, shield: 0, hot: [] },
       inventory:    startInventory,
       runSouls:     startSouls,
       currentFloor: 1,
@@ -650,7 +675,50 @@ export const useGameStore = create<GameState>()(
     let   newSkullCount = s.skullCount
 
     if (face.type === 'multiplier') {
-      set((st) => ({ activeMultiplier: face.value, counterVersion: st.counterVersion + 1 }))
+      set((st) => ({ activeMultiplier: st.activeMultiplier * face.value, counterVersion: st.counterVersion + 1 }))
+      await sleep(75)
+    } else if (face.type === 'hot') {
+      const dur = face.duration ?? 1
+      set((st) => ({
+        player: { ...st.player, hot: [...st.player.hot, { amount: face.value, turnsRemaining: dur }] },
+        activeMultiplier: 1, counterVersion: st.counterVersion + 1,
+      }))
+      await sleep(75)
+    } else if (face.type === 'mirror') {
+      const prevDie  = get().playedDice[nextIndex - 1]
+      const prevFace = prevDie?.currentFace
+      if (prevFace && nextIndex > 0) {
+        if (prevFace.type === 'multiplier') {
+          set((st) => ({ activeMultiplier: st.activeMultiplier * prevFace.value, counterVersion: st.counterVersion + 1 }))
+        } else if (prevFace.type === 'hot') {
+          const dur = prevFace.duration ?? 1
+          set((st) => ({
+            player: { ...st.player, hot: [...st.player.hot, { amount: prevFace.value, turnsRemaining: dur }] },
+            activeMultiplier: 1, counterVersion: st.counterVersion + 1,
+          }))
+        } else {
+          const isSkull2 = prevFace.type === 'skull'
+          newSkullCount  = s.skullCount + (isSkull2 ? mult : 0)
+          const ls2 = prevFace.type === 'lifesteal' ? prevFace.value * mult : 0
+          const h2  = prevFace.type === 'heal'      ? prevFace.value * mult : ls2
+          const sh2 = prevFace.type === 'shield'    ? prevFace.value * mult : 0
+          const d2  = (prevFace.type === 'damage' || prevFace.type === 'lifesteal') ? prevFace.value * mult : 0
+          const s2  = prevFace.type === 'souls'     ? prevFace.value * mult : 0
+          const p2  = prevFace.type === 'poison'    ? prevFace.value * mult : 0
+          set((st) => ({
+            totalDamage: st.totalDamage + d2, totalHeal: st.totalHeal + h2,
+            totalShield: st.totalShield + sh2, totalSouls: st.totalSouls + s2,
+            totalPoison: st.totalPoison + p2, skullCount: newSkullCount,
+            activeMultiplier: 1, counterVersion: st.counterVersion + 1,
+            lastEffects: { heal: h2, shield: sh2, souls: s2 },
+            ...(mult > 1 ? { multiplierFiredVersion: st.multiplierFiredVersion + 1 } : {}),
+            ...(isSkull2 ? { skullRolledVersion: st.skullRolledVersion + 1 } : {}),
+            ...(h2 > 0 || sh2 > 0 || s2 > 0 ? { playerEffectVersion: st.playerEffectVersion + 1 } : {}),
+          }))
+        }
+      } else {
+        set({ activeMultiplier: 1 })
+      }
       await sleep(75)
     } else {
       const isSkull       = face.type === 'skull'
@@ -711,9 +779,10 @@ export const useGameStore = create<GameState>()(
 
     // Fortune Teller: open the choose-next modal if draw pile has dice remaining
     if (face.type === 'choose_next' && get().drawPile.length > 0) {
-      const ftLimit = (drawn.mergeLevel ?? 0) + 1
-      const picks   = Math.min(ftLimit, get().drawPile.length)
-      set({ turnPhase: 'idle', isChoosingNextDie: true, fortuneTellerPicksRemaining: picks })
+      const ftLimit    = (drawn.mergeLevel ?? 0) + 1
+      const multiplier = get().activeMultiplier
+      const picks      = Math.min(ftLimit * multiplier, get().drawPile.length)
+      set({ turnPhase: 'idle', isChoosingNextDie: true, fortuneTellerPicksRemaining: picks, activeMultiplier: 1 })
     } else {
       set({ turnPhase: 'idle' })
     }
@@ -760,7 +829,50 @@ export const useGameStore = create<GameState>()(
     let   newSkullCount  = s.skullCount
 
     if (face.type === 'multiplier') {
-      set((st) => ({ activeMultiplier: face.value, counterVersion: st.counterVersion + 1 }))
+      set((st) => ({ activeMultiplier: st.activeMultiplier * face.value, counterVersion: st.counterVersion + 1 }))
+      await sleep(75)
+    } else if (face.type === 'hot') {
+      const dur = face.duration ?? 1
+      set((st) => ({
+        player: { ...st.player, hot: [...st.player.hot, { amount: face.value, turnsRemaining: dur }] },
+        activeMultiplier: 1, counterVersion: st.counterVersion + 1,
+      }))
+      await sleep(75)
+    } else if (face.type === 'mirror') {
+      const prevDie  = get().playedDice[nextIndex - 1]
+      const prevFace = prevDie?.currentFace
+      if (prevFace && nextIndex > 0) {
+        if (prevFace.type === 'multiplier') {
+          set((st) => ({ activeMultiplier: st.activeMultiplier * prevFace.value, counterVersion: st.counterVersion + 1 }))
+        } else if (prevFace.type === 'hot') {
+          const dur = prevFace.duration ?? 1
+          set((st) => ({
+            player: { ...st.player, hot: [...st.player.hot, { amount: prevFace.value, turnsRemaining: dur }] },
+            activeMultiplier: 1, counterVersion: st.counterVersion + 1,
+          }))
+        } else {
+          const isSkull2 = prevFace.type === 'skull'
+          newSkullCount  = s.skullCount + (isSkull2 ? mult2 : 0)
+          const ls2 = prevFace.type === 'lifesteal' ? prevFace.value * mult2 : 0
+          const h2  = prevFace.type === 'heal'      ? prevFace.value * mult2 : ls2
+          const sh2 = prevFace.type === 'shield'    ? prevFace.value * mult2 : 0
+          const d2  = (prevFace.type === 'damage' || prevFace.type === 'lifesteal') ? prevFace.value * mult2 : 0
+          const s2  = prevFace.type === 'souls'     ? prevFace.value * mult2 : 0
+          const p2  = prevFace.type === 'poison'    ? prevFace.value * mult2 : 0
+          set((st) => ({
+            totalDamage: st.totalDamage + d2, totalHeal: st.totalHeal + h2,
+            totalShield: st.totalShield + sh2, totalSouls: st.totalSouls + s2,
+            totalPoison: st.totalPoison + p2, skullCount: newSkullCount,
+            activeMultiplier: 1, counterVersion: st.counterVersion + 1,
+            lastEffects: { heal: h2, shield: sh2, souls: s2 },
+            ...(mult2 > 1 ? { multiplierFiredVersion: st.multiplierFiredVersion + 1 } : {}),
+            ...(isSkull2 ? { skullRolledVersion: st.skullRolledVersion + 1 } : {}),
+            ...(h2 > 0 || sh2 > 0 || s2 > 0 ? { playerEffectVersion: st.playerEffectVersion + 1 } : {}),
+          }))
+        }
+      } else {
+        set({ activeMultiplier: 1 })
+      }
       await sleep(75)
     } else {
       const isSkull       = face.type === 'skull'
@@ -815,9 +927,10 @@ export const useGameStore = create<GameState>()(
 
     // Chained Fortune Teller: drawn die itself is a choose_next — start a fresh sequence
     if (face.type === 'choose_next' && get().drawPile.length > 0) {
-      const ftLimit = (drawn.mergeLevel ?? 0) + 1
-      const picks   = Math.min(ftLimit, get().drawPile.length)
-      set({ turnPhase: 'idle', isChoosingNextDie: true, fortuneTellerPicksRemaining: picks })
+      const ftLimit    = (drawn.mergeLevel ?? 0) + 1
+      const multiplier = get().activeMultiplier
+      const picks      = Math.min(ftLimit * multiplier, get().drawPile.length)
+      set({ turnPhase: 'idle', isChoosingNextDie: true, fortuneTellerPicksRemaining: picks, activeMultiplier: 1 })
       return
     }
 
@@ -914,7 +1027,7 @@ export const useGameStore = create<GameState>()(
           } else {
             set({
               showGameOver: true, runSouls: 0,
-              player: { hp: 100, maxHp: 100, shield: 0 },
+              player: { hp: 100, maxHp: 100, shield: 0, hot: [] },
               enemy: spawnEnemy(1), currentFloor: 1,
               totalDamage: 0, totalHeal: 0, totalShield: 0, totalSouls: 0, totalPoison: 0,
               skullCount: 0,
@@ -939,7 +1052,7 @@ export const useGameStore = create<GameState>()(
         set({
           showGameOver: true,
           runSouls: 0,
-          player: { hp: 100, maxHp: 100, shield: 0 },
+          player: { hp: 100, maxHp: 100, shield: 0, hot: [] },
           enemy: spawnEnemy(1),
           currentFloor: 1,
           totalDamage: 0, totalHeal: 0, totalShield: 0, totalSouls: 0, totalPoison: 0,
@@ -1042,7 +1155,7 @@ export const useGameStore = create<GameState>()(
           set({
             showGameOver: true,
             runSouls: 0,
-            player: { hp: 100, maxHp: 100, shield: 0 },
+            player: { hp: 100, maxHp: 100, shield: 0, hot: [] },
             enemy: spawnEnemy(1),
             currentFloor: 1,
             totalDamage: 0, totalHeal: 0, totalShield: 0, totalSouls: 0, totalPoison: 0,
@@ -1309,7 +1422,7 @@ export const useGameStore = create<GameState>()(
     set((s) => ({
       bankedSouls: s.bankedSouls + runSouls,
       runSouls: 0,
-      player: { hp: 100, maxHp: 100, shield: 0 },
+      player: { hp: 100, maxHp: 100, shield: 0, hot: [] },
       enemy: spawnEnemy(1),
       currentFloor: 1,
       drawPile: [], playedDice: [],
@@ -1365,7 +1478,7 @@ export const useGameStore = create<GameState>()(
 
   abandonRun: () => {
     set({
-      player: { hp: 100, maxHp: 100, shield: 0 },
+      player: { hp: 100, maxHp: 100, shield: 0, hot: [] },
       enemy: spawnEnemy(1),
       currentFloor: 1,
       totalDamage: 0, totalHeal: 0, totalShield: 0, totalSouls: 0, totalPoison: 0,
@@ -1445,7 +1558,7 @@ export const useGameStore = create<GameState>()(
 
     set((s) => ({
       turnPhase:    'idle',
-      player:       { hp: baseHp, maxHp: baseHp, shield: 0 },
+      player:       { hp: baseHp, maxHp: baseHp, shield: 0, hot: [] },
       inventory,
       runSouls:     150,
       currentFloor: 15,
@@ -1512,6 +1625,22 @@ export const useGameStore = create<GameState>()(
 
 // Extracted enemy phase — shared by bankAndAttack and bust
 async function runEnemyPhase() {
+  // Tick HoT before enemy acts
+  const hotEntries = useGameStore.getState().player.hot
+  if (hotEntries.length > 0) {
+    const pl = useGameStore.getState().player
+    const totalHot = pl.hot.reduce((sum, h) => sum + h.amount, 0)
+    const newHp  = Math.min(pl.maxHp, pl.hp + totalHot)
+    const newHot = pl.hot
+      .map(h => ({ ...h, turnsRemaining: h.turnsRemaining - 1 }))
+      .filter(h => h.turnsRemaining > 0)
+    useGameStore.setState((st) => ({
+      player: { ...st.player, hp: newHp, hot: newHot },
+      playerEffectVersion: st.playerEffectVersion + 1,
+    }))
+    await sleep(200)
+  }
+
   const { enemy, player, currentFloor } = useGameStore.getState()
 
   // ── Non-attack intents (shield buff, thorns activation) ──────────────────
@@ -1605,7 +1734,7 @@ async function runEnemyPhase() {
     useGameStore.setState({
       showGameOver: true,
       runSouls: 0,
-      player: { hp: 100, maxHp: 100, shield: 0 },
+      player: { hp: 100, maxHp: 100, shield: 0, hot: [] },
       enemy: spawnEnemy(1),
       currentFloor: 1,
       totalDamage: 0, totalHeal: 0, totalShield: 0, totalSouls: 0, totalPoison: 0,
