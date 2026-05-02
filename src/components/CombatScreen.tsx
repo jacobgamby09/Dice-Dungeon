@@ -949,7 +949,7 @@ export function CombatScreen() {
   const [isAutoRolling, setIsAutoRolling] = useState(false)
   const autoRollRef = useRef(false)
   const [floatingSouls, setFloatingSouls] = useState(0)
-  const [hoveredBadge, setHoveredBadge] = useState<null | 'thorns' | 'barbs' | 'corrosive'>(null)
+  const [hoveredBadge, setHoveredBadge] = useState<null | 'thorns' | 'barbs' | 'corrosive' | 'venom'>(null)
 
   useEffect(() => {
     if (!secondWindTriggered) return
@@ -968,6 +968,7 @@ export function CombatScreen() {
 
   const hasScouting = unlockedNodes.includes('zmumocry')
   const hasAutoRoll = unlockedNodes.includes('w6bsuulh')
+  const hasUtilityButtons = hasAutoRoll || hasScouting
 
   const damageDiceInPlay = playedDice.filter(d => d.currentFace?.type === 'damage').length
   const expectedThorns   = Math.floor(totalDamage * (enemy?.thorns ?? 0))
@@ -1299,14 +1300,32 @@ export function CombatScreen() {
 
         {/* Venom poison badge */}
         {player.poison > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5,
-            background: '#1a0a2e', border: '2px solid #7c3aed',
-            padding: '3px 10px', alignSelf: 'flex-start', marginTop: 2,
-          }}>
-            <Biohazard size={11} color="#a78bfa" strokeWidth={2.5} />
-            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#c4b5fd' }}>
-              {player.poison} VENOM
-            </span>
+          <div
+            style={{ position: 'relative', alignSelf: 'flex-start', marginTop: 2 }}
+            onMouseEnter={() => setHoveredBadge('venom')}
+            onMouseLeave={() => setHoveredBadge(null)}
+            onClick={() => setHoveredBadge(hoveredBadge === 'venom' ? null : 'venom')}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5,
+              background: '#1a0a2e', border: '2px solid #7c3aed',
+              padding: '3px 10px', cursor: 'help',
+            }}>
+              <Biohazard size={11} color="#a78bfa" strokeWidth={2.5} />
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#c4b5fd' }}>
+                {player.poison} VENOM
+              </span>
+            </div>
+            {hoveredBadge === 'venom' && (
+              <div style={{
+                position: 'absolute', top: 'calc(100% + 5px)', left: 0,
+                background: '#140626', border: '2px solid #7c3aed',
+                padding: '6px 8px', width: 205, zIndex: 60,
+                fontSize: '0.65rem', color: '#ddd6fe', lineHeight: 1.4,
+                pointerEvents: 'none',
+              }}>
+                Venom deals <strong style={{ color: '#c4b5fd' }}>unblockable HP damage</strong> after the enemy acts, then decays by 1.
+              </div>
+            )}
           </div>
         )}
 
@@ -1436,8 +1455,48 @@ export function CombatScreen() {
         background: '#1a1a2e', padding: '10px 16px 14px', borderTop: '3px solid #000',
         display: 'flex', flexDirection: 'column', gap: 8,
       }}>
+        {/* Venom draw counter — Act 2 only */}
+        {isVenomActive(currentFloor) && (
+          <div style={{
+            position: 'relative',
+            alignSelf: 'center',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+            padding: '4px 10px',
+            background: venomWarn ? '#2a0b16' : '#111827',
+            border: `2px solid ${venomWarn ? '#ef4444' : '#4c1d95'}`,
+            boxShadow: `2px 2px 0 ${venomWarn ? '#7f1d1d' : '#000'}`,
+            fontSize: '0.82rem', fontWeight: 900,
+            color: venomWarn ? '#fca5a5' : '#c4b5fd',
+            letterSpacing: '0.04em',
+            cursor: 'help',
+            marginBottom: hasUtilityButtons ? 0 : 4,
+          }}
+            onMouseEnter={() => setHoveredBadge('venom')}
+            onMouseLeave={() => setHoveredBadge(null)}
+            onClick={() => setHoveredBadge(hoveredBadge === 'venom' ? null : 'venom')}
+          >
+            <Biohazard size={15} color={venomWarn ? '#f87171' : '#a78bfa'} strokeWidth={2.5} />
+            <span>
+              {playedDice.length} / {venomLimit} draws
+              {venomWarn ? ` - +${venomPenalty} VENOM next` : ''}
+            </span>
+            {hoveredBadge === 'venom' && (
+              <div style={{
+                position: 'absolute', bottom: 'calc(100% + 6px)', left: '50%',
+                transform: 'translateX(-50%)',
+                background: '#140626', border: '2px solid #7c3aed',
+                padding: '6px 8px', width: 230, zIndex: 60,
+                fontSize: '0.65rem', color: '#ddd6fe', lineHeight: 1.4,
+                pointerEvents: 'none', textAlign: 'left', letterSpacing: 0,
+              }}>
+                Act 2 Venom punishes overdraws. Drawing beyond the safe limit adds player Venom, which deals unblockable HP damage after the enemy acts and then decays by 1.
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Top row — utility buttons (only shown if any are available) */}
-        {(hasAutoRoll || hasScouting || true) && (
+        {hasUtilityButtons && (
           <div style={{ display: 'flex', justifyContent: 'center', gap: 8 }}>
             {hasAutoRoll && (
               <button
@@ -1455,50 +1514,54 @@ export function CombatScreen() {
                 {isAutoRolling ? '■ STOP' : '⚡ AUTO'}
               </button>
             )}
-            <button
-              onClick={toggleAutoBankDevMode}
-              className="pixel-btn"
-              style={{
-                height: 38, padding: '0 12px',
-                background: isAutoBankDevMode ? '#ea580c' : '#1c1917',
-                border: `2px solid ${isAutoBankDevMode ? '#fed7aa' : '#ea580c'}`,
-                color: isAutoBankDevMode ? '#fff' : '#fb923c',
-                fontSize: '0.7rem',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-              }}
-            >
-              {isAutoBankDevMode ? 'AFK ON' : 'AFK'}
-            </button>
-            {hasScouting && (
+            {hasAutoRoll && (
               <button
-                onClick={() => setShowScout(true)}
+                onClick={toggleAutoBankDevMode}
                 className="pixel-btn"
                 style={{
-                  width: 48, height: 38,
-                  background: '#1e293b',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  padding: 0, fontSize: '1.1rem',
+                  height: 38, padding: '0 12px',
+                  background: isAutoBankDevMode ? '#ea580c' : '#1c1917',
+                  border: `2px solid ${isAutoBankDevMode ? '#fed7aa' : '#ea580c'}`,
+                  color: isAutoBankDevMode ? '#fff' : '#fb923c',
+                  fontSize: '0.7rem',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
                 }}
               >
-                🔎
+                {isAutoBankDevMode ? 'AFK ON' : 'AFK'}
               </button>
             )}
-            <button
-              onClick={() => setInspectorOpen(true)}
-              disabled={bagTypes.length === 0}
-              className="pixel-btn"
-              style={{
-                width: 48, height: 38,
-                background: '#1e293b',
-                opacity: bagTypes.length > 0 ? 1 : 0.4,
-                cursor: bagTypes.length > 0 ? 'pointer' : 'not-allowed',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                padding: 0,
-              }}
-            >
-              <Library size={18} color="#9ca3af" />
-            </button>
+            {hasScouting && (
+              <>
+                <button
+                  onClick={() => setShowScout(true)}
+                  className="pixel-btn"
+                  style={{
+                    width: 48, height: 38,
+                    background: '#1e293b',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    padding: 0, fontSize: '1.1rem',
+                  }}
+                >
+                  🔎
+                </button>
+                <button
+                  onClick={() => setInspectorOpen(true)}
+                  disabled={bagTypes.length === 0}
+                  className="pixel-btn"
+                  style={{
+                    width: 48, height: 38,
+                    background: '#1e293b',
+                    opacity: bagTypes.length > 0 ? 1 : 0.4,
+                    cursor: bagTypes.length > 0 ? 'pointer' : 'not-allowed',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    padding: 0,
+                  }}
+                >
+                  <Library size={18} color="#9ca3af" />
+                </button>
+              </>
+            )}
           </div>
         )}
 
@@ -1519,21 +1582,6 @@ export function CombatScreen() {
           >
             ×{activeMultiplier} NEXT
           </motion.div>
-        )}
-
-        {/* Venom draw counter — Act 2 only */}
-        {isVenomActive(currentFloor) && (
-          <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-            fontSize: '0.7rem', fontWeight: 700, marginBottom: 4,
-            color: venomWarn ? '#f87171' : '#6b7280',
-          }}>
-            <Biohazard size={12} color={venomWarn ? '#f87171' : '#6b7280'} strokeWidth={2.5} />
-            <span>
-              {playedDice.length} / {venomLimit} draws
-              {venomWarn ? ` — +${venomPenalty} VENOM on next draw` : ''}
-            </span>
-          </div>
         )}
 
         {/* Bottom row — primary action buttons */}
