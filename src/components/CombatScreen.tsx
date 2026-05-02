@@ -1285,14 +1285,14 @@ export function CombatScreen() {
         </div>
 
         {/* HoT buff badge — shown below HP row when active */}
-        {player.hot.length > 0 && (
+        {player.hot !== null && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 5,
             background: '#052e16', border: '2px solid #15803d',
             padding: '3px 10px', alignSelf: 'flex-start',
           }}>
             <Plus size={11} color="#4ade80" strokeWidth={3} />
             <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#86efac' }}>
-              +{player.hot.reduce((s, h) => s + h.amount, 0)} HP / {Math.max(...player.hot.map(h => h.turnsRemaining))} turns
+              +{player.hot.amount} HP / {player.hot.turnsRemaining} turns
             </span>
           </div>
         )}
