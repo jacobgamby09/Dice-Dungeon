@@ -148,11 +148,11 @@ Enemies in the Spiked Depths have a Thorns aura. When the player banks a very hi
 
 **Strategic implication:** Spiking 40+ damage in one turn becomes self-destructive. Multi-die sustained damage, lifesteal, and shield builds outperform single-hit spike strategies.
 
-#### Venom — Punishes Push-Your-Luck Greed
+#### Venom — Punishes Push-Your-Luck Greed *(implemented)*
 
-Drawing too many dice in a single turn (above a per-floor threshold) causes the enemy to release Venom. Each die drawn over the safe limit stacks Poison on the player.
+Drawing too many dice in a single turn (above a per-floor threshold) stacks Poison on the player. The safe draw limit is **5 on floors 16–20** and **4 on floors 21–30**. Each die drawn beyond the limit adds **+1 player poison** (floors 16–25) or **+2 player poison** (floors 26–30). Player poison ticks once per turn after the enemy's physical attack resolves, then decrements by 1. The draw button turns red and shows a warning label (`☠ DRAW +N VENOM`) when the next draw will trigger Venom. A draw counter (`X / Y draws`) is shown above the action buttons in all Act 2 floors.
 
-**Strategic implication:** Reckless bag-emptying is punished. Players must find the sweet spot: draw enough to deal meaningful damage without triggering Venom.
+**Strategic implication:** Reckless bag-emptying is punished. Players must find the sweet spot — draw enough to deal meaningful damage without stacking lethal Venom.
 
 ---
 

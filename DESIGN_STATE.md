@@ -32,6 +32,7 @@
 - Act 1 (Floors 1–15): no modifier, full draft loop, boss on Floor 15.
 - Act 1 Boss → The Culling: auto-banks Run Souls, player picks 7 dice from inventory (`InterActScreen.tsx`), 3 Cursed dice forced in.
 - Act 2 (Floors 16–30): modifier type in code is `'thorns' | 'damage_cap'`; enemies have `thorns`, `barbs`, and `corrosive` fields on the `Enemy` interface.
+- **Venom (Act 2):** Safe draw limit is 5 (floors 16–20) or 4 (floors 21–30). Each die over the limit adds player poison (+1 on floors 16–25; +2 on floors 26–30). Poison ticks after enemy physical attack, decrements by 1 per turn. Draw button turns red with warning label. Counter shown above action buttons on all Act 2 floors.
 - Flee the Depths: banks Run Souls → returns to Hub.
 - Death: all Run Souls lost.
 
@@ -100,8 +101,9 @@ Nodes implemented (Banked Souls): Pocket Change, Vitality I/II, First Blood, Sha
 - **Mirror is dead weight as the first draw:** With no preceding die, it does nothing. High variance — either useless or extremely strong.
 - **Mirror + Multiplier ×9 combo** may be too swingy for Act 1 balance. Both dice are in the base draft pool.
 - **Too many powerful dice in the base loot pool:** Jackpot, Vampire, Priest, Fortune Teller should be skill-tree gated (per GDD §9). Currently available from Floor 1.
-- **Act 2 feels like a sudden wall:** The Cursed dice injection combined with enemy stat/trait spikes may be too abrupt with no onboarding text.
+- **Act 2 feels like a sudden wall:** The Cursed dice injection combined with enemy trait pressure may be too abrupt with no onboarding text. Raw HP/damage was reduced in the last pass (see Recent Decisions); difficulty should now come primarily from Thorns/Barbs/Corrosive mechanics.
 - **Gambler in Act 2:** 12-damage spike hits Thorns hard. Either the Gambler needs a warning or Thorns thresholds need tuning.
+- **Venom is implemented** (see Acts & Flow above). Balance risks: limit of 5 may be too generous on floors 16–20; penalty of +1 may be too mild to deter greedy draws — watch playtesting data.
 
 ---
 
@@ -113,6 +115,8 @@ Nodes implemented (Banked Souls): Pocket Change, Vitality I/II, First Blood, Sha
 - Beating Act 1 Boss forces automatic banking, then The Culling (keep 7 of ~15 dice).
 - Three Cursed dice are forced into the bag at Act 2 start — no opt-out.
 - No Gold / Materials / Coins — everything is Souls. All player-facing copy must reflect this.
+- Act 2 enemy base stats were reduced (HP, attack, Thorns/Barbs values) and scaling is now floor-relative (`baseHp + (floor - 16) * 4`; attack scaling `(floor - 16) * 0.45`) so Floor 16 starts at bare base stats. Act 1 scaling is unchanged.
+- Venom is implemented. Act 2 difficulty modifier is now Thorns + Barbs + Corrosive + Venom (player poison on overdraw).
 - The Mirror is a Unique die (one per run), same as The Multiplier.
 - HoT does not scale with `activeMultiplier` — it's a status application, not a stat.
 - Multiplier face now stacks multiplicatively on repeat rolls.
@@ -121,13 +125,13 @@ Nodes implemented (Banked Souls): Pocket Change, Vitality I/II, First Blood, Sha
 
 ## Next Recommended Design Work
 
-1. **Decide on Venom vs. Barbs/Corrosive** — align GDD §5 with the actual Act 2 mechanic in code.
-2. **Gate advanced dice behind skill tree** — remove Jackpot, Vampire, Priest, Fortune Teller from base `getDiceLootPool()`; add back only when nodes are unlocked.
-3. **Tune Rejuvenator faces** — add at least one skull or blank face to introduce push-your-luck risk.
-4. **Tune Mirror** — consider giving 1–2 faces a fallback effect (e.g. small shield) for when it's drawn first.
+1. **Gate advanced dice behind skill tree** — remove Jackpot, Vampire, Priest, Fortune Teller from base `getDiceLootPool()`; add back only when nodes are unlocked.
+2. **Tune Rejuvenator faces** — add at least one skull or blank face to introduce push-your-luck risk.
+3. **Tune Mirror** — consider giving 1–2 faces a fallback effect (e.g. small shield) for when it's drawn first.
+4. **Tune Venom limits** — limit of 5 on floors 16–20 may be too generous; +1 penalty may be too mild. Revisit after playtesting.
 5. **Clean up Gold terminology** in GDD §10 data structures and any remaining player-facing copy.
 6. **Update GDD §4 face table and §11 colour palette** to match current code.
-7. **Add Act 2 onboarding** — short tooltip or interstitial explaining Thorns and the new enemy traits before Floor 16.
+7. **Add Act 2 onboarding** — short tooltip or interstitial explaining Thorns, Venom, and the new enemy traits before Floor 16.
 8. **Review Run Souls reward curve** — check that Forge costs are achievable given expected income per floor.
 9. **Review Forge costs vs. income** — Purify and Merge costs may need floor-scaling.
 10. **Add a balance test checklist** for the Act 1 → Act 2 transition (target stats, expected bag size, soul balance).

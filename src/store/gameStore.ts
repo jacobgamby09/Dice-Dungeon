@@ -309,7 +309,7 @@ export interface Enemy {
 }
 
 interface GameState {
-  player: { hp: number; maxHp: number; shield: number; hot: { amount: number; turnsRemaining: number }[] }
+  player: { hp: number; maxHp: number; shield: number; hot: { amount: number; turnsRemaining: number }[]; poison: number }
   enemy: Enemy
   inventory: Die[]
   drawPile: Die[]
@@ -421,27 +421,31 @@ const ACT_1_BESTIARY: EnemyTemplate[] = [
 ]
 
 const ACT_2_BESTIARY: EnemyTemplate[] = [
-  { name: 'Thorned Beetle', baseHp: 55,  intentMin: 5,  intentMax: 8,  isBoss: false, thorns: 0.2 },
-  { name: 'Porcupine',      baseHp: 40,  intentMin: 4,  intentMax: 7,  isBoss: false, barbs: 2 },
-  { name: 'Toxic Slime',    baseHp: 90,  intentMin: 7,  intentMax: 11, isBoss: false, corrosive: true },
+  { name: 'Thorned Beetle', baseHp: 40,  intentMin: 4,  intentMax: 6,  isBoss: false, thorns: 0.15 },
+  { name: 'Porcupine',      baseHp: 35,  intentMin: 3,  intentMax: 5,  isBoss: false, barbs: 1 },
+  { name: 'Toxic Slime',    baseHp: 60,  intentMin: 4,  intentMax: 7,  isBoss: false, corrosive: true },
   {
-    name: 'Spiked Behemoth', baseHp: 160, intentMin: 18, intentMax: 24, isBoss: true, thorns: 0,
+    name: 'Spiked Behemoth', baseHp: 120, intentMin: 14, intentMax: 18, isBoss: true, thorns: 0,
     intentCycle: [
-      { type: 'shield',          value: 35 },
-      { type: 'attack',          value: 20 },
-      { type: 'thorns_activate', value: 0.5 },
+      { type: 'shield',          value: 25 },
+      { type: 'attack',          value: 14 },
+      { type: 'thorns_activate', value: 0.35 },
     ],
   },
 ]
 
 function rollIntent(template: EnemyTemplate, floor: number, intentPhase = 0): EnemyIntent {
+  const actId = getCurrentAct(floor).id
+  const floorScaling = actId >= 2
+    ? Math.floor((floor - 16) * 0.45)
+    : Math.floor((floor - 1) * 0.5)
   if (template.intentCycle && template.intentCycle.length > 0) {
     const def = template.intentCycle[intentPhase % template.intentCycle.length]
-    if (def.type === 'attack') return { type: 'attack', value: def.value + Math.floor((floor - 1) * 0.5) }
+    if (def.type === 'attack') return { type: 'attack', value: def.value + floorScaling }
     return { type: def.type, value: def.value }
   }
   const base = template.intentMin + Math.floor(Math.random() * (template.intentMax - template.intentMin + 1))
-  return { type: 'attack', value: base + Math.floor((floor - 1) * 0.5) }
+  return { type: 'attack', value: base + floorScaling }
 }
 
 function spawnEnemy(floor: number): Enemy {
@@ -451,7 +455,9 @@ function spawnEnemy(floor: number): Enemy {
   const bossT       = bestiary.find(t => t.isBoss)!
   const nonBoss     = bestiary.filter(t => !t.isBoss)
   const template    = isBossFloor ? bossT : nonBoss[(floor - 1) % nonBoss.length]
-  const hp          = template.baseHp + (floor - 1) * 3
+  const hp          = act.id >= 2
+    ? template.baseHp + (floor - 16) * 4
+    : template.baseHp + (floor - 1) * 3
   return {
     hp, maxHp: hp,
     name:        template.name,
@@ -484,6 +490,17 @@ export function getCurrentAct(floor: number): Act {
   return GAME_ACTS.find((a) => floor >= a.startFloor && floor <= a.endFloor) ?? GAME_ACTS[GAME_ACTS.length - 1]
 }
 
+export function isVenomActive(floor: number): boolean {
+  return floor >= 16 && floor <= 30
+}
+export function getVenomLimit(floor: number): number | null {
+  if (!isVenomActive(floor)) return null
+  return floor <= 20 ? 5 : 4
+}
+export function getVenomPenalty(floor: number): number {
+  return floor >= 26 ? 2 : 1
+}
+
 function getDiceLootPool(unlockedNodes: string[]): DieType[] {
   const pool: DieType[] = ['heavy', 'paladin', 'gambler', 'scavenger', 'wall', 'joker', 'unique', 'blight', 'rejuvenator', 'mirror']
   if (unlockedNodes.includes('kec9ybn2')) pool.push('jackpot')
@@ -496,7 +513,7 @@ function getDiceLootPool(unlockedNodes: string[]): DieType[] {
 export const useGameStore = create<GameState>()(
   persist(
     (set, get) => ({
-  player: { hp: 100, maxHp: 100, shield: 0, hot: [] },
+  player: { hp: 100, maxHp: 100, shield: 0, hot: [], poison: 0 },
   enemy: spawnEnemy(1),
   inventory: INITIAL_INVENTORY.map((d) => ({ ...d })),
   drawPile: [],
@@ -605,7 +622,7 @@ export const useGameStore = create<GameState>()(
 
     set((s) => ({
       turnPhase:    'idle',
-      player:       { hp: baseHp, maxHp: baseHp, shield: 0, hot: [] },
+      player:       { hp: baseHp, maxHp: baseHp, shield: 0, hot: [], poison: 0 },
       inventory:    startInventory,
       runSouls:     startSouls,
       currentFloor: 1,
@@ -751,6 +768,17 @@ export const useGameStore = create<GameState>()(
     }
 
     set({ resolvingDieIndex: null, resolvingPhase: null })
+
+    // ── Venom check (Act 2) ──────────────────────────────────────────────
+    const _venomLimit = getVenomLimit(get().currentFloor)
+    if (_venomLimit !== null && get().playedDice.length > _venomLimit) {
+      const _penalty = getVenomPenalty(get().currentFloor)
+      set((st) => ({
+        player: { ...st.player, poison: st.player.poison + _penalty },
+        playerHitVersion: st.playerHitVersion + 1,
+      }))
+      await sleep(150)
+    }
 
     // ── Bust check ──────────────────────────────────────────────────────
     if (newSkullCount >= 3) {
@@ -906,6 +934,17 @@ export const useGameStore = create<GameState>()(
 
     set({ resolvingDieIndex: null, resolvingPhase: null })
 
+    // ── Venom check (Act 2) ──────────────────────────────────────────────
+    const _venomLimit2 = getVenomLimit(get().currentFloor)
+    if (_venomLimit2 !== null && get().playedDice.length > _venomLimit2) {
+      const _penalty2 = getVenomPenalty(get().currentFloor)
+      set((st) => ({
+        player: { ...st.player, poison: st.player.poison + _penalty2 },
+        playerHitVersion: st.playerHitVersion + 1,
+      }))
+      await sleep(150)
+    }
+
     if (newSkullCount >= 3) {
       set((st) => ({
         totalDamage: 0, totalHeal: 0, totalSouls: 0, totalPoison: 0,
@@ -1027,7 +1066,7 @@ export const useGameStore = create<GameState>()(
           } else {
             set({
               showGameOver: true, runSouls: 0,
-              player: { hp: 100, maxHp: 100, shield: 0, hot: [] },
+              player: { hp: 100, maxHp: 100, shield: 0, hot: [], poison: 0 },
               enemy: spawnEnemy(1), currentFloor: 1,
               totalDamage: 0, totalHeal: 0, totalShield: 0, totalSouls: 0, totalPoison: 0,
               skullCount: 0,
@@ -1052,7 +1091,7 @@ export const useGameStore = create<GameState>()(
         set({
           showGameOver: true,
           runSouls: 0,
-          player: { hp: 100, maxHp: 100, shield: 0, hot: [] },
+          player: { hp: 100, maxHp: 100, shield: 0, hot: [], poison: 0 },
           enemy: spawnEnemy(1),
           currentFloor: 1,
           totalDamage: 0, totalHeal: 0, totalShield: 0, totalSouls: 0, totalPoison: 0,
@@ -1155,7 +1194,7 @@ export const useGameStore = create<GameState>()(
           set({
             showGameOver: true,
             runSouls: 0,
-            player: { hp: 100, maxHp: 100, shield: 0, hot: [] },
+            player: { hp: 100, maxHp: 100, shield: 0, hot: [], poison: 0 },
             enemy: spawnEnemy(1),
             currentFloor: 1,
             totalDamage: 0, totalHeal: 0, totalShield: 0, totalSouls: 0, totalPoison: 0,
@@ -1422,7 +1461,7 @@ export const useGameStore = create<GameState>()(
     set((s) => ({
       bankedSouls: s.bankedSouls + runSouls,
       runSouls: 0,
-      player: { hp: 100, maxHp: 100, shield: 0, hot: [] },
+      player: { hp: 100, maxHp: 100, shield: 0, hot: [], poison: 0 },
       enemy: spawnEnemy(1),
       currentFloor: 1,
       drawPile: [], playedDice: [],
@@ -1478,7 +1517,7 @@ export const useGameStore = create<GameState>()(
 
   abandonRun: () => {
     set({
-      player: { hp: 100, maxHp: 100, shield: 0, hot: [] },
+      player: { hp: 100, maxHp: 100, shield: 0, hot: [], poison: 0 },
       enemy: spawnEnemy(1),
       currentFloor: 1,
       totalDamage: 0, totalHeal: 0, totalShield: 0, totalSouls: 0, totalPoison: 0,
@@ -1558,7 +1597,7 @@ export const useGameStore = create<GameState>()(
 
     set((s) => ({
       turnPhase:    'idle',
-      player:       { hp: baseHp, maxHp: baseHp, shield: 0, hot: [] },
+      player:       { hp: baseHp, maxHp: baseHp, shield: 0, hot: [], poison: 0 },
       inventory,
       runSouls:     150,
       currentFloor: 15,
@@ -1704,6 +1743,18 @@ async function runEnemyPhase() {
 
   await sleep(210)
 
+  // ── Tick player Venom poison (after physical damage, before death check) ──
+  const _playerPoison = useGameStore.getState().player.poison
+  if (_playerPoison > 0) {
+    const _afterPoisonHp = Math.max(0, postHp - _playerPoison)
+    useGameStore.setState((st) => ({
+      player: { ...st.player, hp: _afterPoisonHp, poison: Math.max(0, st.player.poison - 1) },
+      playerHitVersion: st.playerHitVersion + 1,
+    }))
+    await sleep(200)
+    postHp = _afterPoisonHp
+  }
+
   if (postHp <= 0) {
     const snap = useGameStore.getState()
     if (snap.unlockedNodes.includes('7nescabs') && !snap.usedSecondWind) {
@@ -1734,7 +1785,7 @@ async function runEnemyPhase() {
     useGameStore.setState({
       showGameOver: true,
       runSouls: 0,
-      player: { hp: 100, maxHp: 100, shield: 0, hot: [] },
+      player: { hp: 100, maxHp: 100, shield: 0, hot: [], poison: 0 },
       enemy: spawnEnemy(1),
       currentFloor: 1,
       totalDamage: 0, totalHeal: 0, totalShield: 0, totalSouls: 0, totalPoison: 0,

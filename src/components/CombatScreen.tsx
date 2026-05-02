@@ -3,7 +3,7 @@ import { motion, AnimatePresence, useMotionValue, useTransform, animate, useAnim
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
 import { Shield, Heart, Swords, Library, Skull, Flame, FlaskConical, Biohazard, Plus } from 'lucide-react'
-import { useGameStore } from '../store/gameStore'
+import { useGameStore, isVenomActive, getVenomLimit, getVenomPenalty } from '../store/gameStore'
 import { useShallow } from 'zustand/shallow'
 import type { Die, EnemyIntent, ResolvingPhase, DieType } from '../store/gameStore'
 import { DieCard, faceColor, faceShadow, dieTypeStyle } from './DieCard'
@@ -858,6 +858,10 @@ export function CombatScreen() {
   const isAutoBankDevMode     = useGameStore(s => s.isAutoBankDevMode)
   const toggleAutoBankDevMode = useGameStore(s => s.toggleAutoBankDevMode)
 
+  const venomLimit   = getVenomLimit(currentFloor)
+  const venomPenalty = getVenomPenalty(currentFloor)
+  const venomWarn    = venomLimit !== null && playedDice.length >= venomLimit
+
   const enemyScope  = useHitAnimation(enemyHitVersion,  'rgba(220,38,38,0.45)')
   const playerScope = useHitAnimation(playerHitVersion, 'rgba(220,38,38,0.45)')
 
@@ -1000,9 +1004,10 @@ export function CombatScreen() {
   ) as Partial<Record<DieType, Die>>
 
   const drawButtonLabel =
-    turnPhase === 'drawing'      ? '⟳ DRAWING...'
+    turnPhase === 'drawing'         ? '⟳ DRAWING...'
     : turnPhase === 'player_attack' ? '⚔ ATTACKING!'
     : turnPhase === 'enemy_attack'  ? '☠ ENEMY TURN...'
+    : venomWarn                     ? `☠ DRAW +${venomPenalty} VENOM`
     : `DRAW (${drawPile.length} left)`
 
   return (
@@ -1292,6 +1297,19 @@ export function CombatScreen() {
           </div>
         )}
 
+        {/* Venom poison badge */}
+        {player.poison > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5,
+            background: '#1a0a2e', border: '2px solid #7c3aed',
+            padding: '3px 10px', alignSelf: 'flex-start', marginTop: 2,
+          }}>
+            <Biohazard size={11} color="#a78bfa" strokeWidth={2.5} />
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#c4b5fd' }}>
+              {player.poison} VENOM
+            </span>
+          </div>
+        )}
+
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <div ref={damageRef}>
             <DamageCounter target={totalDamage} rollStartVersion={rollStartVersion} counterVersion={counterVersion} attackTier={playerAttackAnimTier} />
@@ -1503,6 +1521,21 @@ export function CombatScreen() {
           </motion.div>
         )}
 
+        {/* Venom draw counter — Act 2 only */}
+        {isVenomActive(currentFloor) && (
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            fontSize: '0.7rem', fontWeight: 700, marginBottom: 4,
+            color: venomWarn ? '#f87171' : '#6b7280',
+          }}>
+            <Biohazard size={12} color={venomWarn ? '#f87171' : '#6b7280'} strokeWidth={2.5} />
+            <span>
+              {playedDice.length} / {venomLimit} draws
+              {venomWarn ? ` — +${venomPenalty} VENOM on next draw` : ''}
+            </span>
+          </div>
+        )}
+
         {/* Bottom row — primary action buttons */}
         <div style={{ display: 'flex', gap: 10, width: '100%' }}>
           <button
@@ -1511,7 +1544,7 @@ export function CombatScreen() {
             className="pixel-btn"
             style={{
               flex: 1, height: 60, fontSize: '1rem', fontWeight: 700,
-              background: canDraw ? '#4f46e5' : '#374151',
+              background: venomWarn && canDraw ? '#7f1d1d' : canDraw ? '#4f46e5' : '#374151',
               opacity: !isIdle || isAutoRolling ? 0.75 : canDraw ? 1 : 0.5,
               cursor: canDraw && !isAutoRolling ? 'pointer' : 'not-allowed',
             }}
