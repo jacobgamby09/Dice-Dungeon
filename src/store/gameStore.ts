@@ -811,9 +811,8 @@ export const useGameStore = create<GameState>()(
 
     // Fortune Teller: open the choose-next modal if draw pile has dice remaining
     if (face.type === 'choose_next' && get().drawPile.length > 0) {
-      const ftLimit    = (drawn.mergeLevel ?? 0) + 1
-      const multiplier = get().activeMultiplier
-      const picks      = Math.min(ftLimit * multiplier, get().drawPile.length)
+      const ftLimit = (drawn.mergeLevel ?? 0) + 1
+      const picks   = Math.min(ftLimit * mult, get().drawPile.length)
       set({ turnPhase: 'idle', isChoosingNextDie: true, fortuneTellerPicksRemaining: picks, activeMultiplier: 1 })
     } else {
       set({ turnPhase: 'idle' })
@@ -974,9 +973,8 @@ export const useGameStore = create<GameState>()(
 
     // Chained Fortune Teller: drawn die itself is a choose_next — start a fresh sequence
     if (face.type === 'choose_next' && get().drawPile.length > 0) {
-      const ftLimit    = (drawn.mergeLevel ?? 0) + 1
-      const multiplier = get().activeMultiplier
-      const picks      = Math.min(ftLimit * multiplier, get().drawPile.length)
+      const ftLimit = (drawn.mergeLevel ?? 0) + 1
+      const picks   = Math.min(ftLimit * mult2, get().drawPile.length)
       set({ turnPhase: 'idle', isChoosingNextDie: true, fortuneTellerPicksRemaining: picks, activeMultiplier: 1 })
       return
     }
@@ -1398,7 +1396,7 @@ export const useGameStore = create<GameState>()(
       const die2 = s.inventory.find((d) => d.id === die2Id)
       if (!die1 || !die2) return {}
       if (die1.dieType === 'cursed' || die2.dieType === 'cursed') return {}
-      if (die1.dieType === 'unique' || die2.dieType === 'unique') return {}
+      if (UNIQUE_DIE_TYPES.has(die1.dieType) || UNIQUE_DIE_TYPES.has(die2.dieType)) return {}
       const level1 = die1.mergeLevel ?? 0
       const level2 = die2.mergeLevel ?? 0
       if (level1 !== level2) return {}

@@ -508,7 +508,7 @@ export function ShopScreen() {
         {/* Die selection — merge */}
         {activeAction === 'merge' && (
           <>
-            {inventory.filter((d) => d.dieType !== 'cursed' && d.dieType !== 'unique').map((die) => (
+            {inventory.filter((d) => d.dieType !== 'cursed' && !UNIQUE_DIE_TYPES.has(d.dieType)).map((die) => (
               <DiePickerRow
                 key={die.id}
                 die={die}
