@@ -994,7 +994,6 @@ export function CombatScreen() {
   const hasAutoRoll = unlockedNodes.includes('w6bsuulh')
   const hasUtilityButtons = hasAutoRoll || hasScouting
 
-  const damageDiceInPlay = playedDice.filter(d => d.currentFace?.type === 'damage').length
   const expectedThorns   = Math.floor(totalDamage * (enemy?.thorns ?? 0))
   const expectedRecoil   = expectedThorns
 
