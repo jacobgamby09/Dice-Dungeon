@@ -3,6 +3,7 @@ import { X, Swords, Shield, Heart, Skull, Flame, FlaskConical, Droplets, Star, S
 import type { DieType, DieFace, Die } from '../store/gameStore'
 import { DIE_TEMPLATES, UNIQUE_DIE_TYPES, DIE_NAMES } from '../store/gameStore'
 import { dieTypeStyle, faceColor } from './DieCard'
+import { DIE_ROLES, DIE_TIPS, FACE_DESCRIPTIONS, describeFace } from '../diceDescriptions'
 
 function dieName(t: DieType) { return `${DIE_NAMES[t]}${UNIQUE_DIE_TYPES.has(t) ? ' ★' : ''}` }
 
@@ -16,6 +17,11 @@ function FaceIcon({ type, size = 13 }: { type: DieFace['type']; size?: number })
   if (type === 'choose_next') return <Star     size={size} color={color} strokeWidth={2.5} />
   if (type === 'wildcard')    return <Shuffle      size={size} color={color} strokeWidth={2.5} />
   if (type === 'poison')      return <FlaskConical size={size} color={color} strokeWidth={2.5} />
+  if (type === 'hot')         return <Clock        size={size} color="#064e3b" strokeWidth={2.5} />
+  if (type === 'mirror')      return <RefreshCw    size={size} color="#94a3b8" strokeWidth={2.5} />
+  if (type === 'multiplier')  return <span style={{ color, fontSize: size, fontWeight: 900 }}>x</span>
+  if (type === 'blank')       return <span style={{ color: '#6b7280', fontSize: size, fontWeight: 900 }}>-</span>
+  if (type === 'purified_skull') return <Skull size={size} color="#ffffff" strokeWidth={2.5} />
   return <Heart size={size} color={color} strokeWidth={2.5} />
 }
 
@@ -125,6 +131,25 @@ export function DiceInspectorModal({ types, initialType, mergeLevel, faces, dieL
           </span>
         </div>
 
+        <div style={{
+          background: '#0f0f1a',
+          border: '2px solid #000',
+          padding: '8px 10px',
+          marginBottom: 12,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 5,
+        }}>
+          <span style={{ fontSize: '0.7rem', lineHeight: 1.45, color: '#d1d5db' }}>
+            {DIE_ROLES[selected]}
+          </span>
+          {DIE_TIPS[selected] && (
+            <span style={{ fontSize: '0.62rem', lineHeight: 1.4, color: '#9ca3af' }}>
+              {DIE_TIPS[selected]}
+            </span>
+          )}
+        </div>
+
         {/* Faces grid */}
         <div style={{
           display: 'grid',
@@ -182,6 +207,41 @@ export function DiceInspectorModal({ types, initialType, mergeLevel, faces, dieL
               )}
             </div>
           ))}
+        </div>
+
+        <div style={{
+          background: '#0f0f1a',
+          border: '2px solid #000',
+          padding: '8px 10px',
+          marginBottom: 14,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 6,
+        }}>
+          <span style={{
+            fontSize: '0.55rem',
+            color: '#6b7280',
+            letterSpacing: '0.2em',
+            textTransform: 'uppercase',
+          }}>
+            Face Effects
+          </span>
+          {Array.from(new Set(displayFaces.map((face) => face.type))).map((type) => (
+            <div key={type} style={{ display: 'flex', gap: 6, alignItems: 'flex-start' }}>
+              <FaceIcon type={type} size={12} />
+              <span style={{ fontSize: '0.62rem', color: '#d1d5db', lineHeight: 1.35 }}>
+                {FACE_DESCRIPTIONS[type]}
+              </span>
+            </div>
+          ))}
+          {displayFaces.some((face) => face.type === 'hot' || face.type === 'multiplier') && (
+            <span style={{ fontSize: '0.58rem', color: '#9ca3af', lineHeight: 1.35 }}>
+              {displayFaces
+                .filter((face) => face.type === 'hot' || face.type === 'multiplier')
+                .map(describeFace)
+                .join(' ')}
+            </span>
+          )}
         </div>
 
         {/* Close button */}

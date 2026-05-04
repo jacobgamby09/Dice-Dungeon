@@ -2,6 +2,7 @@ import { X, Swords, Shield, Heart, Skull, Flame, FlaskConical, Droplets, Star, S
 import { DIE_TEMPLATES, UNIQUE_DIE_TYPES, DIE_NAMES } from '../store/gameStore'
 import type { DieType, DieFace } from '../store/gameStore'
 import { dieTypeStyle, faceColor } from './DieCard'
+import { DIE_ROLES, DIE_TIPS } from '../diceDescriptions'
 
 const LIBRARY_TYPES: DieType[] = ['white', 'blue', 'green', 'cursed', 'heavy', 'paladin', 'gambler', 'scavenger', 'wall', 'jackpot', 'vampire', 'priest', 'fortune_teller', 'joker', 'unique', 'blight', 'rejuvenator', 'mirror']
 
@@ -76,6 +77,24 @@ export function DiceLibrary({ onClose }: { onClose: () => void }) {
                 }}>
                   {template.sides}d
                 </span>
+              </div>
+
+              <div style={{
+                background: '#0f0f1a',
+                border: '2px solid #000',
+                padding: '7px 8px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 4,
+              }}>
+                <span style={{ fontSize: '0.66rem', color: '#d1d5db', lineHeight: 1.35 }}>
+                  {DIE_ROLES[type]}
+                </span>
+                {DIE_TIPS[type] && (
+                  <span style={{ fontSize: '0.58rem', color: '#9ca3af', lineHeight: 1.35 }}>
+                    {DIE_TIPS[type]}
+                  </span>
+                )}
               </div>
 
               {/* 6 faces in a row */}

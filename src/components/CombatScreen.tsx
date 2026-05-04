@@ -728,8 +728,11 @@ function FortuneTellerModal({ drawPile, onMinimize }: {
 }
 
 // ── Scout modal ──────────────────────────────────────────────────────────────
-function ScoutModal({ drawPile, onClose }: { drawPile: import('../store/gameStore').Die[]; onClose: () => void }) {
+function ScoutModal({ drawPile, onClose }: { drawPile: Die[]; onClose: () => void }) {
+  const [inspectedDie, setInspectedDie] = useState<Die | null>(null)
+
   return (
+    <>
     <div
       onClick={onClose}
       style={{
@@ -774,11 +777,12 @@ function ScoutModal({ drawPile, onClose }: { drawPile: import('../store/gameStor
             drawPile.map((die) => {
               const s = dieTypeStyle[die.dieType]
               return (
-                <div key={die.id} style={{
+                <button key={die.id} onClick={() => setInspectedDie(die)} style={{
                   background: '#12121f', border: '2px solid #000',
                   boxShadow: `3px 3px 0 ${s.shadow}`,
                   padding: '8px 10px',
                   display: 'flex', alignItems: 'center', gap: 10,
+                  cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
                 }}>
                   <div style={{
                     width: 14, height: 14, flexShrink: 0,
@@ -810,13 +814,22 @@ function ScoutModal({ drawPile, onClose }: { drawPile: import('../store/gameStor
                       </div>
                     ))}
                   </div>
-                </div>
+                </button>
               )
             })
           )}
         </div>
       </div>
     </div>
+    {inspectedDie && (
+      <DiceInspectorModal
+        types={[inspectedDie.dieType]}
+        faces={inspectedDie.faces}
+        mergeLevel={inspectedDie.mergeLevel}
+        onClose={() => setInspectedDie(null)}
+      />
+    )}
+    </>
   )
 }
 

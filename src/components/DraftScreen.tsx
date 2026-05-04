@@ -4,6 +4,7 @@ import { useGameStore, DIE_TEMPLATES, UNIQUE_DIE_TYPES, DIE_NAMES } from '../sto
 import { dieTypeStyle, faceColor } from './DieCard'
 import { DiceInspectorModal } from './DiceInspectorModal'
 import type { DieType, DieFace, Die } from '../store/gameStore'
+import { DIE_ROLES } from '../diceDescriptions'
 
 // ── Face icon ─────────────────────────────────────────────────────────────────
 
@@ -23,10 +24,10 @@ function FaceIcon({ type, size = 13 }: { type: DieFace['type']; size?: number })
 // ── Single die choice card ────────────────────────────────────────────────────
 
 function DieChoiceCard({
-  dieType, isLocked, onSelect, onToggleLock,
+  dieType, isLocked, onSelect, onToggleLock, onInspect,
 }: {
   dieType: DieType
-  isLocked: boolean; onSelect: () => void; onToggleLock: () => void
+  isLocked: boolean; onSelect: () => void; onToggleLock: () => void; onInspect: () => void
 }) {
   const template = DIE_TEMPLATES[dieType]
   const s = dieTypeStyle[dieType]
@@ -72,6 +73,32 @@ function DieChoiceCard({
       </div>
 
       {/* Face grid: 3 columns × 2 rows */}
+      <button
+        onClick={onInspect}
+        style={{
+          background: '#0f0f1a',
+          border: '2px solid #000',
+          padding: '7px 8px',
+          cursor: 'pointer',
+          fontFamily: 'inherit',
+          textAlign: 'left',
+        }}
+      >
+        <span style={{ fontSize: '0.66rem', color: '#d1d5db', lineHeight: 1.35 }}>
+          {DIE_ROLES[dieType]}
+        </span>
+        <span style={{
+          display: 'block',
+          marginTop: 3,
+          fontSize: '0.54rem',
+          color: '#6b7280',
+          letterSpacing: '0.12em',
+          textTransform: 'uppercase',
+        }}>
+          Tap for details
+        </span>
+      </button>
+
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
         {template.faces.map((face, i) => (
           <div
@@ -218,6 +245,7 @@ export function DraftScreen() {
             dieType={die.dieType}
             isLocked={lockedIds.has(die.id)}
             onToggleLock={() => toggleLock(die.id)}
+            onInspect={() => setInspectorDie(die)}
             onSelect={() => {
               const otherLockedIds = draftChoices
                 .filter((d) => d.id !== die.id && lockedIds.has(d.id))
