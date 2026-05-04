@@ -254,6 +254,7 @@ export function ShopScreen() {
   const [mergeError, setMergeError]       = useState<string | false>(false)
   const [craftOptions, setCraftOptions]   = useState<DieFace[] | null>(null)
   const [craftFaceIndex, setCraftFaceIndex] = useState<number | null>(null)
+  const [committedCraft, setCommittedCraft] = useState<{ dieId: string; faceIndex: number; faces: DieFace[] } | null>(null)
   const [presentDieId, setPresentDieId]   = useState<string | null>(null)
   const [presentAction, setPresentAction] = useState<'merge' | 'craft' | null>(null)
   const [showPresent, setShowPresent]     = useState(false)
@@ -270,8 +271,12 @@ export function ShopScreen() {
       setActiveAction(null)
       setSelectedDieId(null)
     } else if (activeAction === 'craft') {
+      // Reuse committed options for the same die+face to prevent free rerolls
+      const reuse = committedCraft?.dieId === selectedDieId && committedCraft?.faceIndex === faceIndex
+      const faces = reuse ? committedCraft!.faces : generateCraftOptions(selectedDie?.mergeLevel ?? 0)
+      if (!reuse) setCommittedCraft({ dieId: selectedDieId, faceIndex, faces })
       setCraftFaceIndex(faceIndex)
-      setCraftOptions(generateCraftOptions(selectedDie?.mergeLevel ?? 0))
+      setCraftOptions(faces)
     }
   }
 
@@ -291,6 +296,7 @@ export function ShopScreen() {
     setSelectedDieId(null)
     setCraftOptions(null)
     setCraftFaceIndex(null)
+    setCommittedCraft(null)
     triggerPresentation(id, 'craft')
   }
 

@@ -397,7 +397,20 @@ function IntentBadge({ intent, recoil = 0 }: { intent: EnemyIntent; recoil?: num
       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
         <Swords size={18} color="#f97316" strokeWidth={2.5} />
         <span style={{ fontSize: '0.7rem', fontWeight: 900, color: '#f97316', textShadow: '1px 1px 0 #000', letterSpacing: '0.08em' }}>
-          THORNS!
+          THORNS {Math.round(intent.value * 100)}%
+        </span>
+      </div>
+    )
+  }
+  if (intent.type === 'corrosive_strike') {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <Biohazard size={18} color="#a3e635" strokeWidth={2.5} />
+        <span style={{ fontSize: '1.6rem', fontWeight: 700, color: '#a3e635', textShadow: '1px 1px 0 #000' }}>
+          {intent.value}
+        </span>
+        <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#a3e635', letterSpacing: '0.06em' }}>
+          PIERCE
         </span>
       </div>
     )
@@ -588,7 +601,10 @@ function LifestealOrbLayer({ version, enemyEl, playerHpRef }: {
 }
 
 // ── Fortune Teller modal ─────────────────────────────────────────────────────
-function FortuneTellerModal({ drawPile }: { drawPile: import('../store/gameStore').Die[] }) {
+function FortuneTellerModal({ drawPile, onMinimize }: {
+  drawPile: import('../store/gameStore').Die[]
+  onMinimize: () => void
+}) {
   const drawSpecificDie               = useGameStore((s) => s.drawSpecificDie)
   const fortuneTellerPicksRemaining   = useGameStore((s) => s.fortuneTellerPicksRemaining)
 
@@ -624,10 +640,11 @@ function FortuneTellerModal({ drawPile }: { drawPile: import('../store/gameStore
             ✦ FORTUNE TELLER — {picksLabel}
           </span>
           <button
-            onClick={() => useGameStore.setState({ isChoosingNextDie: false })}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: 4 }}
+            onClick={onMinimize}
+            title="Minimize — choice stays pending"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: 4, fontSize: '1.1rem', lineHeight: 1 }}
           >
-            ✕
+            ─
           </button>
         </div>
         <div style={{ overflowY: 'auto', padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -836,27 +853,34 @@ export function CombatScreen() {
   const {
     player, enemy, skullCount, turnPhase, playerAttackAnimTier, lastEffects,
     secondWindTriggered, isChoosingNextDie, activeMultiplier,
-    unlockedNodes, currentFloor, runSouls,
+    unlockedNodes, currentFloor, runSouls, fortuneTellerPicksRemaining,
   } = useGameStore(
     useShallow(s => ({
-      player:               s.player,
-      enemy:                s.enemy,
-      skullCount:           s.skullCount,
-      turnPhase:            s.turnPhase,
-      playerAttackAnimTier: s.playerAttackAnimTier,
-      lastEffects:          s.lastEffects,
-      secondWindTriggered:  s.secondWindTriggered,
-      isChoosingNextDie:    s.isChoosingNextDie,
-      activeMultiplier:     s.activeMultiplier,
-      unlockedNodes:        s.unlockedNodes,
-      currentFloor:         s.currentFloor,
-      runSouls:             s.runSouls,
+      player:                      s.player,
+      enemy:                       s.enemy,
+      skullCount:                  s.skullCount,
+      turnPhase:                   s.turnPhase,
+      playerAttackAnimTier:        s.playerAttackAnimTier,
+      lastEffects:                 s.lastEffects,
+      secondWindTriggered:         s.secondWindTriggered,
+      isChoosingNextDie:           s.isChoosingNextDie,
+      activeMultiplier:            s.activeMultiplier,
+      unlockedNodes:               s.unlockedNodes,
+      currentFloor:                s.currentFloor,
+      runSouls:                    s.runSouls,
+      fortuneTellerPicksRemaining: s.fortuneTellerPicksRemaining,
     }))
   )
 
   const bankedSouls           = useGameStore(s => s.bankedSouls)
   const isAutoBankDevMode     = useGameStore(s => s.isAutoBankDevMode)
   const toggleAutoBankDevMode = useGameStore(s => s.toggleAutoBankDevMode)
+
+  // Fortune Teller minimize state — effect stays active while minimized
+  const [isFtMinimized, setIsFtMinimized] = useState(false)
+  useEffect(() => {
+    if (isChoosingNextDie) setIsFtMinimized(false)
+  }, [isChoosingNextDie])
 
   const venomLimit   = getVenomLimit(currentFloor)
   const venomPenalty = getVenomPenalty(currentFloor)
@@ -949,7 +973,7 @@ export function CombatScreen() {
   const [isAutoRolling, setIsAutoRolling] = useState(false)
   const autoRollRef = useRef(false)
   const [floatingSouls, setFloatingSouls] = useState(0)
-  const [hoveredBadge, setHoveredBadge] = useState<null | 'thorns' | 'barbs' | 'corrosive'>(null)
+  const [hoveredBadge, setHoveredBadge] = useState<null | 'thorns'>(null)
 
   useEffect(() => {
     if (!secondWindTriggered) return
@@ -971,8 +995,7 @@ export function CombatScreen() {
 
   const damageDiceInPlay = playedDice.filter(d => d.currentFace?.type === 'damage').length
   const expectedThorns   = Math.floor(totalDamage * (enemy?.thorns ?? 0))
-  const expectedBarbs    = damageDiceInPlay * (enemy?.barbs ?? 0)
-  const expectedRecoil   = expectedThorns + expectedBarbs
+  const expectedRecoil   = expectedThorns
 
   const startAutoRoll = async () => {
     autoRollRef.current = true
@@ -1142,98 +1165,36 @@ export function CombatScreen() {
             )}
 
             {/* Passive ability badges */}
-            {((enemy.thorns ?? 0) > 0 || (enemy.barbs ?? 0) > 0 || enemy.corrosive) && (
+            {(enemy.thorns ?? 0) > 0 && (
               <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 3 }}>
-                {(enemy.thorns ?? 0) > 0 && (
-                  <div
-                    style={{ position: 'relative', display: 'inline-flex' }}
-                    onMouseEnter={() => setHoveredBadge('thorns')}
-                    onMouseLeave={() => setHoveredBadge(null)}
-                  >
-                    <div style={{
-                      display: 'flex', alignItems: 'center', gap: 3,
-                      background: '#431407', border: '2px solid #c2410c', padding: '1px 5px',
-                      cursor: 'help',
-                    }}>
-                      <Swords size={9} color="#f97316" strokeWidth={2.5} />
-                      <span style={{ fontSize: '0.58rem', fontWeight: 700, color: '#f97316', letterSpacing: '0.08em' }}>
-                        THORNS {Math.round((enemy.thorns ?? 0) * 100)}%
-                      </span>
-                    </div>
-                    {hoveredBadge === 'thorns' && (
-                      <div style={{
-                        position: 'absolute', bottom: 'calc(100% + 4px)', left: '50%',
-                        transform: 'translateX(-50%)',
-                        background: '#1c0a00', border: '2px solid #c2410c',
-                        padding: '5px 8px', width: 180, zIndex: 50,
-                        fontSize: '0.65rem', color: '#fed7aa', lineHeight: 1.4,
-                        pointerEvents: 'none',
-                      }}>
-                        Reflects <strong style={{ color: '#f97316' }}>{Math.round((enemy.thorns ?? 0) * 100)}%</strong> of incoming damage back to the attacker. Hits your Shield first.
-                      </div>
-                    )}
+                <div
+                  style={{ position: 'relative', display: 'inline-flex' }}
+                  onMouseEnter={() => setHoveredBadge('thorns')}
+                  onMouseLeave={() => setHoveredBadge(null)}
+                >
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: 3,
+                    background: '#431407', border: '2px solid #c2410c', padding: '1px 5px',
+                    cursor: 'help',
+                  }}>
+                    <Swords size={9} color="#f97316" strokeWidth={2.5} />
+                    <span style={{ fontSize: '0.58rem', fontWeight: 700, color: '#f97316', letterSpacing: '0.08em' }}>
+                      THORNS {Math.round((enemy.thorns ?? 0) * 100)}%
+                    </span>
                   </div>
-                )}
-                {(enemy.barbs ?? 0) > 0 && (
-                  <div
-                    style={{ position: 'relative', display: 'inline-flex' }}
-                    onMouseEnter={() => setHoveredBadge('barbs')}
-                    onMouseLeave={() => setHoveredBadge(null)}
-                  >
+                  {hoveredBadge === 'thorns' && (
                     <div style={{
-                      display: 'flex', alignItems: 'center', gap: 3,
-                      background: '#3b1f07', border: '2px solid #92400e', padding: '1px 5px',
-                      cursor: 'help',
+                      position: 'absolute', bottom: 'calc(100% + 4px)', left: '50%',
+                      transform: 'translateX(-50%)',
+                      background: '#1c0a00', border: '2px solid #c2410c',
+                      padding: '5px 8px', width: 180, zIndex: 50,
+                      fontSize: '0.65rem', color: '#fed7aa', lineHeight: 1.4,
+                      pointerEvents: 'none',
                     }}>
-                      <Swords size={9} color="#f59e0b" strokeWidth={2.5} />
-                      <span style={{ fontSize: '0.58rem', fontWeight: 700, color: '#f59e0b', letterSpacing: '0.08em' }}>
-                        BARBS {enemy.barbs}
-                      </span>
+                      Reflects <strong style={{ color: '#f97316' }}>{Math.round((enemy.thorns ?? 0) * 100)}%</strong> of incoming damage back to the attacker. Hits your Shield first.
                     </div>
-                    {hoveredBadge === 'barbs' && (
-                      <div style={{
-                        position: 'absolute', bottom: 'calc(100% + 4px)', left: '50%',
-                        transform: 'translateX(-50%)',
-                        background: '#1c0f00', border: '2px solid #92400e',
-                        padding: '5px 8px', width: 190, zIndex: 50,
-                        fontSize: '0.65rem', color: '#fde68a', lineHeight: 1.4,
-                        pointerEvents: 'none',
-                      }}>
-                        Deals <strong style={{ color: '#f59e0b' }}>{enemy.barbs}</strong> damage to the attacker for EVERY attack die played this turn. Hits your Shield first.
-                      </div>
-                    )}
-                  </div>
-                )}
-                {enemy.corrosive && (
-                  <div
-                    style={{ position: 'relative', display: 'inline-flex' }}
-                    onMouseEnter={() => setHoveredBadge('corrosive')}
-                    onMouseLeave={() => setHoveredBadge(null)}
-                  >
-                    <div style={{
-                      display: 'flex', alignItems: 'center', gap: 3,
-                      background: '#052e16', border: '2px solid #15803d', padding: '1px 5px',
-                      cursor: 'help',
-                    }}>
-                      <FlaskConical size={9} color="#4ade80" strokeWidth={2.5} />
-                      <span style={{ fontSize: '0.58rem', fontWeight: 700, color: '#4ade80', letterSpacing: '0.08em' }}>
-                        CORROSIVE
-                      </span>
-                    </div>
-                    {hoveredBadge === 'corrosive' && (
-                      <div style={{
-                        position: 'absolute', bottom: 'calc(100% + 4px)', left: '50%',
-                        transform: 'translateX(-50%)',
-                        background: '#021a0e', border: '2px solid #15803d',
-                        padding: '5px 8px', width: 185, zIndex: 50,
-                        fontSize: '0.65rem', color: '#bbf7d0', lineHeight: 1.4,
-                        pointerEvents: 'none',
-                      }}>
-                        Attacks <strong style={{ color: '#4ade80' }}>bypass your Shield entirely</strong> — full damage hits your HP regardless of how much Shield you have.
-                      </div>
-                    )}
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             )}
 
@@ -1521,6 +1482,25 @@ export function CombatScreen() {
           </motion.div>
         )}
 
+        {/* Fortune Teller minimized — reopen banner */}
+        {isChoosingNextDie && isFtMinimized && (
+          <button
+            onClick={() => setIsFtMinimized(false)}
+            className="pixel-btn"
+            style={{
+              alignSelf: 'stretch',
+              background: '#1e1b4b',
+              border: '2px solid #4338ca',
+              padding: '6px 12px',
+              fontSize: '0.78rem', fontWeight: 900,
+              color: '#c7d2fe', letterSpacing: '0.1em',
+              cursor: 'pointer', textAlign: 'center',
+            }}
+          >
+            ✦ FORTUNE TELLER — {fortuneTellerPicksRemaining} pick{fortuneTellerPicksRemaining !== 1 ? 's' : ''} pending — TAP TO CHOOSE
+          </button>
+        )}
+
         {/* Venom draw counter — Act 2 only */}
         {isVenomActive(currentFloor) && (
           <div style={{
@@ -1574,8 +1554,8 @@ export function CombatScreen() {
           onClose={() => setInspectorOpen(false)}
         />
       )}
-      {isChoosingNextDie && (
-        <FortuneTellerModal drawPile={drawPile} />
+      {isChoosingNextDie && !isFtMinimized && (
+        <FortuneTellerModal drawPile={drawPile} onMinimize={() => setIsFtMinimized(true)} />
       )}
       {showScout && (
         <ScoutModal drawPile={drawPile} onClose={() => setShowScout(false)} />

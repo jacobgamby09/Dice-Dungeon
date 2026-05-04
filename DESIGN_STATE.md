@@ -31,7 +31,7 @@
 ### Acts & Flow
 - Act 1 (Floors 1–15): no modifier, full draft loop, boss on Floor 15.
 - Act 1 Boss → The Culling: auto-banks Run Souls, player picks 7 dice from inventory (`InterActScreen.tsx`), 3 Cursed dice forced in.
-- Act 2 (Floors 16–30): modifier type in code is `'thorns' | 'damage_cap'`; enemies have `thorns`, `barbs`, and `corrosive` fields on the `Enemy` interface.
+- Act 2 (Floors 16–30): modifier type in code is `'thorns' | 'damage_cap'`. Normal enemies (Slime Crawler, Marrow Bat, Toxic Creep) are plain attackers — no thorns/barbs/corrosive. The Act 2 boss (Spiked Behemoth) runs a 4-step intent cycle: shield → attack → thorns_activate → corrosive_strike, all floor-scaled.
 - **Venom (Act 2):** Safe draw limit is 5 (floors 16–20) or 4 (floors 21–30). Each die over the limit adds player poison (+1 on floors 16–25; +2 on floors 26–30). Poison ticks after enemy physical attack, decrements by 1 per turn. Draw button turns red with warning label. Counter shown above action buttons on all Act 2 floors.
 - Flee the Depths: banks Run Souls → returns to Hub.
 - Death: all Run Souls lost.
@@ -101,8 +101,8 @@ Nodes implemented (Banked Souls): Pocket Change, Vitality I/II, First Blood, Sha
 - **Mirror is dead weight as the first draw:** With no preceding die, it does nothing. High variance — either useless or extremely strong.
 - **Mirror + Multiplier ×9 combo** may be too swingy for Act 1 balance. Both dice are in the base draft pool.
 - **Too many powerful dice in the base loot pool:** Jackpot, Vampire, Priest, Fortune Teller should be skill-tree gated (per GDD §9). Currently available from Floor 1.
-- **Act 2 feels like a sudden wall:** The Cursed dice injection combined with enemy trait pressure may be too abrupt with no onboarding text. Raw HP/damage was reduced in the last pass (see Recent Decisions); difficulty should now come primarily from Thorns/Barbs/Corrosive mechanics.
-- **Gambler in Act 2:** 12-damage spike hits Thorns hard. Either the Gambler needs a warning or Thorns thresholds need tuning.
+- **Act 2 feels like a sudden wall:** The Cursed dice injection combined with boss telegraphing may be too abrupt with no onboarding text. Raw HP/damage was reduced in the last pass (see Recent Decisions); difficulty now comes from Venom overdraw penalty and the boss's rotating 4-step cycle.
+- **Gambler in Act 2:** 12-damage spike hits boss Thorns hard on the turn after thorns_activate. Either the Gambler needs a warning or Thorns thresholds need tuning.
 - **Venom is implemented** (see Acts & Flow above). Balance risks: limit of 5 may be too generous on floors 16–20; penalty of +1 may be too mild to deter greedy draws — watch playtesting data.
 
 ---

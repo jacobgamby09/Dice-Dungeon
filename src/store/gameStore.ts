@@ -302,7 +302,7 @@ function shuffleArray<T>(arr: T[]): T[] {
 
 // ── Store ────────────────────────────────────────────────────────────────────
 
-export interface EnemyIntent { type: 'attack' | 'shield' | 'thorns_activate'; value: number }
+export interface EnemyIntent { type: 'attack' | 'shield' | 'thorns_activate' | 'corrosive_strike'; value: number }
 export interface Enemy {
   hp: number; maxHp: number; name: string; intent: EnemyIntent; isBoss: boolean; poison: number
   thorns?: number; barbs?: number; corrosive?: boolean; shield?: number; intentPhase?: number
@@ -421,15 +421,16 @@ const ACT_1_BESTIARY: EnemyTemplate[] = [
 ]
 
 const ACT_2_BESTIARY: EnemyTemplate[] = [
-  { name: 'Thorned Beetle', baseHp: 40,  intentMin: 4,  intentMax: 6,  isBoss: false, thorns: 0.15 },
-  { name: 'Porcupine',      baseHp: 35,  intentMin: 3,  intentMax: 5,  isBoss: false, barbs: 1 },
-  { name: 'Toxic Slime',    baseHp: 60,  intentMin: 4,  intentMax: 7,  isBoss: false, corrosive: true },
+  { name: 'Slime Crawler', baseHp: 40, intentMin: 4, intentMax: 6, isBoss: false },
+  { name: 'Marrow Bat',    baseHp: 35, intentMin: 3, intentMax: 5, isBoss: false },
+  { name: 'Toxic Creep',   baseHp: 60, intentMin: 4, intentMax: 7, isBoss: false },
   {
     name: 'Spiked Behemoth', baseHp: 120, intentMin: 14, intentMax: 18, isBoss: true, thorns: 0,
     intentCycle: [
-      { type: 'shield',          value: 25 },
-      { type: 'attack',          value: 14 },
-      { type: 'thorns_activate', value: 0.35 },
+      { type: 'shield',           value: 5    },
+      { type: 'attack',           value: 14   },
+      { type: 'thorns_activate',  value: 0.30 },
+      { type: 'corrosive_strike', value: 7    },
     ],
   },
 ]
@@ -441,7 +442,17 @@ function rollIntent(template: EnemyTemplate, floor: number, intentPhase = 0): En
     : Math.floor((floor - 1) * 0.5)
   if (template.intentCycle && template.intentCycle.length > 0) {
     const def = template.intentCycle[intentPhase % template.intentCycle.length]
-    if (def.type === 'attack') return { type: 'attack', value: def.value + floorScaling }
+    if (def.type === 'attack' || def.type === 'corrosive_strike') {
+      return { type: def.type, value: def.value + floorScaling }
+    }
+    if (template.isBoss && def.type === 'shield') {
+      const delta = Math.max(0, floor - 20)
+      return { type: 'shield', value: Math.round(def.value + delta * 0.5) }
+    }
+    if (template.isBoss && def.type === 'thorns_activate') {
+      const delta = Math.max(0, floor - 20)
+      return { type: 'thorns_activate', value: Math.min(0.90, def.value + delta * 0.04) }
+    }
     return { type: def.type, value: def.value }
   }
   const base = template.intentMin + Math.floor(Math.random() * (template.intentMax - template.intentMin + 1))
@@ -482,7 +493,7 @@ const INITIAL_INVENTORY: Die[] = [
 
 export const GAME_ACTS: Act[] = [
   { id: 1, name: 'The Brute Tunnels', description: 'Crude warriors armed with raw power.',   modifier: 'none',       startFloor: 1,  endFloor: 15 },
-  { id: 2, name: 'The Spiked Depths', description: 'Every hit you take echoes back.',         modifier: 'thorns',     startFloor: 16, endFloor: 30 },
+  { id: 2, name: 'The Spiked Depths', description: 'Draw carefully — venom stacks with every overdraw.', modifier: 'thorns', startFloor: 16, endFloor: 30 },
   { id: 3, name: 'The Iron Fortress', description: 'Damage is capped. Outlast or perish.',   modifier: 'damage_cap', startFloor: 31, endFloor: 45 },
 ]
 
@@ -1712,7 +1723,7 @@ async function runEnemyPhase() {
         playedDice: [],
         lastEffects: { heal: 0, shield: 0, souls: 0 },
         player: { ...s.player, shield: 0 },
-        enemy: { ...s.enemy, intent: nxIn, intentPhase: nxPh, thorns: nxIn.type === 'thorns_activate' ? nxIn.value : (tmpl.thorns ?? 0) },
+        enemy: { ...s.enemy, intent: nxIn, intentPhase: nxPh },
         rollStartVersion: s.rollStartVersion + 1,
         isChoosingNextDie: false,
         firstAttackThisEncounter: true,
@@ -1727,7 +1738,7 @@ async function runEnemyPhase() {
   const rawDamage = enemy.intent.value
   let postHp: number
   let postShield: number
-  if (enemy.corrosive) {
+  if (enemy.corrosive || enemy.intent.type === 'corrosive_strike') {
     // Corrosive: hits shield and HP simultaneously — shields provide no protection
     postHp    = Math.max(0, player.hp - rawDamage)
     postShield = Math.max(0, eShield - rawDamage)
