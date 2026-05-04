@@ -48,7 +48,7 @@ export const FACE_DESCRIPTIONS: Record<DieFace['type'], string> = {
   lifesteal: 'Deals damage and heals you for the same amount.',
   choose_next: 'Opens the bag picker and lets you choose the next die drawn.',
   wildcard: 'Joker face. No combat effect; The Joker is used as universal merge material in The Forge.',
-  blank: 'No effect.',
+  blank: 'No combat effect. Blank faces can be crafted into useful faces at The Forge.',
   purified_skull: 'An inert Skull. It does not count toward busting.',
   multiplier: 'Multiplies the next die effect, then resets.',
   poison: 'Adds Poison to the enemy when you Attack. Poison ignores Shield, ticks after the enemy acts, then decays by 1.',

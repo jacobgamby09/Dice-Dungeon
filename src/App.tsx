@@ -5,11 +5,13 @@ import { DraftScreen } from './components/DraftScreen'
 import { ShopScreen } from './components/ShopScreen'
 import { BossRewardModal } from './components/BossRewardModal'
 import { InterActScreen } from './components/InterActScreen'
+import { ActIntroModal } from './components/ActIntroModal'
 
 function App() {
   const turnPhase = useGameStore((s) => s.turnPhase)
   const showBossRewardModal = useGameStore((s) => s.showBossRewardModal)
   const showGameOver = useGameStore((s) => s.showGameOver)
+  const showActIntroModal = useGameStore((s) => s.showActIntroModal)
 
   let screen: React.ReactNode
   if (turnPhase === 'loadout')        screen = <LoadoutScreen />
@@ -22,6 +24,7 @@ function App() {
     <>
       {screen}
       {showBossRewardModal && <BossRewardModal />}
+      {showActIntroModal && <ActIntroModal />}
       {showGameOver && (
         <div style={{
           position: 'fixed', inset: 0, zIndex: 9999,

@@ -340,6 +340,7 @@ interface GameState {
   bankedSouls: number
   unlockedNodes: string[]
   showGameOver: boolean
+  showActIntroModal: boolean
   playerAttackAnimTier: 1 | 2 | 3 | null
   isChoosingNextDie: boolean
   fortuneTellerPicksRemaining: number
@@ -354,6 +355,7 @@ interface GameState {
   multiplierFiredVersion: number
   maxEquippedDice: number
   claimBossReward: () => void
+  claimActIntro: () => void
   toggleEquipDie: (dieUid: string) => void
   resetLoadout: () => void
   equipBaseDie: (dieType: DieType) => void
@@ -520,13 +522,15 @@ export function getVenomPenalty(floor: number): number {
   return floor >= 26 ? 2 : 1
 }
 
-function getDiceLootPool(unlockedNodes: string[]): DieType[] {
-  const pool: DieType[] = ['heavy', 'paladin', 'gambler', 'scavenger', 'wall', 'joker', 'unique', 'blight', 'rejuvenator', 'mirror']
-  if (unlockedNodes.includes('kec9ybn2')) pool.push('jackpot')
-  if (unlockedNodes.includes('60vc1fvg')) pool.push('vampire')
-  if (unlockedNodes.includes('dx6jq5y5')) pool.push('priest')
-  if (unlockedNodes.includes('qevchxm7')) pool.push('fortune_teller')
-  return pool
+const GLOBAL_DICE_POOL: DieType[] = ['heavy', 'scavenger', 'wall', 'gambler', 'joker']
+const ACT_1_DICE_POOL: DieType[] = ['paladin', 'vampire', 'rejuvenator', 'mirror']
+const ACT_2_DICE_POOL: DieType[] = ['blight', 'fortune_teller', 'priest', 'unique', 'jackpot']
+
+function getDiceLootPool(floor: number): DieType[] {
+  const actId = getCurrentAct(floor).id
+  if (actId === 1) return [...GLOBAL_DICE_POOL, ...ACT_1_DICE_POOL]
+  if (actId === 2) return [...GLOBAL_DICE_POOL, ...ACT_2_DICE_POOL]
+  return [...GLOBAL_DICE_POOL]
 }
 
 export const useGameStore = create<GameState>()(
@@ -571,6 +575,7 @@ export const useGameStore = create<GameState>()(
   justDefeatedBoss: false,
   secondWindTriggered: false,
   showBossRewardModal: false,
+  showActIntroModal: false,
   showGameOver: false,
   purifyUsesThisShop: 0,
   activeMultiplier: 1,
@@ -663,6 +668,7 @@ export const useGameStore = create<GameState>()(
       justDefeatedBoss: false,
       secondWindTriggered: false,
       showBossRewardModal: false,
+      showActIntroModal: false,
       purifyUsesThisShop: 0,
     }))
   },
@@ -1177,7 +1183,7 @@ export const useGameStore = create<GameState>()(
         const lockedTypes   = new Set(lockedDraftDice.map((d) => d.dieType))
         const ownedUniques  = new Set(inventory.filter((d) => UNIQUE_DIE_TYPES.has(d.dieType)).map((d) => d.dieType))
         const slotsToFill = 3 - lockedDraftDice.length
-        const pool    = getDiceLootPool(unlockedNodes).filter((t) => !lockedTypes.has(t) && !ownedUniques.has(t))
+        const pool    = getDiceLootPool(currentFloor).filter((t) => !lockedTypes.has(t) && !ownedUniques.has(t))
         const newDice = shuffleArray([...pool])
                           .slice(0, slotsToFill)
                           .map((t) => createDie(t, uid()))
@@ -1279,7 +1285,7 @@ export const useGameStore = create<GameState>()(
           const lockedTypesP  = new Set(lockedDraftDice.map((d) => d.dieType))
           const ownedUniquesP = new Set(inv.filter((d) => UNIQUE_DIE_TYPES.has(d.dieType)).map((d) => d.dieType))
           const slotsP  = 3 - lockedDraftDice.length
-          const poolP   = getDiceLootPool(unlockedNodes).filter((t) => !lockedTypesP.has(t) && !ownedUniquesP.has(t))
+          const poolP   = getDiceLootPool(currentFloor).filter((t) => !lockedTypesP.has(t) && !ownedUniquesP.has(t))
           const newDiceP = shuffleArray([...poolP]).slice(0, slotsP).map((t) => createDie(t, uid()))
           set((st) => ({
             runSouls: st.runSouls + earnedP,
@@ -1341,15 +1347,16 @@ export const useGameStore = create<GameState>()(
   },
 
   claimBossReward: () => { set({ showBossRewardModal: false }) },
+  claimActIntro: () => { set({ showActIntroModal: false }) },
 
   rerollDraft: (lockedDieIds) => {
-    const { runSouls, rerollCost, unlockedNodes, draftChoices, inventory } = get()
+    const { runSouls, rerollCost, draftChoices, inventory, currentFloor } = get()
     if (runSouls < rerollCost) return
     const lockedDice   = draftChoices.filter((d) => lockedDieIds.includes(d.id))
     const lockedTypes  = new Set(lockedDice.map((d) => d.dieType))
     const ownedUniques = new Set(inventory.filter((d) => UNIQUE_DIE_TYPES.has(d.dieType)).map((d) => d.dieType))
     const slotsToFill = 3 - lockedDice.length
-    const pool    = getDiceLootPool(unlockedNodes).filter((t) => !lockedTypes.has(t) && !ownedUniques.has(t))
+    const pool    = getDiceLootPool(currentFloor).filter((t) => !lockedTypes.has(t) && !ownedUniques.has(t))
     const newDice = shuffleArray([...pool]).slice(0, slotsToFill).map((t) => createDie(t, uid()))
     set((s) => ({
       runSouls: s.runSouls - rerollCost,
@@ -1503,6 +1510,7 @@ export const useGameStore = create<GameState>()(
       justDefeatedBoss: false,
       secondWindTriggered: false,
       showBossRewardModal: false,
+      showActIntroModal: false,
       purifyUsesThisShop: 0,
       turnPhase: 'loadout',
     }))
@@ -1537,6 +1545,7 @@ export const useGameStore = create<GameState>()(
       activeMultiplier: 1,
       firstAttackThisEncounter: true,
       justDefeatedBoss: false,
+      showActIntroModal: true,
       rollStartVersion: rollStartVersion + 1,
     })
   },
@@ -1558,6 +1567,7 @@ export const useGameStore = create<GameState>()(
       usedSecondWind: false,
       firstAttackThisEncounter: true,
       playerAttackAnimTier: null,
+      showActIntroModal: false,
       turnPhase: 'loadout',
     })
   },
@@ -1643,6 +1653,7 @@ export const useGameStore = create<GameState>()(
       justDefeatedBoss: false,
       secondWindTriggered: false,
       showBossRewardModal: false,
+      showActIntroModal: false,
       purifyUsesThisShop: 0,
       activeMultiplier: 1,
     }))
@@ -1912,7 +1923,7 @@ async function handleBustEnemyVictory() {
     const lockedTypes   = new Set(lockedDraftDice.map((d) => d.dieType))
     const ownedUniques  = new Set(inventory.filter((d) => UNIQUE_DIE_TYPES.has(d.dieType)).map((d) => d.dieType))
     const slots         = 3 - lockedDraftDice.length
-    const pool          = getDiceLootPool(unlockedNodes).filter((t) => !lockedTypes.has(t) && !ownedUniques.has(t))
+    const pool          = getDiceLootPool(currentFloor).filter((t) => !lockedTypes.has(t) && !ownedUniques.has(t))
     const newDice       = shuffleArray([...pool]).slice(0, slots).map((t) => createDie(t, uid()))
     useGameStore.setState((st) => ({
       ...resetFields,

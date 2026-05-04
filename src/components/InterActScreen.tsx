@@ -23,6 +23,7 @@ export function InterActScreen() {
   const inventory    = useGameStore((s) => s.inventory)
   const bankedSouls  = useGameStore((s) => s.bankedSouls)
   const cullInventory = useGameStore((s) => s.cullInventory)
+  const cullableDice = inventory.filter((die) => die.dieType !== 'cursed')
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
@@ -89,7 +90,7 @@ export function InterActScreen() {
         padding: '10px 16px',
         display: 'flex', flexDirection: 'column', gap: 8,
       }}>
-        {inventory.map((die) => {
+        {cullableDice.map((die) => {
           const s = dieTypeStyle[die.dieType]
           const isSelected = selectedIds.has(die.id)
           const isDisabled = !isSelected && selectedIds.size >= CULL_TARGET

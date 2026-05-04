@@ -19,7 +19,7 @@ function FaceIcon({ type, size = 13 }: { type: DieFace['type']; size?: number })
   if (type === 'poison')      return <FlaskConical size={size} color={color} strokeWidth={2.5} />
   if (type === 'hot')         return <Clock        size={size} color="#064e3b" strokeWidth={2.5} />
   if (type === 'mirror')      return <RefreshCw    size={size} color="#94a3b8" strokeWidth={2.5} />
-  if (type === 'multiplier')  return <span style={{ color, fontSize: size, fontWeight: 900 }}>x</span>
+  if (type === 'multiplier')  return <span style={{ color: '#ffffff', fontSize: size + 2, fontWeight: 900, lineHeight: 1 }}>×</span>
   if (type === 'blank')       return <span style={{ color: '#6b7280', fontSize: size, fontWeight: 900 }}>-</span>
   if (type === 'purified_skull') return <Skull size={size} color="#ffffff" strokeWidth={2.5} />
   return <Heart size={size} color={color} strokeWidth={2.5} />
