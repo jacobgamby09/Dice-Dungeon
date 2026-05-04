@@ -19,6 +19,8 @@ export const DIE_ROLES: Record<DieType, string> = {
   blight: 'Poison die that stacks unblockable delayed damage.',
   rejuvenator: 'Healing-over-time die that stacks amount and duration.',
   mirror: 'Unique copy die that repeats the previous die face.',
+  vessel: 'Pure crafting substrate with no combat power until shaped at The Forge.',
+  warden: 'Defensive anti-bust die that seals Skulls back into the bag.',
 }
 
 export const DIE_TIPS: Partial<Record<DieType, string>> = {
@@ -37,6 +39,8 @@ export const DIE_TIPS: Partial<Record<DieType, string>> = {
   blight: 'Poison bypasses Shield and keeps ticking down each enemy phase.',
   rejuvenator: 'Stacks additively. A 2 HP / 2 turn buff plus 1 HP / 1 turn becomes 3 HP / 3 turns, then decays each tick.',
   mirror: 'Does nothing if there is no previous die face to copy.',
+  vessel: 'All six Blank faces can be crafted directly. The Vessel cannot be merged.',
+  warden: 'Seal removes a rolled Skull from this turn and returns that die to the draw pile. The danger is delayed, not deleted.',
 }
 
 export const FACE_DESCRIPTIONS: Record<DieFace['type'], string> = {
@@ -54,12 +58,14 @@ export const FACE_DESCRIPTIONS: Record<DieFace['type'], string> = {
   poison: 'Adds Poison to the enemy when you Attack. Poison ignores Shield, ticks after the enemy acts, then decays by 1.',
   hot: 'Adds healing over time. Both healing amount and duration stack, then both decay each tick.',
   mirror: 'Repeats the previous die face. If the previous face was a setup effect, it repeats that setup.',
+  seal: 'Removes a rolled Skull from this turn and returns that die to the draw pile.',
 }
 
 export function describeFace(face: DieFace): string {
   if (face.type === 'hot') {
     return `Heal ${face.value} HP for ${face.duration ?? 1} turn${(face.duration ?? 1) === 1 ? '' : 's'}. Stacks amount and duration.`
   }
+  if (face.type === 'seal') return `Seal ${face.value} Skull${face.value === 1 ? '' : 's'} back into the draw pile.`
   if (face.type === 'multiplier') return `Multiply the next die effect by x${face.value}.`
   if (face.value > 0 && ['damage', 'shield', 'heal', 'souls', 'lifesteal', 'poison'].includes(face.type)) {
     return `${face.value} ${FACE_DESCRIPTIONS[face.type]}`

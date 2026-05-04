@@ -4,7 +4,7 @@ import type { DieType, DieFace } from '../store/gameStore'
 import { dieTypeStyle, faceColor } from './DieCard'
 import { DIE_ROLES, DIE_TIPS } from '../diceDescriptions'
 
-const LIBRARY_TYPES: DieType[] = ['white', 'blue', 'green', 'cursed', 'heavy', 'paladin', 'gambler', 'scavenger', 'wall', 'jackpot', 'vampire', 'priest', 'fortune_teller', 'joker', 'unique', 'blight', 'rejuvenator', 'mirror']
+const LIBRARY_TYPES: DieType[] = ['white', 'blue', 'green', 'cursed', 'heavy', 'paladin', 'gambler', 'scavenger', 'wall', 'jackpot', 'vampire', 'priest', 'fortune_teller', 'joker', 'unique', 'blight', 'rejuvenator', 'mirror', 'vessel', 'warden']
 
 function FaceIcon({ type, size = 11 }: { type: DieFace['type']; size?: number }) {
   const color = faceColor[type]
@@ -16,6 +16,7 @@ function FaceIcon({ type, size = 11 }: { type: DieFace['type']; size?: number })
   if (type === 'choose_next') return <Star     size={size} color={color} strokeWidth={2.5} />
   if (type === 'wildcard')    return <Shuffle      size={size} color={color} strokeWidth={2.5} />
   if (type === 'poison')      return <FlaskConical size={size} color={color} strokeWidth={2.5} />
+  if (type === 'seal')        return <Shield       size={size} color={color} strokeWidth={3} />
   return <Heart size={size} color={color} strokeWidth={2.5} />
 }
 
@@ -130,7 +131,7 @@ export function DiceLibrary({ onClose }: { onClose: () => void }) {
                             <Clock size={7} color="#064e3b" strokeWidth={2.5} />
                           </div>
                         </div>
-                      ) : (face.type === 'skull' || face.type === 'purified_skull' || face.type === 'choose_next' || face.type === 'wildcard') ? (
+                      ) : (face.type === 'skull' || face.type === 'purified_skull' || face.type === 'choose_next' || face.type === 'wildcard' || face.type === 'seal') ? (
                         <FaceIcon type={face.type} size={14} />
                       ) : (
                         <>

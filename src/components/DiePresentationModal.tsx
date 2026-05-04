@@ -14,6 +14,7 @@ function FaceIcon({ type, size = 13 }: { type: DieFace['type']; size?: number })
   if (type === 'choose_next') return <Star     size={size} color={color} strokeWidth={2.5} />
   if (type === 'wildcard')    return <Shuffle      size={size} color={color} strokeWidth={2.5} />
   if (type === 'poison')      return <FlaskConical size={size} color={color} strokeWidth={2.5} />
+  if (type === 'seal')        return <Shield       size={size} color={color} strokeWidth={3} />
   return <Heart size={size} color={color} strokeWidth={2.5} />
 }
 
@@ -129,7 +130,7 @@ export function DiePresentationModal({
               alignItems: 'center', justifyContent: 'center', gap: 3,
             }}>
               {face.type === 'blank' ? null
-                : (face.type === 'skull' || face.type === 'purified_skull' || face.type === 'choose_next' || face.type === 'wildcard')
+                : (face.type === 'skull' || face.type === 'purified_skull' || face.type === 'choose_next' || face.type === 'wildcard' || face.type === 'seal')
                   ? <FaceIcon type={face.type} size={22} />
                   : (
                     <>

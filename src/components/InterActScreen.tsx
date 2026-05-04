@@ -16,6 +16,7 @@ function FaceIcon({ type, size = 13 }: { type: DieFace['type']; size?: number })
   if (type === 'choose_next') return <Star         size={size} color={color} strokeWidth={2.5} />
   if (type === 'wildcard')    return <Shuffle      size={size} color={color} strokeWidth={2.5} />
   if (type === 'poison')      return <FlaskConical size={size} color={color} strokeWidth={2.5} />
+  if (type === 'seal')        return <Shield       size={size} color={color} strokeWidth={3} />
   return <Heart size={size} color={color} strokeWidth={2.5} />
 }
 
@@ -155,7 +156,7 @@ export function InterActScreen() {
                           <line x1="16" y1="2" x2="2" y2="16" stroke="#ef4444" strokeWidth="3" strokeLinecap="round" />
                         </svg>
                       </div>
-                    ) : (face.type === 'skull' || face.type === 'choose_next' || face.type === 'wildcard' || face.type === 'souls' || face.type === 'poison') ? (
+                    ) : (face.type === 'skull' || face.type === 'choose_next' || face.type === 'wildcard' || face.type === 'souls' || face.type === 'poison' || face.type === 'seal') ? (
                       <FaceIcon type={face.type} size={13} />
                     ) : (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>

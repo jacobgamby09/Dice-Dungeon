@@ -4,12 +4,27 @@ import { Flame, X, Check } from 'lucide-react'
 import { useGameStore, SKILL_TREE_NODES } from '../store/gameStore'
 import type { SkillNode } from '../store/gameStore'
 
-const CANVAS_W = 1300
-const CANVAS_H = 700
+const CANVAS_W = 1500
+const CANVAS_H = 900
 const NODE_W   = 130
 const NODE_H   = 80
-const OFFSET_X = 250
-const OFFSET_Y = 300
+const OFFSET_X = 470
+const OFFSET_Y = 430
+
+const TRACK_META = {
+  root:       { label: 'CORE',       color: '#c4b5fd', glow: 'rgba(196,181,253,0.24)' },
+  extraction: { label: 'EXTRACTION', color: '#a855f7', glow: 'rgba(168,85,247,0.18)' },
+  forge:      { label: 'FORGE',      color: '#f97316', glow: 'rgba(249,115,22,0.18)' },
+  survival:   { label: 'SURVIVAL',   color: '#22c55e', glow: 'rgba(34,197,94,0.18)' },
+  control:    { label: 'CONTROL',    color: '#38bdf8', glow: 'rgba(56,189,248,0.18)' },
+} as const
+
+const TRACK_LANES = [
+  { track: 'extraction' as const, y: -300 },
+  { track: 'forge' as const, y: -100 },
+  { track: 'survival' as const, y: 100 },
+  { track: 'control' as const, y: 300 },
+]
 
 function nodeCenter(node: SkillNode) {
   return { x: node.x + OFFSET_X + NODE_W / 2, y: node.y + OFFSET_Y + NODE_H / 2 }
@@ -95,6 +110,40 @@ export function SkillTree({ onClose }: { onClose: () => void }) {
           dragMomentum={false}
           style={{ x: dragX, y: dragY, scale, width: CANVAS_W, height: CANVAS_H, position: 'relative', transformOrigin: '0 0' }}
         >
+          {/* Track lanes */}
+          {TRACK_LANES.map((lane) => {
+            const meta = TRACK_META[lane.track]
+            return (
+              <div
+                key={lane.track}
+                style={{
+                  position: 'absolute',
+                  left: OFFSET_X - 250,
+                  top: lane.y + OFFSET_Y - 24,
+                  width: 1120,
+                  height: 128,
+                  border: `2px solid ${meta.color}`,
+                  background: meta.glow,
+                  opacity: 0.55,
+                  boxShadow: '3px 3px 0 #000',
+                  pointerEvents: 'none',
+                }}
+              >
+                <span style={{
+                  position: 'absolute',
+                  left: 10,
+                  top: 8,
+                  color: meta.color,
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  letterSpacing: '0.14em',
+                }}>
+                  {meta.label}
+                </span>
+              </div>
+            )
+          })}
+
           {/* SVG connections */}
           <svg
             style={{ position: 'absolute', inset: 0, width: CANVAS_W, height: CANVAS_H, pointerEvents: 'none' }}
@@ -126,16 +175,17 @@ export function SkillTree({ onClose }: { onClose: () => void }) {
             const eligible   = isEligible(node, unlockedNodes)
             const affordable = bankedSouls >= node.cost
             const selected   = selectedId === node.id
+            const trackMeta  = TRACK_META[node.track ?? 'root']
 
             const borderColor = unlocked          ? '#facc15'
-                              : selected          ? '#c4b5fd'
-                              : eligible && affordable ? '#7c3aed'
-                              : eligible          ? '#4c1d95'
+                              : selected          ? trackMeta.color
+                              : eligible && affordable ? trackMeta.color
+                              : eligible          ? trackMeta.color
                               : '#374151'
             const shadow = unlocked
               ? '3px 3px 0 #78350f, 0 0 12px 2px rgba(250,204,21,0.35)'
               : selected
-              ? '3px 3px 0 #4c1d95, 0 0 10px 2px rgba(196,181,253,0.3)'
+              ? `3px 3px 0 #000, 0 0 10px 2px ${trackMeta.glow}`
               : '3px 3px 0 #000'
 
             const left = node.x + OFFSET_X
@@ -164,6 +214,19 @@ export function SkillTree({ onClose }: { onClose: () => void }) {
                   filter: !unlocked && !eligible ? 'grayscale(0.7)' : 'none',
                 }}
               >
+                {node.track && node.track !== 'root' && (
+                  <span style={{
+                    position: 'absolute',
+                    top: 4,
+                    right: 5,
+                    fontSize: '0.45rem',
+                    fontWeight: 800,
+                    color: trackMeta.color,
+                    letterSpacing: '0.08em',
+                  }}>
+                    {TRACK_META[node.track].label.slice(0, 3)}
+                  </span>
+                )}
                 {unlocked && (
                   <Check size={22} color="#facc15" strokeWidth={3} style={{ flexShrink: 0 }} />
                 )}
@@ -172,7 +235,7 @@ export function SkillTree({ onClose }: { onClose: () => void }) {
                 )}
                 <span style={{
                   fontSize: '0.75rem', fontWeight: 700,
-                  color: unlocked ? '#facc15' : eligible ? '#c4b5fd' : '#6b7280',
+                  color: unlocked ? '#facc15' : eligible ? trackMeta.color : '#6b7280',
                   textAlign: 'center', lineHeight: 1.3, letterSpacing: '0.05em',
                   textTransform: 'uppercase',
                 }}>
@@ -198,12 +261,16 @@ export function SkillTree({ onClose }: { onClose: () => void }) {
         const eligible  = isEligible(selectedNode, unlockedNodes)
         const canAfford = bankedSouls >= selectedNode.cost
         const canBuy    = eligible && canAfford
+        const trackMeta = TRACK_META[selectedNode.track ?? 'root']
         return (
           <div style={{
-            background: '#1a1a2e', borderTop: `3px solid ${owned ? '#facc15' : eligible ? '#7c3aed' : '#374151'}`,
+            background: '#1a1a2e', borderTop: `3px solid ${owned ? '#facc15' : eligible ? trackMeta.color : '#374151'}`,
             padding: '14px 16px', flexShrink: 0,
           }}>
-            <p style={{ margin: '0 0 6px', fontWeight: 700, color: owned ? '#facc15' : eligible ? '#c4b5fd' : '#6b7280', fontSize: '1.4rem' }}>
+            <p style={{ margin: '0 0 4px', color: trackMeta.color, fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.16em' }}>
+              {trackMeta.label}
+            </p>
+            <p style={{ margin: '0 0 6px', fontWeight: 700, color: owned ? '#facc15' : eligible ? trackMeta.color : '#6b7280', fontSize: '1.4rem' }}>
               {selectedNode.name}
             </p>
             <p style={{ margin: '0 0 12px', color: '#9ca3af', fontSize: '1rem' }}>

@@ -18,6 +18,7 @@ function FaceIcon({ type, size = 13 }: { type: DieFace['type']; size?: number })
   if (type === 'choose_next') return <Star     size={size} color={color} strokeWidth={2.5} />
   if (type === 'wildcard')    return <Shuffle      size={size} color={color} strokeWidth={2.5} />
   if (type === 'poison')      return <FlaskConical size={size} color={color} strokeWidth={2.5} />
+  if (type === 'seal')        return <Shield       size={size} color={color} strokeWidth={3} />
   return <Heart size={size} color={color} strokeWidth={2.5} />
 }
 
@@ -137,7 +138,7 @@ function DieChoiceCard({
                     <line x1="22" y1="2" x2="2" y2="22" stroke="#ef4444" strokeWidth="3.5" strokeLinecap="round" />
                   </svg>
                 </div>
-              ) : (face.type === 'skull' || face.type === 'choose_next' || face.type === 'wildcard') ? (
+              ) : (face.type === 'skull' || face.type === 'choose_next' || face.type === 'wildcard' || face.type === 'seal') ? (
                 <FaceIcon type={face.type} size={18} />
               ) : (
                 <>

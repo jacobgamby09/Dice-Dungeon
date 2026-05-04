@@ -19,6 +19,7 @@ function FaceIcon({ type, size = 13 }: { type: DieFace['type']; size?: number })
   if (type === 'poison')      return <FlaskConical size={size} color={color} strokeWidth={2.5} />
   if (type === 'hot')         return <Clock        size={size} color="#064e3b" strokeWidth={2.5} />
   if (type === 'mirror')      return <RefreshCw    size={size} color="#94a3b8" strokeWidth={2.5} />
+  if (type === 'seal')        return <Shield       size={size} color={color} strokeWidth={3} />
   if (type === 'multiplier')  return <span style={{ color: '#ffffff', fontSize: size + 2, fontWeight: 900, lineHeight: 1 }}>×</span>
   if (type === 'blank')       return <span style={{ color: '#6b7280', fontSize: size, fontWeight: 900 }}>-</span>
   if (type === 'purified_skull') return <Skull size={size} color="#ffffff" strokeWidth={2.5} />
@@ -195,7 +196,7 @@ export function DiceInspectorModal({ types, initialType, mergeLevel, faces, dieL
                     <Clock size={11} color="#064e3b" strokeWidth={2.5} />
                   </div>
                 </div>
-              ) : (face.type === 'skull' || face.type === 'wildcard' || face.type === 'choose_next') ? (
+              ) : (face.type === 'skull' || face.type === 'wildcard' || face.type === 'choose_next' || face.type === 'seal') ? (
                 <FaceIcon type={face.type} size={22} />
               ) : (
                 <>
@@ -234,10 +235,10 @@ export function DiceInspectorModal({ types, initialType, mergeLevel, faces, dieL
               </span>
             </div>
           ))}
-          {displayFaces.some((face) => face.type === 'hot' || face.type === 'multiplier') && (
+          {displayFaces.some((face) => face.type === 'hot' || face.type === 'multiplier' || face.type === 'seal') && (
             <span style={{ fontSize: '0.58rem', color: '#9ca3af', lineHeight: 1.35 }}>
               {displayFaces
-                .filter((face) => face.type === 'hot' || face.type === 'multiplier')
+                .filter((face) => face.type === 'hot' || face.type === 'multiplier' || face.type === 'seal')
                 .map(describeFace)
                 .join(' ')}
             </span>

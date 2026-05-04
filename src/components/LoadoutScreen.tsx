@@ -25,6 +25,7 @@ const DIE_NAMES: Partial<Record<DieType, string>> = {
   fortune_teller: 'The Fortune Teller',
   joker:          'The Joker',
   unique:         'The Multiplier',
+  warden:         'The Warden',
 }
 
 const MODIFIER_META: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
@@ -48,6 +49,7 @@ function FaceIcon({ type, size = 13 }: { type: DieFace['type']; size?: number })
   if (type === 'choose_next') return <Star     size={size} color={color} strokeWidth={2.5} />
   if (type === 'wildcard')    return <Shuffle      size={size} color={color} strokeWidth={2.5} />
   if (type === 'poison')      return <FlaskConical size={size} color={color} strokeWidth={2.5} />
+  if (type === 'seal')        return <Shield       size={size} color={color} strokeWidth={3} />
   return <Heart size={size} color={color} strokeWidth={2.5} />
 }
 
@@ -94,7 +96,7 @@ function FaceGrid({ faces, s }: { faces: DieFace[]; s: { bg: string; shadow: str
                   <line x1="18" y1="2" x2="2" y2="18" stroke="#ef4444" strokeWidth="3" strokeLinecap="round" />
                 </svg>
               </div>
-            ) : (face.type === 'skull' || face.type === 'choose_next' || face.type === 'wildcard') ? (
+            ) : (face.type === 'skull' || face.type === 'choose_next' || face.type === 'wildcard' || face.type === 'seal') ? (
               <FaceIcon type={face.type} size={15} />
             ) : (
               <>

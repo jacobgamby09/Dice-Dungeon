@@ -19,6 +19,7 @@ function FaceIcon({ type, size = 13 }: { type: DieFace['type']; size?: number })
   if (type === 'wildcard')    return <Shuffle      size={size} color={color} strokeWidth={2.5} />
   if (type === 'poison')      return <FlaskConical size={size} color={color} strokeWidth={2.5} />
   if (type === 'mirror')      return <RefreshCw size={size} color="#334155" strokeWidth={2.5} />
+  if (type === 'seal')        return <Shield size={size} color={color} strokeWidth={3} />
   return <Heart size={size} color={color} strokeWidth={2.5} />
 }
 
@@ -199,6 +200,8 @@ function FacePickerGrid({
                   <line x1="26" y1="2" x2="2" y2="26" stroke="#ef4444" strokeWidth="4" strokeLinecap="round" />
                 </svg>
               </div>
+            ) : face.type === 'seal' ? (
+              <Shield size={22} color={faceColor.seal} strokeWidth={3} />
             ) : face.type === 'skull' ? (
               <Skull size={22} color={faceColor.skull} strokeWidth={2.5} />
             ) : face.type === 'mirror' ? (
@@ -318,6 +321,11 @@ export function ShopScreen() {
       setTimeout(() => setMergeError(false), 1500)
       return
     }
+    if (die1.dieType === 'vessel' || die2.dieType === 'vessel') {
+      setMergeError('The Vessel cannot be merged')
+      setTimeout(() => setMergeError(false), 1500)
+      return
+    }
     const level1 = die1.mergeLevel ?? 0
     const level2 = die2.mergeLevel ?? 0
     if (level1 !== level2) {
@@ -356,6 +364,7 @@ export function ShopScreen() {
     inventory.some((d, i) => inventory.some((d2, j) => {
       if (i >= j) return false
       if (d.dieType === 'cursed' || d2.dieType === 'cursed') return false
+      if (d.dieType === 'vessel' || d2.dieType === 'vessel') return false
       const l1 = d.mergeLevel ?? 0
       const l2 = d2.mergeLevel ?? 0
       if (l1 !== l2) return false
@@ -514,7 +523,7 @@ export function ShopScreen() {
         {/* Die selection — merge */}
         {activeAction === 'merge' && (
           <>
-            {inventory.filter((d) => d.dieType !== 'cursed' && !UNIQUE_DIE_TYPES.has(d.dieType)).map((die) => (
+            {inventory.filter((d) => d.dieType !== 'cursed' && d.dieType !== 'vessel' && !UNIQUE_DIE_TYPES.has(d.dieType)).map((die) => (
               <DiePickerRow
                 key={die.id}
                 die={die}

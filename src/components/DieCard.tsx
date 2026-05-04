@@ -24,10 +24,12 @@ export const dieTypeStyle: Record<DieType, { bg: string; shadow: string; text: s
   blight:        { bg: '#4d7c0f', shadow: '#1a2e05',  text: '#d9f99d' },
   rejuvenator:   { bg: '#bbf7d0', shadow: '#15803d',  text: '#052e16' },
   mirror:        { bg: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 40%, #94a3b8 100%)', shadow: '#475569', text: '#0f172a' },
+  vessel:        { bg: '#f8fafc', shadow: '#64748b',  text: '#0f172a' },
+  warden:        { bg: '#1f2937', shadow: '#b45309',  text: '#d1d5db' },
 }
 
 // Custom loot dice use their die text color for all face content (monochrome)
-const CUSTOM_LOOT_DIES = new Set<DieType>(['heavy', 'paladin', 'gambler', 'scavenger', 'wall', 'jackpot', 'vampire', 'priest', 'fortune_teller', 'joker', 'unique', 'blight'])
+const CUSTOM_LOOT_DIES = new Set<DieType>(['heavy', 'paladin', 'gambler', 'scavenger', 'wall', 'jackpot', 'vampire', 'priest', 'fortune_teller', 'joker', 'unique', 'blight', 'vessel', 'warden'])
 
 export const faceColor: Record<DieFace['type'], string> = {
   damage:         '#dc2626',
@@ -44,6 +46,7 @@ export const faceColor: Record<DieFace['type'], string> = {
   poison:         '#4ade80',
   hot:            '#4ade80',
   mirror:         '#334155',
+  seal:           '#f97316',
 }
 
 export const faceShadow: Record<DieFace['type'], string> = {
@@ -61,6 +64,7 @@ export const faceShadow: Record<DieFace['type'], string> = {
   poison:         '#15803d',
   hot:            '#15803d',
   mirror:         '#0f172a',
+  seal:           '#7c2d12',
 }
 
 // ── Type icon ────────────────────────────────────────────────────────────────
@@ -75,6 +79,7 @@ function TypeIcon({ type, size = 13, forceColor }: { type: DieFace['type']; size
   if (type === 'choose_next') return <Star          size={size} color={color} strokeWidth={2.5} />
   if (type === 'wildcard')    return <Shuffle       size={size} color={color} strokeWidth={2.5} />
   if (type === 'poison')      return <FlaskConical  size={size} color={color} strokeWidth={2.5} />
+  if (type === 'seal')        return <Shield        size={size} color={color} strokeWidth={3} />
   return                             <Heart         size={size} color={color} strokeWidth={2.5} />
 }
 
@@ -152,6 +157,16 @@ function DiceFace({ face, textColor, dieType, mergeLevel = 0 }: { face: DieFace;
         boxShadow: 'inset 0 2px 5px rgba(255,255,255,0.85), inset 0 -1px 3px rgba(0,0,0,0.15)',
       }}>
         <RefreshCw size={28} color={color} strokeWidth={2.5} />
+      </div>
+    )
+  }
+
+  if (face.type === 'seal') {
+    const color = iconColor ?? faceColor.seal
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', position: 'relative' }}>
+        <Shield size={30} color={color} strokeWidth={3} />
+        <Skull size={15} color={color} strokeWidth={3} style={{ position: 'absolute' }} />
       </div>
     )
   }
@@ -497,6 +512,42 @@ function MirrorFlash() {
       animate={{ boxShadow: '0 0 0px 0px rgba(255,255,255,0)',     opacity: 0 }}
       transition={{ duration: 0.5, ease: 'easeOut' }}
     />
+  )
+}
+
+function WardenGateFlash() {
+  return (
+    <>
+      <motion.div
+        style={{
+          position: 'absolute', inset: -4,
+          border: '3px solid #f97316',
+          pointerEvents: 'none', zIndex: 24,
+        }}
+        initial={{ boxShadow: '0 0 24px 8px rgba(249,115,22,0.8)', opacity: 1 }}
+        animate={{ boxShadow: '0 0 0px 0px rgba(249,115,22,0)', opacity: 0 }}
+        transition={{ duration: 0.9, ease: 'easeOut' }}
+      />
+      {[-1, 1].map((dir) => (
+        <motion.div
+          key={dir}
+          style={{
+            position: 'absolute',
+            top: -3,
+            bottom: -3,
+            width: '46%',
+            background: '#111827',
+            border: '2px solid #b45309',
+            boxShadow: '2px 2px 0 #000',
+            pointerEvents: 'none',
+            zIndex: 23,
+          }}
+          initial={{ x: dir < 0 ? '-115%' : '115%', opacity: 0.85 }}
+          animate={{ x: dir < 0 ? '-8%' : '8%', opacity: [0.85, 1, 0] }}
+          transition={{ duration: 0.85, times: [0, 0.65, 1], ease: 'easeOut' }}
+        />
+      ))}
+    </>
   )
 }
 
@@ -876,6 +927,11 @@ export const DieCard = React.memo(function DieCard({
         {/* Mirror — white flash on impact */}
         <AnimatePresence>
           {die.dieType === 'mirror' && burst && <MirrorFlash key="mirror-flash" />}
+        </AnimatePresence>
+
+        {/* Warden — iron gate snap on Seal */}
+        <AnimatePresence>
+          {die.dieType === 'warden' && burst && face?.type === 'seal' && face.triggered && <WardenGateFlash key="warden-gate" />}
         </AnimatePresence>
       </motion.div>
     </motion.div>
