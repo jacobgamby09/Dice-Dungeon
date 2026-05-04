@@ -1,73 +1,60 @@
-# React + TypeScript + Vite
+# Dice Dungeon
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A mobile-first **Extraction Runner Bag-Builder**. Assemble a bag of dice, fight through procedurally-generated dungeon floors, and decide when to flee with your Run Souls before you lose everything.
 
-Currently, two official plugins are available:
+## Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+| Layer | Technology |
+|-------|-----------|
+| Framework | React 19 + Vite (TypeScript strict mode) |
+| State | Zustand 5 with `persist` middleware |
+| Animations | Framer Motion |
+| Icons | lucide-react |
+| Styling | Inline styles only — mobile portrait, pixel-art aesthetic, 384px max-width |
 
-## React Compiler
+## Build & Dev
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev        # Vite dev server
+npm run build      # tsc -b && vite build (zero TypeScript errors required)
+npx tsc --noEmit   # type-check only
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Project Structure
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
 ```
+src/
+  store/
+    gameStore.ts          # All game state, actions, and bestiary
+  components/
+    CombatScreen.tsx      # Main combat UI (draw, roll, bank, enemy phase)
+    ShopScreen.tsx        # The Forge (merge, craft, purify, heal)
+    DraftScreen.tsx       # Post-combat die draft
+    LoadoutScreen.tsx     # Pre-run bag setup
+    InterActScreen.tsx    # The Culling (Act 1 → Act 2 transition)
+    ActIntroModal.tsx     # Act 2 intro overlay (Venom + boss briefing)
+    DieCard.tsx           # Die rendering + faceColor / dieTypeStyle maps
+    DiceInspectorModal.tsx
+    DiceLibrary.tsx
+    EnemySprite.tsx
+    HubScreen.tsx
+    SkillTreeScreen.tsx
+  App.tsx
+```
+
+## Design Documents
+
+- **[GDD.md](GDD.md)** — Full game design document: core loop, economy, face types, acts, dice catalogue, skill tree, data structures, open questions.
+- **[DESIGN_STATE.md](DESIGN_STATE.md)** — Living state doc: what's implemented, known mismatches, balance risks, recent decisions, next work. Read this before making design changes.
+- **[CLAUDE.md](CLAUDE.md)** — AI working rules for this codebase.
+
+## Key Design Constraints
+
+- **Zero Gold / Materials / Coins** — everything is `runSouls` (at-risk) or `bankedSouls` (permanent).
+- **Souls only.** Never rename these fields.
+- **TypeScript zero-error policy** — `npx tsc --noEmit` must pass before any change is considered done.
+- **Mobile-first portrait, 384px max-width** — inline styles only, no Tailwind, no border-radius.
+- **Player death takes priority over enemy death** in simultaneous-kill scenarios (Thorns, Poison).
+- **Unique dice** (`unique`, `mirror`) — one per run; filtered at all 4 draft generation sites via `UNIQUE_DIE_TYPES`.
+- **Adding a new die** requires updates to: `DIE_TEMPLATES`, `DIE_NAMES`, `dieTypeStyle`, `faceColor`, `faceShadow`, and `FaceIcon` helpers in `DieCard.tsx`, `DiceLibrary.tsx`, `DiceInspectorModal.tsx`, `DraftScreen.tsx`, `LoadoutScreen.tsx`, `ShopScreen.tsx`, `diceDescriptions.ts`, `DiePresentationModal.tsx`, and (for Culling display) `InterActScreen.tsx`.

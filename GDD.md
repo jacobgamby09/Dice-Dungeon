@@ -97,18 +97,24 @@ Once combat begins, the bag is uncapped:
 | Shield | Absorbs incoming enemy damage this turn |
 | Heal | Restores player HP (up to max) |
 | Souls | Adds Run Souls immediately |
-| Skull | Increments the bust counter |
-| Purified Skull | Inert — a neutralised Skull (from the Forge) |
-| Lifesteal | Deals damage AND heals for the same amount |
+| Skull | Increments the bust counter (3 = BUST) |
+| Purified Skull | Inert — a Skull neutralised at the Forge |
+| Blank | No combat effect. A prime Forge target — can be crafted into any face type |
+| Lifesteal | Deals damage AND heals the player for the same amount |
 | Poison | Adds to the `totalPoison` accumulator; applied to the enemy at bank |
-| Choose Next | Opens a picker: player manually selects the next die drawn |
-| Wildcard | Copies the effect of the next die rolled |
-| Multiplier ★ | Sets an active multiplier; the NEXT die rolled applies its effect × that value |
+| HoT | Applies Healing over Time: heals `amount` HP at the start of each enemy phase for `duration` turns. Multiple HoT rolls combine into a single decaying stack (amount and duration both sum) |
+| Choose Next | Opens a picker — player manually selects the next die drawn from the bag |
+| Mirror ★ | Re-executes the face of the previously-played die (scaled by current `activeMultiplier`). Does nothing as the first die drawn this turn |
+| Multiplier ★ | Multiplicatively increases `activeMultiplier` (base ×2; stacks ×2 → ×4 → ×8). The next die rolled applies its effect × that value. Resets at bank |
+| Seal | Retroactively removes up to N skull-faced dice from the already-played pile this turn, shuffling them back into the draw pile without a resolved face. Does nothing if no skulls have been played yet. Scales with `activeMultiplier`. A `triggered` flag records whether any skulls were present to remove. Cannot be crafted |
+
+> **Note on Wildcard:** The Joker die has `wildcard` faces, but this face type has **no combat resolution** — The Joker is exclusively a **Forge catalyst** (universal merge material). Drawing it in combat produces no effect.
 
 ### The Multiplier ★ — Special Rules
 
 - `activeMultiplier` resets to 1 at the start of each `bankAndAttack`. A Multiplier die played as the last die in a turn is discarded — it does not carry over.
 - During Auto-Roll, the auto-roller stops automatically when The Multiplier is drawn, forcing a manual decision.
+- Multiplier stacking is **multiplicative**: ×2 → ×2 → ×4 (rolling the face a second time doubles again, not adds).
 
 ---
 
@@ -130,29 +136,44 @@ Beating the Act 1 Boss triggers a forced extraction — the player's `runSouls` 
 | Step | Rule |
 |------|------|
 | **Extraction** | All Run Souls from the Act 1 run are safely converted to Banked Souls. |
-| **Cull your bag** | The player typically has ~15 dice from Act 1. They must choose exactly **7 dice** to carry into Act 2. The rest are discarded permanently for this run. |
-| **The Curses** | Three pure Cursed dice (Skull × 6) are **forcefully added** to the bag — no choice, no opt-out. |
-| **Act 2 Start** | The player enters Floor 16 with exactly **10 dice** (7 chosen + 3 Cursed). |
+| **Cull your bag** | The player typically has ~15 dice from Act 1. They must choose exactly **7 non-Cursed dice** to carry into Act 2. Existing Cursed dice are automatically excluded and cannot be selected. The rest are discarded permanently for this run. |
+| **The Curses** | Three new Cursed dice (Skull × 6) are **forcefully added** to the bag — no choice, no opt-out. |
+| **Act 2 Start** | The player enters Floor 16 with exactly **10 dice** (7 chosen + 3 Cursed). An **Act 2 intro modal** is shown before the first floor, introducing Venom, the boss rotation, and the new dice pool. |
 
 The culling forces the player to commit to an identity built in Act 1. Hedging every strategy is no longer possible.
 
 ### Act 2 — The Spiked Depths (Floors 16–30)
 
-**Modifier:** Sustain Check
+**Modifier:** Venom + Boss Mechanics
 
-Act 2 enemies enforce two simultaneous punishments that together demand a balanced, sustained approach:
+#### Act 2 Intro Modal
 
-#### Thorns — Punishes Rocket Tag
+After The Culling and before Floor 16, the game displays an **Act 2 Intro Modal** introducing Venom, the new dice pool, and the boss's four-phase rotation.
 
-Enemies in the Spiked Depths have a Thorns aura. When the player banks a very high single-attack (above a per-floor threshold), the excess damage is reflected back as direct HP damage, bypassing the player's shield.
+#### Venom — Primary Act 2 Modifier
 
-**Strategic implication:** Spiking 40+ damage in one turn becomes self-destructive. Multi-die sustained damage, lifesteal, and shield builds outperform single-hit spike strategies.
-
-#### Venom — Punishes Push-Your-Luck Greed *(implemented)*
-
-Drawing too many dice in a single turn (above a per-floor threshold) stacks Poison on the player. The safe draw limit is **5 on floors 16–20** and **4 on floors 21–30**. Each die drawn beyond the limit adds **+1 player poison** (floors 16–25) or **+2 player poison** (floors 26–30). Player poison ticks once per turn after the enemy's physical attack resolves, then decrements by 1. The draw button turns red and shows a warning label (`☠ DRAW +N VENOM`) when the next draw will trigger Venom. A draw counter (`X / Y draws`) is shown above the action buttons in all Act 2 floors.
+Drawing too many dice in a single turn stacks Poison on the player. The safe draw limit is **5 draws on floors 16–20** and **4 draws on floors 21–30**. Each die drawn beyond the limit adds **+1 player poison** (floors 16–25) or **+2 player poison** (floors 26–30). Player poison ticks once per turn after the enemy's physical attack resolves, then decrements by 1. The draw button turns red and shows a warning label (`☠ DRAW +N VENOM`) when the next draw will trigger Venom. A styled draw counter (`X / Y draws`) is shown above the action buttons on all Act 2 floors with a hover tooltip.
 
 **Strategic implication:** Reckless bag-emptying is punished. Players must find the sweet spot — draw enough to deal meaningful damage without stacking lethal Venom.
+
+#### Normal Act 2 Enemies
+
+Normal enemies (Slime Crawler, Marrow Bat, Toxic Creep) are plain attackers — **no Thorns, Barbs, or Corrosive**. Their pressure is delivered entirely through Venom (overdrawing) rather than combat traits.
+
+#### The Spiked Behemoth (Act 2 Boss — Floors 20, 25, 30)
+
+The boss follows a fixed **4-step intent cycle**, floor-scaled from Floor 20 as a base:
+
+| Step | Intent | Base Value | Scaling |
+|------|--------|------------|---------|
+| 1 | Shield | 5 | +0.5 per floor above 20 (F25 ≈ 8, F30 ≈ 10) |
+| 2 | Attack | 14 | Standard Act 2 floor scaling |
+| 3 | Thorns Activate | 30% | +4% per floor above 20, cap 90% (F25 ≈ 50%, F30 ≈ 70%) |
+| 4 | Corrosive Strike | 7 | Standard Act 2 floor scaling; bypasses Shield entirely |
+
+- **Thorns Activate:** Sets the boss's Thorns % for the following player attack turn. Reflected damage bypasses the player's shield.
+- **Corrosive Strike:** Damage hits both HP and Shield simultaneously — shield provides no protection.
+- Thorns persists until the player's next bank-and-attack, then resets to 0.
 
 ---
 
@@ -162,7 +183,7 @@ Poison is a delayed-damage status that bypasses shields entirely.
 
 | Property | Rule |
 |----------|------|
-| **Source** | Player: Poison die faces. Enemy: Venom (Act 2), certain enemy abilities. |
+| **Source** | Player: Poison die faces. Enemy: Venom overdraw (Act 2 — ticks after enemy attack). |
 | **Application** | At `bankAndAttack`, the player's accumulated `totalPoison` is added to the enemy's `poison` stack (and vice versa for the player). |
 | **Tick** | During the Enemy Phase, after the enemy's physical attack resolves, all active Poison stacks tick — dealing that many HP of unblockable damage. |
 | **Decay** | After ticking, the Poison stack decreases by 1 each turn. It does not reset to 0. |
@@ -191,7 +212,7 @@ Combine two dice of the same type and merge level into one more powerful die.
 - Non-Skull/Blank/Purified faces scale by ×3 per merge level.
 - Merge Level is displayed as **+1**, **+2**, **+3**.
 - **The Joker** can merge with any die (Joker is consumed; the host die levels up).
-- Cursed dice and Unique (★) dice cannot be merged.
+- Cursed dice, Unique (★) dice, and **The Vessel** cannot be merged. The Vessel exists as a pure Forge crafting substrate — all 6 faces are Blank and intended to be Crafted.
 
 ### Craft
 
@@ -215,41 +236,51 @@ Spend Run Souls to restore HP (up to max).
 
 ## 7. Dice Catalogue
 
-### Base Dice (Infinite Supply)
+### Base Dice (Always Available — Not in Draft Pools)
+
+These are available in infinite supply from the Loadout screen. They are never offered in draft rewards.
 
 | Die | Faces |
 |-----|-------|
 | The Basic (white) | 1 / 2 / 3 / 4 / 5 / 6 Damage |
 | The Guard (blue) | 1 / 2 / 3 / 4 Shield, 1 / 2 Damage |
 | The Mender (green) | 1 / 2 / 3 Heal, 1 / 2 / 3 Damage |
+| The Cursed | Skull × 6 — forced into bag by boss floors and The Culling; cannot be removed or unequipped |
 
-### Advanced Dice (Draft / Shop Pool)
+### Global Draft Pool (Both Acts)
 
 | Die | Notable Faces | Role |
 |-----|---------------|------|
-| The Heavy | 4 / 6 / 7 / 9 Damage, 2× Skull | Spike damage; high bust risk |
-| The Paladin | Shield + Heal only | Pure sustain; zero offence |
-| The Gambler | 12 Damage × 2, Blank × 2, Skull × 2 | Boom-or-bust; Thorns-risky in Act 2 |
+| The Heavy | 4 / 6 / 7 / 9 Damage, Skull × 2 | Spike damage; high bust risk |
 | The Scavenger | Souls × 2, Shield × 3, Skull | Economy + light defence |
 | The Wall | Shield 2–6 × 6 | Turtle strategy; zero offence |
-| **The Blight** | Poison 1, Poison 2 × 2, Shield 2, Skull × 2 | Act 2 counterplay; unblockable damage |
+| The Gambler | 12 Damage × 2, Blank × 2, Skull × 2 | Boom-or-bust; dangerous during boss Thorns turns |
+| The Joker | Wildcard × 6 | **Forge catalyst only** — universal merge material; Wildcard faces do nothing in combat |
+| The Vessel | Blank × 6 | Pure Forge substrate — 6 craftable blank faces; cannot be merged |
+| The Warden | Seal × 2, Shield 2, Shield 3, Damage 1, Skull × 1 | Retroactive skull control; Seal trades a face slot against the skulls already played this turn |
 
-### Unique Dice (★) — Cannot Merge, One Per Build
+### Act 1 Draft Pool (Floors 1–15 only)
 
-| Die | Faces | Effect |
-|-----|-------|--------|
-| The Jackpot | 30 Damage × 1, Skull × 3, Blank × 2 | Massive spike; suicidal with Thorns |
+| Die | Notable Faces | Role |
+|-----|---------------|------|
+| The Paladin | Shield + Heal only | Pure sustain; zero offence |
 | The Vampire | Lifesteal 1–4 × 4, Skull × 1 | Sustain through offence |
+| The Rejuvenator | HoT × 6 | Stacking Healing over Time — no skulls, pure sustain |
+| The Mirror ★ | Mirror × 6 | Re-executes previous die's face; powerful with Multiplier; useless as first draw |
+
+### Act 2 Draft Pool (Floors 16–30 only)
+
+| Die | Notable Faces | Role |
+|-----|---------------|------|
+| The Blight | Poison 1, Poison 2 × 2, Shield 2, Skull × 2 | Unblockable damage; bypasses shielded enemies |
+| The Fortune Teller | Choose Next × 4, Skull × 2 | Full bag control — pick draws manually |
 | The Priest | Heal 1–4 × 6 | Pure healing engine |
-| The Fortune Teller | Choose Next × 4, Skull × 2 | Full bag control |
-| The Joker | Wildcard × 6 | Copies any die's effect; universal merger |
-| The Multiplier | ×2 × 6 | Doubles the next die's output |
+| The Multiplier ★ | ×2 × 6 | Multiplicatively scales the next die's output |
+| The Jackpot | 30 Damage × 1, Skull × 3, Blank × 2 | Massive spike; dangerous during boss Thorns turns |
 
-### Cursed Dice (Forced / Penalty)
+> **Unique (★) dice:** The Mirror and The Multiplier are unique — only one of each can exist in the bag at a time. Unique dice cannot be merged.
 
-| Die | Faces | Notes |
-|-----|-------|-------|
-| The Cursed | Skull × 6 | Added by boss floors; cannot be removed or unequipped |
+> **Blank faces:** No combat effect, but an ideal Forge crafting target. Gambler and Jackpot blanks are effectively "free customisation slots" waiting to be crafted into whatever the build needs.
 
 ---
 
@@ -284,26 +315,52 @@ Enemies appear sequentially per floor. Boss fights occur every 5 floors (Floors 
 
 ## 9. Meta-Progression (Skill Tree)
 
-Between delves, players spend **Banked Souls** on permanent passive upgrades.
+Between delves, players spend **Banked Souls** on permanent passive upgrades. Nodes are organised into **4 named tracks** (plus a root node), each with a distinct colour and lane in the tree UI.
 
-| Node | Effect |
-|------|--------|
-| Pocket Change | Start each delve with bonus Run Souls |
-| Vitality I | +10 Max HP |
-| Vitality II | +15 Max HP |
-| First Blood | First attack each encounter deals +1 Damage |
-| Sharpened Edges | White dice: 1-damage faces become 2-damage |
-| Haggler | Heal at Forge costs fewer Souls |
-| Bounty Hunter | Bosses drop bonus Run Souls |
-| Thick Skin | Heal 15% Max HP after defeating a boss |
-| Forge Master | Merge costs fewer Souls |
-| Second Wind | Once per delve, revive with 20 HP instead of dying |
-| Scouting | Always see which dice remain in the bag |
-| Auto Roll | Auto-draws dice until 2 Skulls are rolled |
-| New Dice: The Priest | Adds The Priest to the loot pool |
-| New Dice: The Jackpot | Adds The Jackpot to the loot pool |
-| New Dice: The Vampire | Adds The Vampire to the loot pool |
-| New Dice: The Fortune Teller | Adds The Fortune Teller to the loot pool |
+| Track | Colour | Theme |
+|-------|--------|-------|
+| Extraction | Purple | Flee/push economy |
+| Forge | Orange | Crafting identity |
+| Survival | Green | Resilience to push deeper |
+| Control | Blue | Information and draft manipulation |
+
+### Fully Functional Nodes
+
+| Node | Track | Effect |
+|------|-------|--------|
+| Pocket Change | Extraction | Start each delve with bonus Run Souls |
+| Bounty Hunter | Extraction | Bosses drop bonus Run Souls |
+| Haggler | Forge | Heal at Forge costs fewer Souls |
+| Forge Master | Forge | Merge costs fewer Souls |
+| Vitality I | Survival | +10 Max HP |
+| Vitality II | Survival | +15 Max HP |
+| Thick Skin | Survival | Heal 15% Max HP after defeating a boss |
+| Second Wind | Survival | Once per delve, revive with 20 HP instead of dying |
+| First Blood | Survival | First attack each encounter deals +1 Damage |
+| Sharpened Edges | Survival | White dice: 1-damage faces become 2-damage |
+| Scouting | Control | Always see which dice remain in the bag |
+| Auto Roll | Control | Auto-draws dice until 2 Skulls are rolled |
+
+### Demo / Conceptual Nodes (Non-Functional)
+
+The following nodes are **visible in the UI with real Banked Soul costs** but their described effects are not implemented. They exist to validate the 4-track structure and explore potential design space.
+
+| Node | Track | Described Effect |
+|------|-------|-----------------|
+| Soul Stash | Extraction | Carry over a portion of unspent Run Souls between floors |
+| Deep Pockets | Extraction | Increase Run Souls cap |
+| Blank Canvas | Forge | Start each run with one extra blank-faced die |
+| First Craft | Forge | First Forge craft each run is free |
+| Draft Lock+ | Control | Carry forward 2 draft locks instead of 1 |
+| Reroll Insight | Control | See what a rerolled draft would offer before committing |
+
+### "New Dice" Nodes (Non-Functional)
+
+Four nodes (New Dice: The Priest, The Jackpot, The Vampire, The Fortune Teller) exist in the skill tree UI but **do not gate their dice** — those dice appear in their respective act draft pools regardless of whether the node is unlocked. Wiring these to pool gating is an open design question (see §Open Design Questions).
+
+### QoL Policy
+
+Auto Roll and Scouting are talent unlocks — players earn them by spending Banked Souls. Pure QoL features (dice inspect, dice library, face descriptions) are **never talent-gated** and are always available to all players.
 
 ---
 
@@ -322,7 +379,7 @@ Between delves, players spend **Banked Souls** on permanent passive upgrades.
 
 ### Persistence
 
-Only `metaSouls` (Banked Souls) and `unlockedNodes` are persisted between sessions. All run state (bag, floor, run souls, enemy, etc.) is ephemeral — lost on death, converted on extraction.
+Only `bankedSouls` and `unlockedNodes` are persisted between sessions. All run state (bag, floor, run souls, enemy, etc.) is ephemeral — lost on death, converted on extraction.
 
 ### Key Data Structures
 
@@ -332,8 +389,10 @@ interface DieFace {
     | 'damage' | 'shield' | 'heal' | 'skull' | 'souls'
     | 'lifesteal' | 'choose_next' | 'wildcard'
     | 'blank' | 'purified_skull' | 'multiplier' | 'poison'
-    | 'hot' | 'mirror'
+    | 'hot' | 'mirror' | 'seal'
   value: number
+  duration?: number        // HoT only: how many turns the heal ticks
+  triggered?: boolean      // Seal only: true if at least one skull was removed
 }
 
 interface Die {
@@ -349,6 +408,11 @@ interface Die {
   isEquipped?: boolean    // undefined | true = in active bag; false = in reserve
 }
 
+interface EnemyIntent {
+  type: 'attack' | 'shield' | 'thorns_activate' | 'corrosive_strike'
+  value: number
+}
+
 interface Enemy {
   hp: number
   maxHp: number
@@ -356,13 +420,22 @@ interface Enemy {
   intent: EnemyIntent
   isBoss: boolean
   poison: number          // Active poison stacks; ticks each enemy phase, decays by 1
+  thorns?: number         // % of player damage reflected; set by thorns_activate intent
+  shield?: number         // Enemy's current shield (boss only)
+  intentPhase?: number    // Index into intentCycle for boss rotation
 }
 
+// 'thorns' is the stored modifier value; Venom is implemented separately via floor checks
 type ActModifier = 'none' | 'thorns' | 'damage_cap'
 
 interface GameState {
   // Combat
-  player: { hp: number; maxHp: number; shield: number }
+  player: {
+    hp: number; maxHp: number; shield: number
+    hot: { amount: number; turnsRemaining: number } | null  // HoT stack; ticks each enemy phase; scales with activeMultiplier
+    poison: number                                           // Player Venom stacks
+  }
+  pendingHot: { amount: number; turnsRemaining: number } | null  // HoT buffered during turn; applied at bankAndAttack; bust clears it
   enemy: Enemy
   turnPhase: 'loadout' | 'idle' | 'drawing' | 'player_attack' | 'enemy_attack' | 'draft' | 'shop'
 
@@ -387,8 +460,17 @@ interface GameState {
   draftChoices: Die[]
 
   // Meta (persisted)
-  metaSouls: number        // Banked Souls — safe, permanent
+  bankedSouls: number      // Safe, permanent — persisted between sessions
   unlockedNodes: string[]
+}
+
+interface SkillNode {
+  id: string
+  label: string
+  description: string
+  cost: number
+  requires?: string        // id of prerequisite node
+  track?: 'root' | 'extraction' | 'forge' | 'survival' | 'control'
 }
 ```
 
@@ -418,8 +500,12 @@ Retro pixel-art with modern UI animation. Hard edges, no border-radius, chunky `
 | The Priest | `#0284c7` | `#075985` |
 | The Fortune Teller | `#7c3aed` | `#4c1d95` |
 | The Joker | `#0f766e` | `#134e4a` |
+| The Rejuvenator | `#065f46` | `#022c22` |
+| The Mirror ★ | `#1e3a5f` | `#0f2239` |
 | The Multiplier ★ | `#4d7c0f` | `#1a2e05` |
-| **The Blight** | `#4d7c0f` | `#1a2e05` |
+| The Blight | `#4d7c0f` | `#1a2e05` |
+| The Vessel | placeholder | — (`dieTypeStyle` in `DieCard.tsx` is authoritative) |
+| The Warden | placeholder | — (`dieTypeStyle` in `DieCard.tsx` is authoritative) |
 
 ### Layout (Portrait, 384px max-width)
 
@@ -447,3 +533,20 @@ Retro pixel-art with modern UI animation. Hard edges, no border-radius, chunky `
 - Backgrounds: `#0a0a14`, `#1a1a2e`
 - Shadows: hard 2–5px offsets (`box-shadow: 4px 4px 0 #000`)
 - Animations: Framer Motion spring/ease for UI feedback only; no CSS transitions on layout
+
+---
+
+## 12. Open Design Questions
+
+These decisions are open for playtesting or future design sessions. **Do not treat the following as implemented.**
+
+| Question | Context |
+|----------|---------|
+| Is The Rejuvenator too safe? | All 6 faces are HoT — no skulls, no downside. Every draw is a free buff, which may undermine push-your-luck tension. |
+| Is the Mirror dead-weight dead-draw probability acceptable? | Mirror does nothing as the first die drawn. High variance but potentially too frustrating in Act 1. |
+| Should Venom limits be tightened? | Limit of 5 on floors 16–20 may be too generous; +1 penalty may be too mild to deter greedy draws. |
+| Should The Blight and The Multiplier share a colour palette? | Both use `#4d7c0f` — currently the code is this way but may need visual disambiguation. |
+| Should Seal have a secondary effect when no skulls are present? | On early draws (no skulls in the played pile) Seal does nothing — it may feel like a dead face. A fallback (e.g. small shield) could reduce that feel. |
+| Is Vessel draft value worth a slot in light-Forge runs? | A 6-blank die only pays off with regular Forge visits and available Run Souls. May feel like a wasted slot if the Forge is skipped. |
+| Should demo talent nodes be hidden, greyed out, or labelled "Coming Soon"? | Players can see them and pay their real Banked Soul cost, but the effects do nothing — this may cause confusion or frustration. |
+| Should "New Dice" skill tree nodes gate their dice? | Currently Priest, Jackpot, Fortune Teller always appear in Act 2; Vampire always in Act 1 — regardless of node unlock. Options: wire them, remove them, or formally replace with act-native gating. |
