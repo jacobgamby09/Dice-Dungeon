@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence, useMotionValue, useTransform, animate, useAnimate } from 'framer-motion'
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
-import { Shield, Heart, Swords, Library, Skull, Flame, FlaskConical, Biohazard, Plus } from 'lucide-react'
+import { Shield, ShieldOff, Heart, Swords, Library, Skull, Flame, FlaskConical, Biohazard, Plus } from 'lucide-react'
 import { useGameStore, isVenomActive, getVenomLimit, getVenomPenalty } from '../store/gameStore'
 import { useShallow } from 'zustand/shallow'
 import type { Die, EnemyIntent, ResolvingPhase, DieType } from '../store/gameStore'
@@ -382,6 +382,8 @@ function EnemyOrbLayer({ enemyAttackVersion, enemyEl, playerHpRef }: {
 
 // ── Intent badge ──────────────────────────────────────────────────────────────
 function IntentBadge({ intent, recoil = 0 }: { intent: EnemyIntent; recoil?: number }) {
+  const [showPierceInfo, setShowPierceInfo] = useState(false)
+
   if (intent.type === 'shield') {
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -396,22 +398,38 @@ function IntentBadge({ intent, recoil = 0 }: { intent: EnemyIntent; recoil?: num
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
         <Swords size={18} color="#f97316" strokeWidth={2.5} />
-        <span style={{ fontSize: '0.7rem', fontWeight: 900, color: '#f97316', textShadow: '1px 1px 0 #000', letterSpacing: '0.08em' }}>
-          THORNS {Math.round(intent.value * 100)}%
+        <span style={{ fontSize: '1.05rem', fontWeight: 900, color: '#f97316', textShadow: '1px 1px 0 #000' }}>
+          {recoil > 0 ? `+${recoil}` : '0'}
         </span>
       </div>
     )
   }
   if (intent.type === 'corrosive_strike') {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-        <Biohazard size={18} color="#a3e635" strokeWidth={2.5} />
+      <div
+        style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 4, cursor: 'help' }}
+        onMouseEnter={() => setShowPierceInfo(true)}
+        onMouseLeave={() => setShowPierceInfo(false)}
+        onClick={() => setShowPierceInfo(!showPierceInfo)}
+      >
+        <ShieldOff size={18} color="#a3e635" strokeWidth={2.5} />
         <span style={{ fontSize: '1.6rem', fontWeight: 700, color: '#a3e635', textShadow: '1px 1px 0 #000' }}>
           {intent.value}
         </span>
         <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#a3e635', letterSpacing: '0.06em' }}>
           PIERCE
         </span>
+        {showPierceInfo && (
+          <div style={{
+            position: 'absolute', top: 'calc(100% + 5px)', right: 0,
+            background: '#111a05', border: '2px solid #65a30d',
+            padding: '6px 8px', width: 190, zIndex: 70,
+            fontSize: '0.62rem', color: '#d9f99d', lineHeight: 1.35,
+            pointerEvents: 'none', textAlign: 'left',
+          }}>
+            Pierce damage ignores your Shield and hits HP directly.
+          </div>
+        )}
       </div>
     )
   }
@@ -1171,6 +1189,7 @@ export function CombatScreen() {
                   style={{ position: 'relative', display: 'inline-flex' }}
                   onMouseEnter={() => setHoveredBadge('thorns')}
                   onMouseLeave={() => setHoveredBadge(null)}
+                  onClick={() => setHoveredBadge(hoveredBadge === 'thorns' ? null : 'thorns')}
                 >
                   <div style={{
                     display: 'flex', alignItems: 'center', gap: 3,
@@ -1179,7 +1198,7 @@ export function CombatScreen() {
                   }}>
                     <Swords size={9} color="#f97316" strokeWidth={2.5} />
                     <span style={{ fontSize: '0.58rem', fontWeight: 700, color: '#f97316', letterSpacing: '0.08em' }}>
-                      THORNS {Math.round((enemy.thorns ?? 0) * 100)}%
+                      THORNS ACTIVE {Math.round((enemy.thorns ?? 0) * 100)}%
                     </span>
                   </div>
                   {hoveredBadge === 'thorns' && (
@@ -1191,7 +1210,7 @@ export function CombatScreen() {
                       fontSize: '0.65rem', color: '#fed7aa', lineHeight: 1.4,
                       pointerEvents: 'none',
                     }}>
-                      Reflects <strong style={{ color: '#f97316' }}>{Math.round((enemy.thorns ?? 0) * 100)}%</strong> of incoming damage back to the attacker. Hits your Shield first.
+                      Active against your current attack. Reflects <strong style={{ color: '#f97316' }}>{Math.round((enemy.thorns ?? 0) * 100)}%</strong> of damage you deal, then drops after the boss acts.
                     </div>
                   )}
                 </div>

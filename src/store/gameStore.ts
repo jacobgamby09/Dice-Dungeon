@@ -1078,7 +1078,7 @@ export const useGameStore = create<GameState>()(
               resolvingDieIndex: null, resolvingPhase: null,
               rollStartVersion: st.rollStartVersion + 1,
               isChoosingNextDie: false, firstAttackThisEncounter: true,
-              enemy: { ...st.enemy, intent: nxIn, intentPhase: nxPh, thorns: nxIn.type === 'thorns_activate' ? nxIn.value : (tmpl.thorns ?? 0) },
+              enemy: { ...st.enemy, intent: nxIn, intentPhase: nxPh, thorns: tmpl.thorns ?? 0 },
             }))
           } else {
             set({
@@ -1796,7 +1796,7 @@ async function runEnemyPhase() {
           const tmpl = allB.find(t => t.name === st.enemy.name) ?? ACT_1_BESTIARY[1]
           const nxPh = (st.enemy.intentPhase ?? 0) + 1
           const nxIn = rollIntent(tmpl, st.currentFloor, nxPh)
-          return { ...st.enemy, intent: nxIn, intentPhase: nxPh, thorns: nxIn.type === 'thorns_activate' ? nxIn.value : (tmpl.thorns ?? 0) }
+          return { ...st.enemy, intent: nxIn, intentPhase: nxPh, thorns: tmpl.thorns ?? 0 }
         })(),
       }))
       return
@@ -1831,7 +1831,7 @@ async function runEnemyPhase() {
         const tmpl = allB.find(t => t.name === s.enemy.name) ?? ACT_1_BESTIARY[1]
         const nxPh = (s.enemy.intentPhase ?? 0) + 1
         const nxIn = rollIntent(tmpl, currentFloor, nxPh)
-        return { ...s.enemy, intent: nxIn, intentPhase: nxPh, thorns: nxIn.type === 'thorns_activate' ? nxIn.value : (tmpl.thorns ?? 0) }
+        return { ...s.enemy, intent: nxIn, intentPhase: nxPh, thorns: tmpl.thorns ?? 0 }
       })(),
       rollStartVersion: s.rollStartVersion + 1,
       isChoosingNextDie: false,
