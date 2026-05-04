@@ -411,6 +411,14 @@ export const SKILL_TREE_NODES: SkillNode[] = [
   { id: 'qevchxm7', name: 'New Dice: The Fortune Teller',  description: 'Adds The Fortune Teller to the dice loot pool.', cost: 700,  x: -40.724,    y: -347, requires: ['kec9ybn2'] },
 ]
 
+const STARTING_UNLOCKED_NODE_IDS = [
+  'sflz4yv3', // The Awakening
+  'kec9ybn2', // New Dice: The Jackpot
+  '60vc1fvg', // New Dice: The Vampire
+  'dx6jq5y5', // New Dice: The Priest
+  'qevchxm7', // New Dice: The Fortune Teller
+]
+
 
 const ACT_1_BESTIARY: EnemyTemplate[] = [
   { name: 'Slime',    baseHp: 28,  intentMin: 2,  intentMax: 4,  isBoss: false },
@@ -553,7 +561,7 @@ export const useGameStore = create<GameState>()(
   lockedDraftDice: [],
   lastSoulsEarned: 0,
   bankedSouls: 0,
-  unlockedNodes: ['sflz4yv3'],
+  unlockedNodes: STARTING_UNLOCKED_NODE_IDS,
   playerAttackAnimTier: null,
   isChoosingNextDie: false,
   fortuneTellerPicksRemaining: 0,
@@ -1675,6 +1683,18 @@ export const useGameStore = create<GameState>()(
     }),
     {
       name: 'dice-dungeon-save',
+      merge: (persistedState, currentState) => {
+        const persisted = persistedState as Partial<GameState> | undefined
+        const mergedUnlocks = Array.from(new Set([
+          ...STARTING_UNLOCKED_NODE_IDS,
+          ...(persisted?.unlockedNodes ?? []),
+        ]))
+        return {
+          ...currentState,
+          ...persisted,
+          unlockedNodes: mergedUnlocks,
+        }
+      },
       partialize: (state) => ({ bankedSouls: state.bankedSouls, unlockedNodes: state.unlockedNodes }),
     }
   )
