@@ -141,11 +141,11 @@ export function DiceInspectorModal({ types, initialType, mergeLevel, faces, dieL
           flexDirection: 'column',
           gap: 5,
         }}>
-          <span style={{ fontSize: '0.7rem', lineHeight: 1.45, color: '#d1d5db' }}>
+          <span style={{ fontSize: '0.78rem', lineHeight: 1.5, color: '#d1d5db' }}>
             {DIE_ROLES[selected]}
           </span>
           {DIE_TIPS[selected] && (
-            <span style={{ fontSize: '0.62rem', lineHeight: 1.4, color: '#9ca3af' }}>
+            <span style={{ fontSize: '0.72rem', lineHeight: 1.5, color: '#9ca3af' }}>
               {DIE_TIPS[selected]}
             </span>
           )}
@@ -220,7 +220,7 @@ export function DiceInspectorModal({ types, initialType, mergeLevel, faces, dieL
           gap: 6,
         }}>
           <span style={{
-            fontSize: '0.55rem',
+            fontSize: '0.58rem',
             color: '#6b7280',
             letterSpacing: '0.2em',
             textTransform: 'uppercase',
@@ -229,14 +229,14 @@ export function DiceInspectorModal({ types, initialType, mergeLevel, faces, dieL
           </span>
           {Array.from(new Set(displayFaces.map((face) => face.type))).map((type) => (
             <div key={type} style={{ display: 'flex', gap: 6, alignItems: 'flex-start' }}>
-              <FaceIcon type={type} size={12} />
-              <span style={{ fontSize: '0.62rem', color: '#d1d5db', lineHeight: 1.35 }}>
+              <FaceIcon type={type} size={13} />
+              <span style={{ fontSize: '0.72rem', color: '#d1d5db', lineHeight: 1.5 }}>
                 {FACE_DESCRIPTIONS[type]}
               </span>
             </div>
           ))}
           {displayFaces.some((face) => face.type === 'hot' || face.type === 'multiplier' || face.type === 'seal') && (
-            <span style={{ fontSize: '0.58rem', color: '#9ca3af', lineHeight: 1.35 }}>
+            <span style={{ fontSize: '0.68rem', color: '#9ca3af', lineHeight: 1.5 }}>
               {displayFaces
                 .filter((face) => face.type === 'hot' || face.type === 'multiplier' || face.type === 'seal')
                 .map(describeFace)

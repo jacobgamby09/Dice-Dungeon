@@ -88,11 +88,11 @@ export function DiceLibrary({ onClose }: { onClose: () => void }) {
                 flexDirection: 'column',
                 gap: 4,
               }}>
-                <span style={{ fontSize: '0.66rem', color: '#d1d5db', lineHeight: 1.35 }}>
+                <span style={{ fontSize: '0.72rem', color: '#d1d5db', lineHeight: 1.5 }}>
                   {DIE_ROLES[type]}
                 </span>
                 {DIE_TIPS[type] && (
-                  <span style={{ fontSize: '0.58rem', color: '#9ca3af', lineHeight: 1.35 }}>
+                  <span style={{ fontSize: '0.68rem', color: '#9ca3af', lineHeight: 1.5 }}>
                     {DIE_TIPS[type]}
                   </span>
                 )}

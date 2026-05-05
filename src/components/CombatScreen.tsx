@@ -2,10 +2,10 @@ import React, { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence, useMotionValue, useTransform, animate, useAnimate } from 'framer-motion'
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
-import { Shield, ShieldOff, Heart, Swords, Library, Skull, Flame, FlaskConical, Biohazard, Plus } from 'lucide-react'
+import { Shield, ShieldOff, Heart, Swords, Skull, Flame, FlaskConical, Biohazard, Plus } from 'lucide-react'
 import { useGameStore, isVenomActive, getVenomLimit, getVenomPenalty } from '../store/gameStore'
 import { useShallow } from 'zustand/shallow'
-import type { Die, EnemyIntent, ResolvingPhase, DieType } from '../store/gameStore'
+import type { Die, EnemyIntent, ResolvingPhase } from '../store/gameStore'
 import { DieCard, faceColor, faceShadow, dieTypeStyle } from './DieCard'
 import { EnemySprite } from './EnemySprite'
 import { DiceInspectorModal } from './DiceInspectorModal'
@@ -996,7 +996,6 @@ export function CombatScreen() {
   const canDraw = isIdle && drawPile.length > 0 && !isChoosingNextDie
   const canBank = isIdle && playedDice.length > 0
 
-  const [inspectorOpen, setInspectorOpen] = useState(false)
   const [boardInspectorDieId, setBoardInspectorDieId] = useState<string | null>(null)
   const [jackpotVersion, setJackpotVersion] = useState(0)
   const [lifesteelOrbVersion, setLifesteelOrbVersion] = useState(0)
@@ -1052,10 +1051,6 @@ export function CombatScreen() {
 
   const stopAutoRoll = () => { autoRollRef.current = false }
 
-  const bagTypes = [...new Set([...drawPile, ...playedDice].map((d) => d.dieType))] as DieType[]
-  const bagDieLookup = Object.fromEntries(
-    bagTypes.map((t) => [t, [...drawPile, ...playedDice].find((d) => d.dieType === t)])
-  ) as Partial<Record<DieType, Die>>
 
   const drawButtonLabel =
     turnPhase === 'drawing'         ? '⟳ DRAWING...'
@@ -1524,35 +1519,18 @@ export function CombatScreen() {
               </button>
             )}
             {hasScouting && (
-              <>
-                <button
-                  onClick={() => setShowScout(true)}
-                  className="pixel-btn"
-                  style={{
-                    width: 48, height: 38,
-                    background: '#1e293b',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    padding: 0, fontSize: '1.1rem',
-                  }}
-                >
-                  🔎
-                </button>
-                <button
-                  onClick={() => setInspectorOpen(true)}
-                  disabled={bagTypes.length === 0}
-                  className="pixel-btn"
-                  style={{
-                    width: 48, height: 38,
-                    background: '#1e293b',
-                    opacity: bagTypes.length > 0 ? 1 : 0.4,
-                    cursor: bagTypes.length > 0 ? 'pointer' : 'not-allowed',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    padding: 0,
-                  }}
-                >
-                  <Library size={18} color="#9ca3af" />
-                </button>
-              </>
+              <button
+                onClick={() => setShowScout(true)}
+                className="pixel-btn"
+                style={{
+                  width: 48, height: 38,
+                  background: '#1e293b',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  padding: 0, fontSize: '1.1rem',
+                }}
+              >
+                🔎
+              </button>
             )}
           </div>
         )}
@@ -1627,13 +1605,6 @@ export function CombatScreen() {
         </div>
       </div>
 
-      {inspectorOpen && bagTypes.length > 0 && (
-        <DiceInspectorModal
-          types={bagTypes}
-          dieLookup={bagDieLookup}
-          onClose={() => setInspectorOpen(false)}
-        />
-      )}
       {isChoosingNextDie && !isFtMinimized && (
         <FortuneTellerModal drawPile={drawPile} onMinimize={() => setIsFtMinimized(true)} />
       )}
