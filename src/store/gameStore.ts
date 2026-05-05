@@ -323,7 +323,7 @@ function shuffleArray<T>(arr: T[]): T[] {
 
 // ── Store ────────────────────────────────────────────────────────────────────
 
-export interface EnemyIntent { type: 'attack' | 'shield' | 'thorns_activate' | 'corrosive_strike'; value: number }
+export interface EnemyIntent { type: 'attack' | 'shield' | 'thorns_activate' | 'corrosive_strike' | 'wound'; value: number }
 export interface Enemy {
   hp: number; maxHp: number; name: string; intent: EnemyIntent; isBoss: boolean; poison: number
   thorns?: number; barbs?: number; corrosive?: boolean; shield?: number; intentPhase?: number
@@ -332,7 +332,7 @@ export interface Enemy {
 type HotBuff = { amount: number; turnsRemaining: number }
 
 interface GameState {
-  player: { hp: number; maxHp: number; shield: number; hot: HotBuff | null; poison: number }
+  player: { hp: number; maxHp: number; shield: number; hot: HotBuff | null; poison: number; woundTurns: number }
   enemy: Enemy
   inventory: Die[]
   drawPile: Die[]
@@ -411,6 +411,9 @@ const addHot = (base: HotBuff | null, amount: number, turnsRemaining: number): H
   base
     ? { amount: base.amount + amount, turnsRemaining: base.turnsRemaining + turnsRemaining }
     : { amount, turnsRemaining }
+)
+const applyWoundToHeal = (amount: number, woundTurns: number) => (
+  amount > 0 && woundTurns > 0 ? Math.max(1, Math.ceil(amount * 0.5)) : amount
 )
 
 function sealSkullsFromTurn(st: GameState, amount: number) {
@@ -496,7 +499,15 @@ const ACT_1_BESTIARY: EnemyTemplate[] = [
   { name: 'Goblin',   baseHp: 42,  intentMin: 4,  intentMax: 6,  isBoss: false },
   { name: 'Skeleton', baseHp: 50,  intentMin: 3,  intentMax: 7,  isBoss: false },
   { name: 'Orc',      baseHp: 60,  intentMin: 6,  intentMax: 9,  isBoss: false },
-  { name: 'Demon',    baseHp: 70,  intentMin: 4,  intentMax: 7,  isBoss: true  },
+  {
+    name: 'Demon', baseHp: 70, intentMin: 4, intentMax: 7, isBoss: true,
+    intentCycle: [
+      { type: 'attack', value: 7 },
+      { type: 'wound',  value: 2 },
+      { type: 'attack', value: 10 },
+      { type: 'attack', value: 14 },
+    ],
+  },
 ]
 
 const ACT_2_BESTIARY: EnemyTemplate[] = [
@@ -605,7 +616,7 @@ function getDiceLootPool(floor: number): DieType[] {
 export const useGameStore = create<GameState>()(
   persist(
     (set, get) => ({
-  player: { hp: 100, maxHp: 100, shield: 0, hot: null, poison: 0 },
+  player: { hp: 100, maxHp: 100, shield: 0, hot: null, poison: 0, woundTurns: 0 },
   enemy: spawnEnemy(1),
   inventory: INITIAL_INVENTORY.map((d) => ({ ...d })),
   drawPile: [],
@@ -716,7 +727,7 @@ export const useGameStore = create<GameState>()(
 
     set((s) => ({
       turnPhase:    'idle',
-      player:       { hp: baseHp, maxHp: baseHp, shield: 0, hot: null, poison: 0 },
+      player:       { hp: baseHp, maxHp: baseHp, shield: 0, hot: null, poison: 0, woundTurns: 0 },
       inventory:    startInventory,
       runSouls:     startSouls,
       currentFloor: 1,
@@ -842,7 +853,8 @@ export const useGameStore = create<GameState>()(
           const isSkull2 = prevFace.type === 'skull'
           newSkullCount  = s.skullCount + (isSkull2 ? mult : 0)
           const ls2 = prevFace.type === 'lifesteal' ? prevFace.value * mult : 0
-          const h2  = prevFace.type === 'heal'      ? prevFace.value * mult : ls2
+          const rawH2 = prevFace.type === 'heal'    ? prevFace.value * mult : ls2
+          const h2  = applyWoundToHeal(rawH2, get().player.woundTurns)
           const sh2 = prevFace.type === 'shield'    ? prevFace.value * mult : 0
           const d2  = (prevFace.type === 'damage' || prevFace.type === 'lifesteal') ? prevFace.value * mult : 0
           const s2  = prevFace.type === 'souls'     ? prevFace.value * mult : 0
@@ -866,7 +878,8 @@ export const useGameStore = create<GameState>()(
       const isSkull       = face.type === 'skull'
       newSkullCount       = s.skullCount + (isSkull ? mult : 0)
       const lifestealGain = face.type === 'lifesteal' ? face.value * mult : 0
-      const healGain      = face.type === 'heal'      ? face.value * mult : lifestealGain
+      const rawHealGain   = face.type === 'heal'      ? face.value * mult : lifestealGain
+      const healGain      = applyWoundToHeal(rawHealGain, get().player.woundTurns)
       const shieldGain    = face.type === 'shield'    ? face.value * mult : 0
       const damageGain    = (face.type === 'damage' || face.type === 'lifesteal') ? face.value * mult : 0
       const soulsGain      = face.type === 'souls'     ? face.value * mult : 0
@@ -1037,7 +1050,8 @@ export const useGameStore = create<GameState>()(
           const isSkull2 = prevFace.type === 'skull'
           newSkullCount  = s.skullCount + (isSkull2 ? mult2 : 0)
           const ls2 = prevFace.type === 'lifesteal' ? prevFace.value * mult2 : 0
-          const h2  = prevFace.type === 'heal'      ? prevFace.value * mult2 : ls2
+          const rawH2 = prevFace.type === 'heal'    ? prevFace.value * mult2 : ls2
+          const h2  = applyWoundToHeal(rawH2, get().player.woundTurns)
           const sh2 = prevFace.type === 'shield'    ? prevFace.value * mult2 : 0
           const d2  = (prevFace.type === 'damage' || prevFace.type === 'lifesteal') ? prevFace.value * mult2 : 0
           const s2  = prevFace.type === 'souls'     ? prevFace.value * mult2 : 0
@@ -1061,7 +1075,8 @@ export const useGameStore = create<GameState>()(
       const isSkull       = face.type === 'skull'
       newSkullCount       = s.skullCount + (isSkull ? mult2 : 0)
       const lifestealGain = face.type === 'lifesteal' ? face.value * mult2 : 0
-      const healGain      = face.type === 'heal'      ? face.value * mult2 : lifestealGain
+      const rawHealGain   = face.type === 'heal'      ? face.value * mult2 : lifestealGain
+      const healGain      = applyWoundToHeal(rawHealGain, get().player.woundTurns)
       const shieldGain    = face.type === 'shield'    ? face.value * mult2 : 0
       const damageGain    = (face.type === 'damage' || face.type === 'lifesteal') ? face.value * mult2 : 0
       const soulsGain      = face.type === 'souls'     ? face.value * mult2 : 0
@@ -1226,7 +1241,7 @@ export const useGameStore = create<GameState>()(
           } else {
             set({
               showGameOver: true, runSouls: 0,
-              player: { hp: 100, maxHp: 100, shield: 0, hot: null, poison: 0 },
+              player: { hp: 100, maxHp: 100, shield: 0, hot: null, poison: 0, woundTurns: 0 },
               enemy: spawnEnemy(1), currentFloor: 1,
               totalDamage: 0, totalHeal: 0, totalShield: 0, totalSouls: 0, totalPoison: 0, pendingHot: null,
               skullCount: 0,
@@ -1251,7 +1266,7 @@ export const useGameStore = create<GameState>()(
         set({
           showGameOver: true,
           runSouls: 0,
-          player: { hp: 100, maxHp: 100, shield: 0, hot: null, poison: 0 },
+          player: { hp: 100, maxHp: 100, shield: 0, hot: null, poison: 0, woundTurns: 0 },
           enemy: spawnEnemy(1),
           currentFloor: 1,
           totalDamage: 0, totalHeal: 0, totalShield: 0, totalSouls: 0, totalPoison: 0, pendingHot: null,
@@ -1282,7 +1297,7 @@ export const useGameStore = create<GameState>()(
           runSouls: 0,
           lastSoulsEarned: earned,
           turnPhase: 'inter_act_cull',
-          player: { ...st.player, hp: Math.min(st.player.maxHp, st.player.hp + thickSkinHeal), shield: 0, hot: null },
+          player: { ...st.player, hp: Math.min(st.player.maxHp, st.player.hp + thickSkinHeal), shield: 0, hot: null, woundTurns: 0 },
           totalDamage: 0, totalHeal: 0, totalShield: 0, totalSouls: 0, totalPoison: 0, pendingHot: null,
           skullCount: 0,
           drawPile: [], playedDice: [],
@@ -1300,7 +1315,7 @@ export const useGameStore = create<GameState>()(
           justDefeatedBoss: true,
           showBossRewardModal: true,
           purifyUsesThisShop: 0,
-          player: { ...st.player, hp: Math.min(st.player.maxHp, st.player.hp + thickSkinHeal), hot: null },
+          player: { ...st.player, hp: Math.min(st.player.maxHp, st.player.hp + thickSkinHeal), hot: null, woundTurns: 0 },
           totalDamage: 0, totalHeal: 0, totalShield: 0, totalSouls: 0, totalPoison: 0, pendingHot: null,
           skullCount: 0,
           drawPile: [], playedDice: [],
@@ -1324,7 +1339,7 @@ export const useGameStore = create<GameState>()(
           lockedDraftDice: [],
           rerollCost: 5,
           turnPhase: 'draft',
-          player: { ...st.player, hot: null },
+          player: { ...st.player, hot: null, woundTurns: 0 },
           totalDamage: 0, totalHeal: 0, totalShield: 0, totalSouls: 0, totalPoison: 0, pendingHot: null,
           skullCount: 0,
           drawPile: [], playedDice: [],
@@ -1355,7 +1370,7 @@ export const useGameStore = create<GameState>()(
           set({
             showGameOver: true,
             runSouls: 0,
-            player: { hp: 100, maxHp: 100, shield: 0, hot: null, poison: 0 },
+            player: { hp: 100, maxHp: 100, shield: 0, hot: null, poison: 0, woundTurns: 0 },
             enemy: spawnEnemy(1),
             currentFloor: 1,
             totalDamage: 0, totalHeal: 0, totalShield: 0, totalSouls: 0, totalPoison: 0, pendingHot: null,
@@ -1384,7 +1399,7 @@ export const useGameStore = create<GameState>()(
             runSouls: 0,
             lastSoulsEarned: earnedP,
             turnPhase: 'inter_act_cull',
-            player: { ...st.player, hp: Math.min(st.player.maxHp, st.player.hp + thickSkinP), shield: 0 },
+            player: { ...st.player, hp: Math.min(st.player.maxHp, st.player.hp + thickSkinP), shield: 0, hot: null, woundTurns: 0 },
             totalDamage: 0, totalHeal: 0, totalShield: 0, totalSouls: 0, totalPoison: 0, pendingHot: null,
             skullCount: 0,
             drawPile: [], playedDice: [],
@@ -1402,7 +1417,7 @@ export const useGameStore = create<GameState>()(
             justDefeatedBoss: true,
             showBossRewardModal: true,
             purifyUsesThisShop: 0,
-            player: { ...st.player, hp: Math.min(st.player.maxHp, st.player.hp + thickSkinP) },
+            player: { ...st.player, hp: Math.min(st.player.maxHp, st.player.hp + thickSkinP), hot: null, woundTurns: 0 },
             totalDamage: 0, totalHeal: 0, totalShield: 0, totalSouls: 0, totalPoison: 0, pendingHot: null,
             skullCount: 0,
             drawPile: [], playedDice: [],
@@ -1459,7 +1474,7 @@ export const useGameStore = create<GameState>()(
       inventory:    newInv,
       currentFloor: nextFloor,
       enemy:        newEnemy,
-      player:       { ...s.player, shield: 0 },
+      player:       { ...s.player, shield: 0, woundTurns: 0 },
       draftChoices: [],
       lockedDraftDice: lockedUnselected,
       drawPile:     shuffleArray(equippedOnly(newInv)),
@@ -1502,7 +1517,7 @@ export const useGameStore = create<GameState>()(
       runSouls:     s.runSouls + 3,
       currentFloor: nextFloor,
       enemy:        newEnemy,
-      player:       { ...s.player, shield: 0, hot: null },
+      player:       { ...s.player, shield: 0, hot: null, woundTurns: 0 },
       draftChoices: [],
       drawPile:     shuffleArray(equippedOnly(inventory)),
       playedDice:   [],
@@ -1624,7 +1639,7 @@ export const useGameStore = create<GameState>()(
     set((s) => ({
       bankedSouls: s.bankedSouls + runSouls,
       runSouls: 0,
-      player: { hp: 100, maxHp: 100, shield: 0, hot: null, poison: 0 },
+      player: { hp: 100, maxHp: 100, shield: 0, hot: null, poison: 0, woundTurns: 0 },
       enemy: spawnEnemy(1),
       currentFloor: 1,
       drawPile: [], playedDice: [],
@@ -1662,7 +1677,7 @@ export const useGameStore = create<GameState>()(
       currentFloor: 16,
       turnPhase: 'idle',
       enemy: spawnEnemy(16),
-      player: { ...player, shield: 0, hot: null },
+      player: { ...player, shield: 0, hot: null, woundTurns: 0 },
       drawPile: shuffleArray(newInventory),
       playedDice: [],
       skullCount: 0,
@@ -1682,7 +1697,7 @@ export const useGameStore = create<GameState>()(
 
   abandonRun: () => {
     set({
-      player: { hp: 100, maxHp: 100, shield: 0, hot: null, poison: 0 },
+      player: { hp: 100, maxHp: 100, shield: 0, hot: null, poison: 0, woundTurns: 0 },
       enemy: spawnEnemy(1),
       currentFloor: 1,
       totalDamage: 0, totalHeal: 0, totalShield: 0, totalSouls: 0, totalPoison: 0, pendingHot: null,
@@ -1763,7 +1778,7 @@ export const useGameStore = create<GameState>()(
 
     set((s) => ({
       turnPhase:    'idle',
-      player:       { hp: baseHp, maxHp: baseHp, shield: 0, hot: null, poison: 0 },
+      player:       { hp: baseHp, maxHp: baseHp, shield: 0, hot: null, poison: 0, woundTurns: 0 },
       inventory,
       runSouls:     150,
       currentFloor: 15,
@@ -1806,7 +1821,7 @@ export const useGameStore = create<GameState>()(
     set((s) => ({
       currentFloor: nextFloor,
       enemy:        newEnemy,
-      player:       { ...s.player, shield: 0, hot: null },
+      player:       { ...s.player, shield: 0, hot: null, woundTurns: 0 },
       drawPile:     shuffleArray(equippedOnly(s.inventory)),
       playedDice:   [],
       skullCount:   0,
@@ -1847,7 +1862,8 @@ async function runEnemyPhase() {
   const curHot = useGameStore.getState().player.hot
   if (curHot !== null) {
     const pl     = useGameStore.getState().player
-    const newHp  = Math.min(pl.maxHp, pl.hp + curHot.amount)
+    const hotHeal = applyWoundToHeal(curHot.amount, pl.woundTurns)
+    const newHp  = Math.min(pl.maxHp, pl.hp + hotHeal)
     const newAmt  = curHot.amount - 1
     const newTurns = curHot.turnsRemaining - 1
     const newHot: { amount: number; turnsRemaining: number } | null = (newAmt > 0 && newTurns > 0)
@@ -1863,12 +1879,23 @@ async function runEnemyPhase() {
   const { enemy, player, currentFloor } = useGameStore.getState()
 
   // ── Non-attack intents (shield buff, thorns activation) ──────────────────
-  if (enemy.intent.type === 'shield' || enemy.intent.type === 'thorns_activate') {
+  if (enemy.intent.type === 'shield' || enemy.intent.type === 'thorns_activate' || enemy.intent.type === 'wound') {
     useGameStore.setState((st) => {
       const updatedEnemy = enemy.intent.type === 'shield'
         ? { ...st.enemy, shield: (st.enemy.shield ?? 0) + enemy.intent.value }
-        : { ...st.enemy, thorns: enemy.intent.value }
-      return { turnPhase: 'enemy_attack', enemyAttackVersion: st.enemyAttackVersion + 1, enemy: updatedEnemy }
+        : enemy.intent.type === 'thorns_activate'
+          ? { ...st.enemy, thorns: enemy.intent.value }
+          : st.enemy
+      const updatedPlayer = enemy.intent.type === 'wound'
+        ? { ...st.player, woundTurns: Math.max(st.player.woundTurns, enemy.intent.value) }
+        : st.player
+      return {
+        turnPhase: 'enemy_attack',
+        enemyAttackVersion: st.enemyAttackVersion + 1,
+        playerHitVersion: enemy.intent.type === 'wound' ? st.playerHitVersion + 1 : st.playerHitVersion,
+        enemy: updatedEnemy,
+        player: updatedPlayer,
+      }
     })
     await sleep(450)
     useGameStore.setState((s) => {
@@ -1883,7 +1910,11 @@ async function runEnemyPhase() {
         drawPile: shuffleArray(equippedOnly(s.inventory)),
         playedDice: [],
         lastEffects: { heal: 0, shield: 0, souls: 0 },
-        player: { ...s.player, shield: 0 },
+        player: {
+          ...s.player,
+          shield: 0,
+          woundTurns: enemy.intent.type === 'wound' ? s.player.woundTurns : Math.max(0, s.player.woundTurns - 1),
+        },
         enemy: { ...s.enemy, intent: nxIn, intentPhase: nxPh },
         rollStartVersion: s.rollStartVersion + 1,
         isChoosingNextDie: false,
@@ -1965,7 +1996,7 @@ async function runEnemyPhase() {
     useGameStore.setState({
       showGameOver: true,
       runSouls: 0,
-      player: { hp: 100, maxHp: 100, shield: 0, hot: null, poison: 0 },
+      player: { hp: 100, maxHp: 100, shield: 0, hot: null, poison: 0, woundTurns: 0 },
       enemy: spawnEnemy(1),
       currentFloor: 1,
       totalDamage: 0, totalHeal: 0, totalShield: 0, totalSouls: 0, totalPoison: 0, pendingHot: null,
@@ -1986,7 +2017,7 @@ async function runEnemyPhase() {
       drawPile: shuffleArray(equippedOnly(s.inventory)),
       playedDice: [],
       lastEffects: { heal: 0, shield: 0, souls: 0 },
-      player: { ...s.player, shield: 0 },
+      player: { ...s.player, shield: 0, woundTurns: Math.max(0, s.player.woundTurns - 1) },
       enemy: (() => {
         const allB = [...ACT_1_BESTIARY, ...ACT_2_BESTIARY]
         const tmpl = allB.find(t => t.name === s.enemy.name) ?? ACT_1_BESTIARY[1]
@@ -2037,7 +2068,7 @@ async function handleBustEnemyVictory() {
       bankedSouls: st.bankedSouls + st.runSouls + earned,
       runSouls: 0, lastSoulsEarned: earned,
       turnPhase: 'inter_act_cull',
-      player: { ...st.player, hp: Math.min(st.player.maxHp, st.player.hp + thickSkin), shield: 0 },
+      player: { ...st.player, hp: Math.min(st.player.maxHp, st.player.hp + thickSkin), shield: 0, hot: null, woundTurns: 0 },
       justDefeatedBoss: false,
     }))
   } else if (isBossFloor) {
@@ -2047,7 +2078,7 @@ async function handleBustEnemyVictory() {
       inventory: [...st.inventory, { ...createDie('cursed', curseId), isEquipped: true as const }],
       runSouls: st.runSouls + earned, lastSoulsEarned: earned,
       turnPhase: 'shop', justDefeatedBoss: true, showBossRewardModal: true, purifyUsesThisShop: 0,
-      player: { ...st.player, hp: Math.min(st.player.maxHp, st.player.hp + thickSkin) },
+      player: { ...st.player, hp: Math.min(st.player.maxHp, st.player.hp + thickSkin), hot: null, woundTurns: 0 },
     }))
   } else {
     const lockedTypes   = new Set(lockedDraftDice.map((d) => d.dieType))
@@ -2060,6 +2091,7 @@ async function handleBustEnemyVictory() {
       runSouls: st.runSouls + earned, lastSoulsEarned: earned,
       draftChoices: [...lockedDraftDice, ...newDice],
       lockedDraftDice: [], rerollCost: 5, turnPhase: 'draft',
+      player: { ...st.player, hot: null, woundTurns: 0 },
     }))
   }
 }

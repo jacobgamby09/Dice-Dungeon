@@ -433,6 +433,16 @@ function IntentBadge({ intent, recoil = 0 }: { intent: EnemyIntent; recoil?: num
       </div>
     )
   }
+  if (intent.type === 'wound') {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <Heart size={18} color="#fb7185" strokeWidth={2.8} />
+        <span style={{ fontSize: '1.05rem', fontWeight: 900, color: '#fb7185', textShadow: '1px 1px 0 #000' }}>
+          WOUND {intent.value}
+        </span>
+      </div>
+    )
+  }
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
       <Swords size={22} color="#f87171" strokeWidth={2.5} />
@@ -1003,7 +1013,7 @@ export function CombatScreen() {
   const [isAutoRolling, setIsAutoRolling] = useState(false)
   const autoRollRef = useRef(false)
   const [floatingSouls, setFloatingSouls] = useState(0)
-  const [hoveredBadge, setHoveredBadge] = useState<null | 'thorns' | 'venom'>(null)
+  const [hoveredBadge, setHoveredBadge] = useState<null | 'thorns' | 'venom' | 'wound'>(null)
 
   useEffect(() => {
     if (!secondWindTriggered) return
@@ -1282,6 +1292,37 @@ export function CombatScreen() {
             <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#86efac' }}>
               +{player.hot.amount} HP / {player.hot.turnsRemaining} turns
             </span>
+          </div>
+        )}
+
+        {/* Wound debuff badge */}
+        {player.woundTurns > 0 && (
+          <div
+            style={{ position: 'relative', alignSelf: 'flex-start', marginTop: 2 }}
+            onMouseEnter={() => setHoveredBadge('wound')}
+            onMouseLeave={() => setHoveredBadge(null)}
+            onClick={() => setHoveredBadge(hoveredBadge === 'wound' ? null : 'wound')}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5,
+              background: '#2a0b13', border: '2px solid #be123c',
+              padding: '3px 10px', cursor: 'help',
+            }}>
+              <Heart size={11} color="#fb7185" strokeWidth={3} />
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#fda4af' }}>
+                WOUND {player.woundTurns}
+              </span>
+            </div>
+            {hoveredBadge === 'wound' && (
+              <div style={{
+                position: 'absolute', top: 'calc(100% + 5px)', left: 0,
+                background: '#19070d', border: '2px solid #be123c',
+                padding: '6px 8px', width: 205, zIndex: 60,
+                fontSize: '0.65rem', color: '#ffe4e6', lineHeight: 1.4,
+                pointerEvents: 'none',
+              }}>
+                Wound reduces <strong style={{ color: '#fda4af' }}>all healing by 50%</strong>, including HoT. It decays after you bank a turn.
+              </div>
+            )}
           </div>
         )}
 
