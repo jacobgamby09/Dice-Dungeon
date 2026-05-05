@@ -37,10 +37,15 @@ function generateCraftOptions(mergeLevel: number): DieFace[] {
   const shuffled = [...CRAFTABLE_FACES].sort(() => Math.random() - 0.5)
   return shuffled.slice(0, 3).map((type): DieFace => {
     if (type === 'hot') {
-      return { type, value: Math.floor(Math.random() * 3) + 1, duration: Math.floor(Math.random() * 3) + 1 }
+      return { type, value: (Math.floor(Math.random() * 3) + 1) * multiplier, duration: Math.floor(Math.random() * 3) + 1 }
     }
     return { type, value: VALUELESS_FACE_TYPES.has(type) ? 0 : (Math.floor(Math.random() * 6) + 1) * multiplier }
   })
+}
+
+function isCraftEligibleFace(die: Die, face: DieFace) {
+  if (face.type === 'blank' || face.type === 'purified_skull') return true
+  return die.dieType === 'vessel' && face.craftLevel !== undefined
 }
 
 const FACE_LABELS: Partial<Record<DieFace['type'], string>> = {
@@ -167,7 +172,7 @@ function FacePickerGrid({
 
   function isEligible(face: DieFace) {
     if (activeAction === 'purify') return face.type !== 'blank'
-    if (activeAction === 'craft')  return face.type === 'blank' || face.type === 'purified_skull'
+    if (activeAction === 'craft')  return isCraftEligibleFace(die, face)
     return false
   }
 
@@ -188,8 +193,19 @@ function FacePickerGrid({
               cursor: eligible ? 'pointer' : 'default',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
               opacity: eligible ? 1 : 0.3,
+              position: 'relative',
             }}
           >
+            {die.dieType === 'vessel' && face.craftLevel !== undefined && (
+              <span style={{
+                position: 'absolute', top: 2, left: 3,
+                fontSize: '0.48rem', fontWeight: 900, color: eligible ? s.text : '#6b7280',
+                background: 'rgba(255,255,255,0.55)', padding: '1px 3px',
+                border: '1px solid rgba(0,0,0,0.35)', lineHeight: 1,
+              }}>
+                T+{face.craftLevel}
+              </span>
+            )}
             {face.type === 'blank' ? (
               <span style={{ fontSize: '0.6rem', color: eligible ? s.text : '#4b5563', letterSpacing: '0.1em' }}>BLANK</span>
             ) : face.type === 'purified_skull' ? (
@@ -374,11 +390,11 @@ export function ShopScreen() {
     }))
 
   const canCraft = runSouls >= 20 &&
-    inventory.some((d) => d.faces.some((f) => f.type === 'blank' || f.type === 'purified_skull'))
+    inventory.some((d) => d.dieType !== 'cursed' && d.faces.some((f) => isCraftEligibleFace(d, f)))
 
   const craftEligibleDice = inventory.filter((d) =>
     d.dieType !== 'cursed' &&
-    d.faces.some((f) => f.type === 'blank' || f.type === 'purified_skull')
+    d.faces.some((f) => isCraftEligibleFace(d, f))
   )
 
   const subheaderText =
@@ -485,7 +501,7 @@ export function ShopScreen() {
             <ActionCard
               label="CRAFT"
               cost={20}
-              description="Transform a blank or purified face. Choose from 3 random new face options."
+              description="Transform a blank or purified face. The Vessel can recraft shaped faces directly and tempers when all six faces are shaped."
               disabled={!canCraft}
               accentColor="#dc2626"
               onSelect={() => { setActiveAction('craft'); setSelectedDieId(null) }}
@@ -574,7 +590,9 @@ export function ShopScreen() {
             }}>
               {activeAction === 'purify'
                 ? 'Select any face to convert it to blank'
-                : 'Select a blank or purified face to overwrite'}
+                : selectedDie.dieType === 'vessel'
+                  ? `Select a blank face or shaped Vessel face. New crafts use Tempered +${selectedDie.mergeLevel ?? 0} quality.`
+                  : 'Select a blank or purified face to overwrite'}
             </p>
           </div>
         )}

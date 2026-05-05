@@ -9,6 +9,7 @@ export interface DieFace {
   value: number
   duration?: number
   triggered?: boolean
+  craftLevel?: number
 }
 
 // IMPORTANT: All future non-unique die faces MUST be added to this array to appear
@@ -415,6 +416,17 @@ const addHot = (base: HotBuff | null, amount: number, turnsRemaining: number): H
 const applyWoundToHeal = (amount: number, woundTurns: number) => (
   amount > 0 && woundTurns > 0 ? Math.max(1, Math.ceil(amount * 0.5)) : amount
 )
+
+function temperVesselAfterCraft(die: Die): Die {
+  if (die.dieType !== 'vessel') return die
+  const currentLevel = die.mergeLevel ?? 0
+  if (currentLevel >= 3) return die
+  const isFullyCraftedAtCurrentLevel = die.faces.every((face) =>
+    face.craftLevel !== undefined && face.craftLevel >= currentLevel
+  )
+  if (!isFullyCraftedAtCurrentLevel) return die
+  return { ...die, isMerged: true, mergeLevel: currentLevel + 1 }
+}
 
 function sealSkullsFromTurn(st: GameState, amount: number) {
   let remaining = Math.max(0, Math.floor(amount))
@@ -1608,7 +1620,15 @@ export const useGameStore = create<GameState>()(
       if (s.runSouls < 20) return {}
       const newInventory = s.inventory.map((d) => {
         if (d.id !== dieId) return d
-        return { ...d, isCustomized: true, faces: d.faces.map((f, i) => (i === faceIndex ? newFace : f)) }
+        const craftedFace = d.dieType === 'vessel'
+          ? { ...newFace, craftLevel: d.mergeLevel ?? 0 }
+          : newFace
+        const craftedDie = {
+          ...d,
+          isCustomized: true,
+          faces: d.faces.map((f, i) => (i === faceIndex ? craftedFace : f)),
+        }
+        return temperVesselAfterCraft(craftedDie)
       })
       return { runSouls: s.runSouls - 20, inventory: newInventory }
     })

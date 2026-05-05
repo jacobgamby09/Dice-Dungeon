@@ -19,7 +19,7 @@ export const DIE_ROLES: Record<DieType, string> = {
   blight: 'Poison die that stacks unblockable delayed damage.',
   rejuvenator: 'Healing-over-time die that stacks amount and duration.',
   mirror: 'Unique copy die that repeats the previous die face.',
-  vessel: 'Pure crafting substrate with no combat power until shaped at The Forge.',
+  vessel: 'Long-term Forge project die. It starts blank, then tempers as every face is shaped.',
   warden: 'Defensive anti-bust die that seals Skulls back into the bag.',
 }
 
@@ -39,7 +39,7 @@ export const DIE_TIPS: Partial<Record<DieType, string>> = {
   blight: 'Poison bypasses Shield and keeps ticking down each enemy phase.',
   rejuvenator: 'Stacks additively. A 2 HP / 2 turn buff plus 1 HP / 1 turn becomes 3 HP / 3 turns, then decays each tick.',
   mirror: 'Does nothing if there is no previous die face to copy.',
-  vessel: 'All six Blank faces can be crafted directly. The Vessel cannot be merged.',
+  vessel: 'The Vessel cannot be merged normally. It can recraft shaped faces directly; when all six faces match its current Tempered level, it advances to the next craft quality.',
   warden: 'Seal removes a rolled Skull from this turn and returns that die to the draw pile. The danger is delayed, not deleted.',
 }
 
