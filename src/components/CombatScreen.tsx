@@ -1154,7 +1154,13 @@ export function CombatScreen() {
 
         <motion.div ref={lungeScope} style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <EnemySprite enemyName={enemy.name} size={enemy.isBoss ? 6 : 5} />
+            <EnemySprite
+              enemyName={enemy.name}
+              size={enemy.isBoss ? 6 : 5}
+              hp={enemy.hp}
+              enemyHitVersion={enemyHitVersion}
+              enemyAttackVersion={enemyAttackVersion}
+            />
           </div>
 
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>

@@ -1,8 +1,18 @@
+import { useEffect, useRef, useState } from 'react'
+
 const _ = null
 
 type Pixel = string | null
 type Grid = Pixel[][]
 type Palette = Record<string, string>
+type SheetMode = 'idle' | 'attack' | 'hurt' | 'death'
+type SheetDefinition = { src: string; frames: number; frameMs: number; loop: boolean }
+type SheetConfig = {
+  sheets: Record<SheetMode, SheetDefinition>
+  crop: { x: number; y: number; w: number; h: number }
+  unit: number
+  minWidth: number
+}
 
 function makeGrid(rows: string[], palette: Palette): Grid {
   const width = Math.max(...rows.map((row) => row.length))
@@ -117,25 +127,6 @@ const palettes = {
   },
 }
 
-const SLIME = makeGrid([
-  '................',
-  '................',
-  '......OOOO......',
-  '....OODGGDOO....',
-  '...ODGGLLGGDO...',
-  '..ODGLLHHLLGDO..',
-  '..OGGLGLLGLLGO..',
-  '.ODGGEGLLGEGDO.',
-  '.OGGGLLLLGGGGO.',
-  '.OGGGGMMGGGGGO.',
-  '..OGGGGGGGGGO..',
-  '...ODGGGGGDO...',
-  '.....OOOOOO.....',
-  '....SSSSSSSS....',
-  '................',
-  '................',
-], palettes.slime)
-
 const GOBLIN = makeGrid([
   '................',
   '.....OOOOOO.....',
@@ -173,25 +164,6 @@ const SKELETON = makeGrid([
   '................',
   '................',
 ], palettes.skeleton)
-
-const ORC = makeGrid([
-  '................',
-  '....OOOOOOOO....',
-  '...ODGGGGGGDO...',
-  '..ODGLLLLLLGDO..',
-  '.OODGEGLLGEGDOO.',
-  '.OGGGGGGGGGGGO..',
-  '.OGGTGMMGTTGGO..',
-  '..OGGGTTTGGGO...',
-  '..ODGAAAAAGDO...',
-  '...OGBBBBGGO....',
-  '..OOGGGGGGOO....',
-  '.OKKOD..DGO.....',
-  'OKKO....OGO.....',
-  '..K..SSSSSS.....',
-  '................',
-  '................',
-], palettes.orc)
 
 const DEMON = makeGrid([
   '...H........H...',
@@ -308,18 +280,156 @@ function Sprite({ grid, size, boss = false }: { grid: Grid; size: number; boss?:
   )
 }
 
-export function EnemySprite({ enemyName, size = 6 }: { enemyName: string; size?: number }) {
+const SHEET_SPRITES: Record<'orc' | 'slime', SheetConfig> = {
+  orc: {
+    sheets: {
+      idle:   { src: '/sprites/enemies/orc/Orc-Idle.png',     frames: 6, frameMs: 180, loop: true },
+      attack: { src: '/sprites/enemies/orc/Orc-Attack01.png', frames: 6, frameMs: 95,  loop: false },
+      hurt:   { src: '/sprites/enemies/orc/Orc-Hurt.png',     frames: 4, frameMs: 130, loop: false },
+      death:  { src: '/sprites/enemies/orc/Orc-Death.png',    frames: 4, frameMs: 150, loop: false },
+    },
+    crop: { x: 34, y: 30, w: 42, h: 36 },
+    unit: 20,
+    minWidth: 88,
+  },
+  slime: {
+    sheets: {
+      idle:   { src: '/sprites/enemies/slime/Slime-Idle.png',     frames: 6, frameMs: 190, loop: true },
+      attack: { src: '/sprites/enemies/slime/Slime-Attack01.png', frames: 6, frameMs: 95,  loop: false },
+      hurt:   { src: '/sprites/enemies/slime/Slime-Hurt.png',     frames: 4, frameMs: 130, loop: false },
+      death:  { src: '/sprites/enemies/slime/Slime-Death.png',    frames: 4, frameMs: 150, loop: false },
+    },
+    crop: { x: 0, y: 18, w: 100, h: 64 },
+    unit: 18,
+    minWidth: 78,
+  },
+}
+
+function SheetSprite({
+  config,
+  size,
+  hp,
+  enemyHitVersion = 0,
+  enemyAttackVersion = 0,
+}: {
+  config: SheetConfig
+  size: number
+  hp?: number
+  enemyHitVersion?: number
+  enemyAttackVersion?: number
+}) {
+  const [mode, setMode] = useState<SheetMode>('idle')
+  const [frame, setFrame] = useState(0)
+  const prevHitVersion = useRef(enemyHitVersion)
+  const prevAttackVersion = useRef(enemyAttackVersion)
+  const isDead = hp !== undefined && hp <= 0
+
+  useEffect(() => {
+    if (isDead) {
+      setMode('death')
+      setFrame(0)
+    }
+  }, [isDead])
+
+  useEffect(() => {
+    if (enemyAttackVersion === prevAttackVersion.current) return
+    prevAttackVersion.current = enemyAttackVersion
+    if (isDead) return
+    setMode('attack')
+    setFrame(0)
+  }, [enemyAttackVersion, isDead])
+
+  useEffect(() => {
+    if (enemyHitVersion === prevHitVersion.current) return
+    prevHitVersion.current = enemyHitVersion
+    setMode(isDead ? 'death' : 'hurt')
+    setFrame(0)
+  }, [enemyHitVersion, isDead])
+
+  useEffect(() => {
+    const sheet = config.sheets[mode]
+    const id = window.setInterval(() => {
+      setFrame((current) => {
+        const next = current + 1
+        if (next < sheet.frames) return next
+        if (sheet.loop) return 0
+        if (mode === 'death') return sheet.frames - 1
+        setMode('idle')
+        return 0
+      })
+    }, sheet.frameMs)
+
+    return () => window.clearInterval(id)
+  }, [config, mode])
+
+  const sheet = config.sheets[mode]
+  const { crop } = config
+  const displayWidth = Math.max(config.minWidth, size * config.unit)
+  const displayHeight = Math.round(displayWidth * (crop.h / crop.w))
+  const scale = displayWidth / crop.w
+
+  return (
+    <div style={{
+      width: displayWidth,
+      height: displayHeight,
+      overflow: 'hidden',
+      position: 'relative',
+      filter: 'drop-shadow(2px 2px 0 #000)',
+    }}>
+      <div style={{
+        width: crop.w,
+        height: crop.h,
+        transform: `scale(${scale})`,
+        transformOrigin: 'top left',
+        backgroundImage: `url(${sheet.src})`,
+        backgroundRepeat: 'no-repeat',
+        backgroundPosition: `-${frame * 100 + crop.x}px -${crop.y}px`,
+        imageRendering: 'pixelated',
+      }} />
+    </div>
+  )
+}
+
+export function EnemySprite({
+  enemyName,
+  size = 6,
+  hp,
+  enemyHitVersion,
+  enemyAttackVersion,
+}: {
+  enemyName: string
+  size?: number
+  hp?: number
+  enemyHitVersion?: number
+  enemyAttackVersion?: number
+}) {
   const spriteSize = Math.max(3, size - 1)
 
   switch (enemyName.toLowerCase()) {
     case 'slime':
-      return <Sprite grid={SLIME} size={spriteSize} />
+      return (
+        <SheetSprite
+          config={SHEET_SPRITES.slime}
+          size={size}
+          hp={hp}
+          enemyHitVersion={enemyHitVersion}
+          enemyAttackVersion={enemyAttackVersion}
+        />
+      )
     case 'goblin':
       return <Sprite grid={GOBLIN} size={spriteSize} />
     case 'skeleton':
       return <Sprite grid={SKELETON} size={spriteSize} />
     case 'orc':
-      return <Sprite grid={ORC} size={spriteSize} />
+      return (
+        <SheetSprite
+          config={SHEET_SPRITES.orc}
+          size={size}
+          hp={hp}
+          enemyHitVersion={enemyHitVersion}
+          enemyAttackVersion={enemyAttackVersion}
+        />
+      )
     case 'demon':
       return <Sprite grid={DEMON} size={spriteSize} boss />
     case 'slime crawler':
