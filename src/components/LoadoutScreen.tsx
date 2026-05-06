@@ -474,7 +474,7 @@ export function LoadoutScreen() {
           </button>
           <button
             onClick={devJumpToForge}
-            title="DEV: Start a Demon boss animation test run"
+            title="DEV: Start an Orc animation test run"
             style={{
               width: 44, flexShrink: 0,
               background: '#1c1c2e', border: '2px dashed #4b5563', color: '#6b7280',

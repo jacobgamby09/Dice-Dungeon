@@ -232,9 +232,9 @@ const SHEET_SPRITES: Record<'orc' | 'slime' | 'skeleton' | 'goblin' | 'demon', S
       hurt:   { src: '/sprites/enemies/orc/Orc-Hurt.png',     frames: 4, frameMs: 130, loop: false },
       death:  { src: '/sprites/enemies/orc/Orc-Death.png',    frames: 4, frameMs: 150, loop: false },
     },
-    crop: { x: 34, y: 30, w: 42, h: 36 },
-    unit: 20,
-    minWidth: 88,
+    crop: { x: 0, y: 8, w: 100, h: 84 },
+    unit: 18,
+    minWidth: 82,
   },
   slime: {
     sheets: {
