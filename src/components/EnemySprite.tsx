@@ -12,6 +12,7 @@ type SheetConfig = {
   crop: { x: number; y: number; w: number; h: number }
   unit: number
   minWidth: number
+  nudgeX?: number
 }
 
 function makeGrid(rows: string[], palette: Palette): Grid {
@@ -256,6 +257,7 @@ const SHEET_SPRITES: Record<'orc' | 'slime' | 'skeleton' | 'goblin' | 'demon', S
     crop: { x: 0, y: 10, w: 100, h: 82 },
     unit: 18,
     minWidth: 78,
+    nudgeX: 6,
   },
   goblin: {
     sheets: {
@@ -350,6 +352,7 @@ function SheetSprite({
       height: displayHeight,
       overflow: 'hidden',
       position: 'relative',
+      transform: config.nudgeX ? `translateX(${config.nudgeX}px)` : undefined,
       filter: 'drop-shadow(2px 2px 0 #000)',
     }}>
       <div style={{
