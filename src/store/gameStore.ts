@@ -5,7 +5,7 @@ import { persist } from 'zustand/middleware'
 
 export interface DieFace {
   type: 'damage' | 'shield' | 'heal' | 'skull' | 'souls' | 'lifesteal' | 'choose_next' | 'wildcard' | 'blank' | 'purified_skull' | 'multiplier' | 'poison' | 'hot' | 'mirror'
-    | 'seal'
+    | 'seal' | 'shield_bash'
   value: number
   duration?: number
   triggered?: boolean
@@ -23,7 +23,7 @@ export type DieType = 'white' | 'blue' | 'green' | 'cursed'
                     | 'heavy' | 'paladin' | 'gambler' | 'scavenger' | 'wall'
                     | 'jackpot' | 'vampire' | 'priest' | 'fortune_teller'
                     | 'joker' | 'unique' | 'blight' | 'rejuvenator' | 'mirror'
-                    | 'vessel' | 'warden'
+                    | 'vessel' | 'warden' | 'bulwark'
 
 export interface Die {
   id: string
@@ -61,6 +61,7 @@ export const DIE_NAMES: Record<DieType, string> = {
   mirror:         'The Mirror',
   vessel:         'The Vessel',
   warden:         'The Warden',
+  bulwark:        'The Bulwark',
 }
 
 export interface SkillNode {
@@ -296,6 +297,17 @@ export const DIE_TEMPLATES: Record<DieType, { sides: number; faces: DieFace[] }>
       { type: 'shield', value: 3 },
       { type: 'damage', value: 1 },
       { type: 'skull', value: 1 },
+    ],
+  },
+  bulwark: {
+    sides: 6,
+    faces: [
+      { type: 'shield',      value: 2 },
+      { type: 'shield',      value: 3 },
+      { type: 'shield_bash', value: 1 },
+      { type: 'shield_bash', value: 1 },
+      { type: 'skull',       value: 1 },
+      { type: 'blank',       value: 0 },
     ],
   },
 }
@@ -629,7 +641,7 @@ export function getVenomPenalty(floor: number): number {
   return floor >= 26 ? 2 : 1
 }
 
-const GLOBAL_DICE_POOL: DieType[] = ['heavy', 'scavenger', 'wall', 'gambler', 'joker', 'vessel', 'warden']
+const GLOBAL_DICE_POOL: DieType[] = ['heavy', 'scavenger', 'wall', 'gambler', 'joker', 'vessel', 'warden', 'bulwark']
 const ACT_1_DICE_POOL: DieType[] = ['paladin', 'vampire', 'rejuvenator', 'mirror']
 const ACT_2_DICE_POOL: DieType[] = ['blight', 'fortune_teller', 'priest', 'unique', 'jackpot']
 
@@ -883,7 +895,8 @@ export const useGameStore = create<GameState>()(
           const rawH2 = prevFace.type === 'heal'    ? prevFace.value * mult : ls2
           const h2  = applyWoundToHeal(rawH2, get().player.woundTurns)
           const sh2 = prevFace.type === 'shield'    ? prevFace.value * mult : 0
-          const d2  = (prevFace.type === 'damage' || prevFace.type === 'lifesteal') ? prevFace.value * mult : 0
+          const bash2 = prevFace.type === 'shield_bash' ? (get().player.shield + get().totalShield) * mult : 0
+          const d2  = (prevFace.type === 'damage' || prevFace.type === 'lifesteal') ? prevFace.value * mult : bash2
           const s2  = prevFace.type === 'souls'     ? prevFace.value * mult : 0
           const p2  = prevFace.type === 'poison'    ? prevFace.value * mult : 0
           set((st) => ({
@@ -908,7 +921,8 @@ export const useGameStore = create<GameState>()(
       const rawHealGain   = face.type === 'heal'      ? face.value * mult : lifestealGain
       const healGain      = applyWoundToHeal(rawHealGain, get().player.woundTurns)
       const shieldGain    = face.type === 'shield'    ? face.value * mult : 0
-      const damageGain    = (face.type === 'damage' || face.type === 'lifesteal') ? face.value * mult : 0
+      const bashGain      = face.type === 'shield_bash' ? (get().player.shield + get().totalShield) * mult : 0
+      const damageGain    = (face.type === 'damage' || face.type === 'lifesteal') ? face.value * mult : bashGain
       const soulsGain      = face.type === 'souls'     ? face.value * mult : 0
       const poisonGain    = face.type === 'poison'    ? face.value * mult : 0
       const multiplierFired = mult > 1
@@ -1080,7 +1094,8 @@ export const useGameStore = create<GameState>()(
           const rawH2 = prevFace.type === 'heal'    ? prevFace.value * mult2 : ls2
           const h2  = applyWoundToHeal(rawH2, get().player.woundTurns)
           const sh2 = prevFace.type === 'shield'    ? prevFace.value * mult2 : 0
-          const d2  = (prevFace.type === 'damage' || prevFace.type === 'lifesteal') ? prevFace.value * mult2 : 0
+          const bash2 = prevFace.type === 'shield_bash' ? (get().player.shield + get().totalShield) * mult2 : 0
+          const d2  = (prevFace.type === 'damage' || prevFace.type === 'lifesteal') ? prevFace.value * mult2 : bash2
           const s2  = prevFace.type === 'souls'     ? prevFace.value * mult2 : 0
           const p2  = prevFace.type === 'poison'    ? prevFace.value * mult2 : 0
           set((st) => ({
@@ -1105,7 +1120,8 @@ export const useGameStore = create<GameState>()(
       const rawHealGain   = face.type === 'heal'      ? face.value * mult2 : lifestealGain
       const healGain      = applyWoundToHeal(rawHealGain, get().player.woundTurns)
       const shieldGain    = face.type === 'shield'    ? face.value * mult2 : 0
-      const damageGain    = (face.type === 'damage' || face.type === 'lifesteal') ? face.value * mult2 : 0
+      const bashGain      = face.type === 'shield_bash' ? (get().player.shield + get().totalShield) * mult2 : 0
+      const damageGain    = (face.type === 'damage' || face.type === 'lifesteal') ? face.value * mult2 : bashGain
       const soulsGain      = face.type === 'souls'     ? face.value * mult2 : 0
       const poisonGain    = face.type === 'poison'    ? face.value * mult2 : 0
       const multiplierFired = mult2 > 1
@@ -1805,7 +1821,7 @@ export const useGameStore = create<GameState>()(
     const STARTING_POOL: DieType[] = ['white', 'blue', 'green']
     const ADVANCED_POOL: DieType[] = [
       'heavy', 'paladin', 'gambler', 'scavenger', 'wall',
-      'jackpot', 'vampire', 'priest', 'fortune_teller', 'joker', 'unique', 'blight', 'vessel', 'warden',
+      'jackpot', 'vampire', 'priest', 'fortune_teller', 'joker', 'unique', 'blight', 'vessel', 'warden', 'bulwark',
     ]
 
     function pickWithReplacement(pool: DieType[], count: number): DieType[] {
@@ -1814,9 +1830,15 @@ export const useGameStore = create<GameState>()(
       return result
     }
 
-    // 16 regular dice: 7 starting + 9 advanced, 3 random merges
-    const regularTypes  = [...pickWithReplacement(STARTING_POOL, 7), ...pickWithReplacement(ADVANCED_POOL, 9)]
-    const mergeIndices  = new Set(shuffleArray([...Array(16).keys()]).slice(0, 3))
+    // 16 regular dice: force the newest synergy dice into the dev deck, then fill the rest.
+    const forcedTypes: DieType[] = ['warden', 'bulwark']
+    const regularTypes  = [
+      ...forcedTypes,
+      ...pickWithReplacement(STARTING_POOL, 7),
+      ...pickWithReplacement(ADVANCED_POOL, 7),
+    ]
+    const mergeCandidateIndices = [...Array(regularTypes.length).keys()].filter((i) => i >= forcedTypes.length)
+    const mergeIndices  = new Set(shuffleArray(mergeCandidateIndices).slice(0, 3))
     const regularDice: Die[] = regularTypes.map((t, i) =>
       mergeIndices.has(i) ? merged(t, 1) : { ...createDie(t, uid()), isEquipped: true as const }
     )

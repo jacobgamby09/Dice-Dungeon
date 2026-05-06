@@ -16,10 +16,19 @@ function FaceIcon({ type, size = 13 }: { type: DieFace['type']; size?: number })
   if (type === 'choose_next') return <Star         size={size} color={color} strokeWidth={2.5} />
   if (type === 'wildcard')    return <Shuffle      size={size} color={color} strokeWidth={2.5} />
   if (type === 'poison')      return <FlaskConical size={size} color={color} strokeWidth={2.5} />
-  if (type === 'seal')        return <Shield       size={size} color={color} strokeWidth={3} />
+  if (type === 'seal')        return <MaelstromIcon size={size} color={color} />
+  if (type === 'shield_bash') return <ShieldBashIcon size={size} color={color} />
   if (type === 'mirror')      return <RefreshCw    size={size} color={color} strokeWidth={2.5} />
   if (type === 'heal')        return <Heart        size={size} color={color} strokeWidth={2.5} />
   return null
+}
+
+function MaelstromIcon({ size, color }: { size: number; color: string }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none"><path d="M19 12a7 7 0 0 1-12 5M5 12a7 7 0 0 1 12-5" stroke={color} strokeWidth="2.5" strokeLinecap="round" /><path d="M8 17H5v-3M16 7h3v3" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /><circle cx="12" cy="12" r="3.5" stroke={color} strokeWidth="2" /></svg>
+}
+
+function ShieldBashIcon({ size, color }: { size: number; color: string }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none"><path d="M8 4h8l2 4v6c0 3.5-2.3 5.5-6 7-3.7-1.5-6-3.5-6-7V8l2-4Z" stroke={color} strokeWidth="2.4" strokeLinejoin="round" /><path d="M4 13h7M7 10l4 3-4 3M14 9l3 3-3 3" stroke={color} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
 }
 
 export function InterActScreen() {
@@ -169,7 +178,7 @@ export function InterActScreen() {
                           <line x1="16" y1="2" x2="2" y2="16" stroke="#ef4444" strokeWidth="3" strokeLinecap="round" />
                         </svg>
                       </div>
-                    ) : (face.type === 'skull' || face.type === 'choose_next' || face.type === 'wildcard' || face.type === 'souls' || face.type === 'poison' || face.type === 'seal') ? (
+                    ) : (face.type === 'skull' || face.type === 'choose_next' || face.type === 'wildcard' || face.type === 'souls' || face.type === 'poison' || face.type === 'seal' || face.type === 'shield_bash') ? (
                       <FaceIcon type={face.type} size={13} />
                     ) : (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>

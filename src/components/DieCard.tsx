@@ -26,10 +26,11 @@ export const dieTypeStyle: Record<DieType, { bg: string; shadow: string; text: s
   mirror:        { bg: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 40%, #94a3b8 100%)', shadow: '#475569', text: '#0f172a' },
   vessel:        { bg: '#f8fafc', shadow: '#64748b',  text: '#0f172a' },
   warden:        { bg: '#1f2937', shadow: '#b45309',  text: '#d1d5db' },
+  bulwark:       { bg: '#1d4ed8', shadow: '#0f172a',  text: '#dbeafe' },
 }
 
 // Custom loot dice use their die text color for all face content (monochrome)
-const CUSTOM_LOOT_DIES = new Set<DieType>(['heavy', 'paladin', 'gambler', 'scavenger', 'wall', 'jackpot', 'vampire', 'priest', 'fortune_teller', 'joker', 'unique', 'blight', 'vessel', 'warden'])
+const CUSTOM_LOOT_DIES = new Set<DieType>(['heavy', 'paladin', 'gambler', 'scavenger', 'wall', 'jackpot', 'vampire', 'priest', 'fortune_teller', 'joker', 'unique', 'blight', 'vessel', 'warden', 'bulwark'])
 
 export const faceColor: Record<DieFace['type'], string> = {
   damage:         '#dc2626',
@@ -47,6 +48,7 @@ export const faceColor: Record<DieFace['type'], string> = {
   hot:            '#4ade80',
   mirror:         '#334155',
   seal:           '#f97316',
+  shield_bash:    '#93c5fd',
 }
 
 export const faceShadow: Record<DieFace['type'], string> = {
@@ -65,6 +67,7 @@ export const faceShadow: Record<DieFace['type'], string> = {
   hot:            '#15803d',
   mirror:         '#0f172a',
   seal:           '#7c2d12',
+  shield_bash:    '#1e3a8a',
 }
 
 // ── Type icon ────────────────────────────────────────────────────────────────
@@ -79,8 +82,32 @@ function TypeIcon({ type, size = 13, forceColor }: { type: DieFace['type']; size
   if (type === 'choose_next') return <Star          size={size} color={color} strokeWidth={2.5} />
   if (type === 'wildcard')    return <Shuffle       size={size} color={color} strokeWidth={2.5} />
   if (type === 'poison')      return <FlaskConical  size={size} color={color} strokeWidth={2.5} />
-  if (type === 'seal')        return <Shield        size={size} color={color} strokeWidth={3} />
+  if (type === 'seal')        return <MaelstromIcon size={size} color={color} />
+  if (type === 'shield_bash') return <ShieldBashIcon size={size} color={color} />
   return                             <Heart         size={size} color={color} strokeWidth={2.5} />
+}
+
+function MaelstromIcon({ size = 24, color = '#f97316' }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M19 12a7 7 0 0 1-11.9 5" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
+      <path d="M5 12a7 7 0 0 1 11.9-5" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
+      <path d="M8 17H5v-3" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M16 7h3v3" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M12 8.5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7Z" stroke={color} strokeWidth="2" />
+    </svg>
+  )
+}
+
+function ShieldBashIcon({ size = 24, color = '#93c5fd' }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M8 4h8l2 4v6c0 3.5-2.3 5.5-6 7-3.7-1.5-6-3.5-6-7V8l2-4Z" stroke={color} strokeWidth="2.4" strokeLinejoin="round" />
+      <path d="M4 13h7" stroke={color} strokeWidth="2.8" strokeLinecap="round" />
+      <path d="M7 10l4 3-4 3" stroke={color} strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M14 9l3 3-3 3" stroke={color} strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
 }
 
 // ── DiceFace ─────────────────────────────────────────────────────────────────
@@ -165,8 +192,17 @@ function DiceFace({ face, textColor, dieType, mergeLevel = 0 }: { face: DieFace;
     const color = iconColor ?? faceColor.seal
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', position: 'relative' }}>
-        <Shield size={30} color={color} strokeWidth={3} />
-        <Skull size={15} color={color} strokeWidth={3} style={{ position: 'absolute' }} />
+        <MaelstromIcon size={34} color={color} />
+        <Skull size={13} color={color} strokeWidth={3} style={{ position: 'absolute' }} />
+      </div>
+    )
+  }
+
+  if (face.type === 'shield_bash') {
+    const color = iconColor ?? faceColor.shield_bash
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', position: 'relative' }}>
+        <ShieldBashIcon size={34} color={color} />
       </div>
     )
   }
@@ -547,6 +583,38 @@ function WardenGateFlash() {
           transition={{ duration: 0.85, times: [0, 0.65, 1], ease: 'easeOut' }}
         />
       ))}
+    </>
+  )
+}
+
+function ShieldBashFlash() {
+  return (
+    <>
+      <motion.div
+        style={{
+          position: 'absolute', inset: -5,
+          border: '3px solid #93c5fd',
+          pointerEvents: 'none', zIndex: 28,
+        }}
+        initial={{ boxShadow: '0 0 30px 12px rgba(147,197,253,0.9)', opacity: 1, scale: 0.9 }}
+        animate={{ boxShadow: '0 0 0px 0px rgba(147,197,253,0)', opacity: 0, scale: 1.2 }}
+        transition={{ duration: 0.65, ease: 'easeOut' }}
+      />
+      <motion.div
+        style={{
+          position: 'absolute',
+          left: '18%', top: '44%',
+          width: '64%', height: 10,
+          background: '#93c5fd',
+          border: '2px solid #1e3a8a',
+          boxShadow: '3px 3px 0 #000',
+          pointerEvents: 'none',
+          zIndex: 29,
+        }}
+        initial={{ x: -34, opacity: 0, scaleX: 0.45 }}
+        animate={{ x: [ -34, 12, 44 ], opacity: [0, 1, 0], scaleX: [0.45, 1.15, 0.25] }}
+        transition={{ duration: 0.55, times: [0, 0.45, 1], ease: 'easeOut' }}
+      />
     </>
   )
 }
@@ -932,6 +1000,11 @@ export const DieCard = React.memo(function DieCard({
         {/* Warden — iron gate snap on Seal */}
         <AnimatePresence>
           {die.dieType === 'warden' && burst && face?.type === 'seal' && face.triggered && <WardenGateFlash key="warden-gate" />}
+        </AnimatePresence>
+
+        {/* Bulwark — shield bash impact */}
+        <AnimatePresence>
+          {die.dieType === 'bulwark' && burst && face?.type === 'shield_bash' && <ShieldBashFlash key="shield-bash" />}
         </AnimatePresence>
       </motion.div>
     </motion.div>

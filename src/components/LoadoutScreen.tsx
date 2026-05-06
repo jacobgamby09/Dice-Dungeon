@@ -28,6 +28,7 @@ const DIE_NAMES: Partial<Record<DieType, string>> = {
   joker:          'The Joker',
   unique:         'The Multiplier',
   warden:         'The Warden',
+  bulwark:        'The Bulwark',
 }
 
 const MODIFIER_META: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
@@ -473,7 +474,7 @@ export function LoadoutScreen() {
           </button>
           <button
             onClick={devJumpToForge}
-            title="DEV: Jump to Forge"
+            title="DEV: Start a Warden + Bulwark test run"
             style={{
               width: 44, flexShrink: 0,
               background: '#1c1c2e', border: '2px dashed #4b5563', color: '#6b7280',
@@ -483,7 +484,7 @@ export function LoadoutScreen() {
             }}
           >
             <span style={{ fontSize: '1rem', lineHeight: 1 }}>🛠</span>
-            <span>DEV</span>
+            <span>TEST</span>
           </button>
         </div>
       </div>

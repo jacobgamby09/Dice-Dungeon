@@ -283,6 +283,7 @@ function OrbLayer({ playedDice, orbVersion, resolvingDieIndex, damageRef, healRe
     const faceType = die.currentFace.type
     if (faceType === 'choose_next' || faceType === 'wildcard' || faceType === 'blank' || faceType === 'purified_skull') return
     const targetRef = faceType === 'damage'    ? damageRef
+                    : faceType === 'shield_bash' ? damageRef
                     : faceType === 'lifesteal' ? damageRef
                     : faceType === 'heal'      ? healRef
                     : faceType === 'shield'    ? shieldRef
