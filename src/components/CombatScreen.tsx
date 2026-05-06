@@ -1216,7 +1216,7 @@ export function CombatScreen() {
                   }}>
                     <Swords size={9} color="#f97316" strokeWidth={2.5} />
                     <span style={{ fontSize: '0.58rem', fontWeight: 700, color: '#f97316', letterSpacing: '0.08em' }}>
-                      THORNS ACTIVE {Math.round((enemy.thorns ?? 0) * 100)}%
+                      THORNS RECOIL {Math.round((enemy.thorns ?? 0) * 100)}%
                     </span>
                   </div>
                   {hoveredBadge === 'thorns' && (
@@ -1228,7 +1228,7 @@ export function CombatScreen() {
                       fontSize: '0.65rem', color: '#fed7aa', lineHeight: 1.4,
                       pointerEvents: 'none',
                     }}>
-                      Active against your current attack. Reflects <strong style={{ color: '#f97316' }}>{Math.round((enemy.thorns ?? 0) * 100)}%</strong> of damage you deal, then drops after the boss acts.
+                      Active recoil on your attack, not the boss's next intent. Reflects <strong style={{ color: '#f97316' }}>{Math.round((enemy.thorns ?? 0) * 100)}%</strong> of damage you deal, then drops after the boss acts.
                     </div>
                   )}
                 </div>

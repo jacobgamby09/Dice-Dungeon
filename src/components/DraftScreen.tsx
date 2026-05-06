@@ -108,7 +108,8 @@ function DieChoiceCard({
               background: s.bg,
               border: '2px solid #000',
               boxShadow: `2px 2px 0 ${s.shadow}`,
-              padding: '8px 4px',
+              minHeight: 32,
+              padding: '6px 4px',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
             }}
           >
@@ -171,6 +172,7 @@ export function DraftScreen() {
   const lastSoulsEarned = useGameStore(s => s.lastSoulsEarned)
   const runSouls        = useGameStore(s => s.runSouls)
   const rerollCost      = useGameStore(s => s.rerollCost)
+  const currentFloor    = useGameStore(s => s.currentFloor)
   const selectDraftDie  = useGameStore(s => s.selectDraftDie)
   const rerollDraft     = useGameStore(s => s.rerollDraft)
   const extractToBase   = useGameStore(s => s.extractToBase)
@@ -210,14 +212,22 @@ export function DraftScreen() {
         }}>
           VICTORY!
         </span>
-        {lastSoulsEarned > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <Flame size={14} color="#a855f7" strokeWidth={2.5} />
-            <span style={{ color: '#a855f7', fontWeight: 700, fontSize: '0.85rem' }}>
-              +{lastSoulsEarned} Souls
-            </span>
-          </div>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{
+            fontSize: '0.62rem', color: '#9ca3af',
+            letterSpacing: '0.18em', textTransform: 'uppercase',
+          }}>
+            Floor {currentFloor}
+          </span>
+          {lastSoulsEarned > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <Flame size={14} color="#a855f7" strokeWidth={2.5} />
+              <span style={{ color: '#a855f7', fontWeight: 700, fontSize: '0.85rem' }}>
+                +{lastSoulsEarned} Souls
+              </span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Subheader */}
