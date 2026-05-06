@@ -394,8 +394,9 @@ interface GameState {
   shopHeal: (cost: number, amount: number) => void
   shopModifyFace: (dieId: string, faceIndex: number, newFace: DieFace, cost: number) => void
   shopMergeDice: (die1Id: string, die2Id: string, cost: number) => void
-  shopCraftFace: (dieId: string, faceIndex: number, newFace: DieFace) => void
-  shopPurifyFace: (dieId: string, faceIndex: number) => void
+  shopCraftFace: (dieId: string, faceIndex: number, newFace: DieFace, cost: number) => void
+  shopPurifyFace: (dieId: string, faceIndex: number, cost: number) => void
+  shopStabilizeSkull: (cost: number) => void
   unlockNode: (nodeId: string) => void
   leaveShop: () => void
   extractToBase: () => void
@@ -459,6 +460,7 @@ interface EnemyTemplate {
   intentMin: number; intentMax: number; isBoss: boolean
   thorns?: number; barbs?: number; corrosive?: boolean
   intentCycle?: Array<{ type: EnemyIntent['type']; value: number }>
+  intentCycleStartFloor?: number
 }
 
 export const SKILL_TREE_NODES: SkillNode[] = [
@@ -524,7 +526,16 @@ const ACT_1_BESTIARY: EnemyTemplate[] = [
 
 const ACT_2_BESTIARY: EnemyTemplate[] = [
   { name: 'Slime Crawler', baseHp: 40, intentMin: 4, intentMax: 6, isBoss: false },
-  { name: 'Marrow Bat',    baseHp: 35, intentMin: 3, intentMax: 5, isBoss: false },
+  {
+    name: 'Marrow Bat', baseHp: 35, intentMin: 3, intentMax: 5, isBoss: false,
+    intentCycleStartFloor: 21,
+    intentCycle: [
+      { type: 'attack', value: 4 },
+      { type: 'attack', value: 5 },
+      { type: 'wound',  value: 1 },
+      { type: 'attack', value: 6 },
+    ],
+  },
   { name: 'Toxic Creep',   baseHp: 60, intentMin: 4, intentMax: 7, isBoss: false },
   {
     name: 'Spiked Behemoth', baseHp: 120, intentMin: 14, intentMax: 18, isBoss: true, thorns: 0,
@@ -542,8 +553,12 @@ function rollIntent(template: EnemyTemplate, floor: number, intentPhase = 0): En
   const floorScaling = actId >= 2
     ? Math.floor((floor - 16) * 0.45)
     : Math.floor((floor - 1) * 0.5)
-  if (template.intentCycle && template.intentCycle.length > 0) {
-    const def = template.intentCycle[intentPhase % template.intentCycle.length]
+  const activeIntentCycle = template.intentCycle && template.intentCycle.length > 0 &&
+    (template.intentCycleStartFloor === undefined || floor >= template.intentCycleStartFloor)
+      ? template.intentCycle
+      : null
+  if (activeIntentCycle) {
+    const def = activeIntentCycle[intentPhase % activeIntentCycle.length]
     if (def.type === 'attack' || def.type === 'corrosive_strike') {
       return { type: def.type, value: def.value + floorScaling }
     }
@@ -608,7 +623,7 @@ export function isVenomActive(floor: number): boolean {
 }
 export function getVenomLimit(floor: number): number | null {
   if (!isVenomActive(floor)) return null
-  return floor <= 20 ? 5 : 4
+  return 5
 }
 export function getVenomPenalty(floor: number): number {
   return floor >= 26 ? 2 : 1
@@ -1615,9 +1630,9 @@ export const useGameStore = create<GameState>()(
     })
   },
 
-  shopCraftFace: (dieId, faceIndex, newFace) => {
+  shopCraftFace: (dieId, faceIndex, newFace, cost) => {
     set((s) => {
-      if (s.runSouls < 20) return {}
+      if (s.runSouls < cost) return {}
       const newInventory = s.inventory.map((d) => {
         if (d.id !== dieId) return d
         const craftedFace = d.dieType === 'vessel'
@@ -1630,13 +1645,13 @@ export const useGameStore = create<GameState>()(
         }
         return temperVesselAfterCraft(craftedDie)
       })
-      return { runSouls: s.runSouls - 20, inventory: newInventory }
+      return { runSouls: s.runSouls - cost, inventory: newInventory }
     })
   },
 
-  shopPurifyFace: (dieId, faceIndex) => {
+  shopPurifyFace: (dieId, faceIndex, cost) => {
     set((s) => {
-      if (s.runSouls < 10 || s.purifyUsesThisShop >= 3) return {}
+      if (s.runSouls < cost || s.purifyUsesThisShop >= 3) return {}
       const newInventory = s.inventory.map((d) => {
         if (d.id !== dieId) return d
         return {
@@ -1650,7 +1665,35 @@ export const useGameStore = create<GameState>()(
           }),
         }
       })
-      return { runSouls: s.runSouls - 10, inventory: newInventory, purifyUsesThisShop: s.purifyUsesThisShop + 1 }
+      return { runSouls: s.runSouls - cost, inventory: newInventory, purifyUsesThisShop: s.purifyUsesThisShop + 1 }
+    })
+  },
+
+  shopStabilizeSkull: (cost) => {
+    set((s) => {
+      if (s.runSouls < cost) return {}
+      const targets = s.inventory.flatMap((die) =>
+        die.dieType === 'cursed'
+          ? []
+          : die.faces
+              .map((face, faceIndex) => face.type === 'skull' ? { dieId: die.id, faceIndex } : null)
+              .filter((target): target is { dieId: string; faceIndex: number } => target !== null)
+      )
+      if (targets.length === 0) return {}
+      const target = targets[Math.floor(Math.random() * targets.length)]
+      return {
+        runSouls: s.runSouls - cost,
+        inventory: s.inventory.map((die) => {
+          if (die.id !== target.dieId) return die
+          return {
+            ...die,
+            isCustomized: true,
+            faces: die.faces.map((face, index) =>
+              index === target.faceIndex ? { type: 'blank' as const, value: 0 } : face
+            ),
+          }
+        }),
+      }
     })
   },
 

@@ -261,11 +261,17 @@ export function ShopScreen() {
   const shopMergeDice    = useGameStore(s => s.shopMergeDice)
   const shopCraftFace    = useGameStore(s => s.shopCraftFace)
   const shopPurifyFace   = useGameStore(s => s.shopPurifyFace)
+  const shopStabilizeSkull = useGameStore(s => s.shopStabilizeSkull)
   const leaveShop        = useGameStore(s => s.leaveShop)
   const purifyUsesThisShop = useGameStore(s => s.purifyUsesThisShop)
   const unlockedNodes = useGameStore((s) => s.unlockedNodes)
-  const healCost  = unlockedNodes.includes('7jutuf9h') ? 5  : 10
-  const mergeCost = unlockedNodes.includes('m1hjf9ac') ? 25 : 40
+  const currentFloor = useGameStore((s) => s.currentFloor)
+  const isAct2Forge = currentFloor >= 16 && currentFloor <= 30
+  const healCost  = isAct2Forge ? (unlockedNodes.includes('7jutuf9h') ? 10 : 15) : (unlockedNodes.includes('7jutuf9h') ? 5 : 10)
+  const purifyCost = isAct2Forge ? 15 : 10
+  const craftCost = isAct2Forge ? 30 : 20
+  const mergeCost = isAct2Forge ? (unlockedNodes.includes('m1hjf9ac') ? 40 : 60) : (unlockedNodes.includes('m1hjf9ac') ? 25 : 40)
+  const stabilizeCost = 25
 
   const [activeAction, setActiveAction]   = useState<ShopAction>(null)
   const [selectedDieId, setSelectedDieId] = useState<string | null>(null)
@@ -286,7 +292,7 @@ export function ShopScreen() {
   function handleFaceSelect(faceIndex: number, _face: DieFace) {
     if (!selectedDieId) return
     if (activeAction === 'purify') {
-      shopPurifyFace(selectedDieId, faceIndex)
+      shopPurifyFace(selectedDieId, faceIndex, purifyCost)
       setActiveAction(null)
       setSelectedDieId(null)
     } else if (activeAction === 'craft') {
@@ -309,7 +315,7 @@ export function ShopScreen() {
 
   function handleCraftOptionSelect(face: DieFace) {
     if (!selectedDieId || craftFaceIndex === null) return
-    shopCraftFace(selectedDieId, craftFaceIndex, face)
+    shopCraftFace(selectedDieId, craftFaceIndex, face, craftCost)
     const id = selectedDieId
     setActiveAction(null)
     setSelectedDieId(null)
@@ -389,8 +395,10 @@ export function ShopScreen() {
       return d.dieType === d2.dieType
     }))
 
-  const canCraft = runSouls >= 20 &&
+  const canCraft = runSouls >= craftCost &&
     inventory.some((d) => d.dieType !== 'cursed' && d.faces.some((f) => isCraftEligibleFace(d, f)))
+  const canStabilize = isAct2Forge && runSouls >= stabilizeCost &&
+    inventory.some((d) => d.dieType !== 'cursed' && d.faces.some((f) => f.type === 'skull'))
 
   const craftEligibleDice = inventory.filter((d) =>
     d.dieType !== 'cursed' &&
@@ -491,16 +499,16 @@ export function ShopScreen() {
             />
             <ActionCard
               label="PURIFY"
-              cost={10}
+              cost={purifyCost}
               description={`Wipe any face clean, making it blank and available for crafting. ${3 - purifyUsesThisShop} use${3 - purifyUsesThisShop === 1 ? '' : 's'} remaining this visit.`}
-              disabled={runSouls < 10 || purifyUsesThisShop >= 3}
+              disabled={runSouls < purifyCost || purifyUsesThisShop >= 3}
               accentColor="#7c3aed"
               buttonLabel={`PURIFY (${3 - purifyUsesThisShop} left)`}
               onSelect={() => { setActiveAction('purify'); setSelectedDieId(null) }}
             />
             <ActionCard
               label="CRAFT"
-              cost={20}
+              cost={craftCost}
               description="Transform a blank or purified face. The Vessel can recraft shaped faces directly and tempers when all six faces are shaped."
               disabled={!canCraft}
               accentColor="#dc2626"
@@ -514,6 +522,17 @@ export function ShopScreen() {
               accentColor="#d97706"
               onSelect={() => { setActiveAction('merge'); setFirstMergeId(null) }}
             />
+            {isAct2Forge && (
+              <ActionCard
+                label="STABILIZE"
+                cost={stabilizeCost}
+                description="Remove one random Skull from a non-Cursed die, turning it into a blank face."
+                disabled={!canStabilize}
+                accentColor="#22d3ee"
+                buttonLabel="STABILIZE"
+                onSelect={() => shopStabilizeSkull(stabilizeCost)}
+              />
+            )}
           </>
         )}
 
