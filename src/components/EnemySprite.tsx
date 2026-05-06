@@ -127,63 +127,6 @@ const palettes = {
   },
 }
 
-const GOBLIN = makeGrid([
-  '................',
-  '.....OOOOOO.....',
-  '....ODGGGGDO....',
-  '...ODGLLLLGDO...',
-  '..OODGEGGEGDOO..',
-  '.ODDGGGGGGDDO...',
-  '.OGGGRRRRGGGO...',
-  '..OGGBBBBGGO....',
-  '...OGGGGGGO.....',
-  '..OOGDGGDGO.....',
-  '.OKKOD..DGO.....',
-  'OKKOO....OO.....',
-  '..K.......K.....',
-  '....SSSSSSS.....',
-  '................',
-  '................',
-], palettes.goblin)
-
-const SKELETON = makeGrid([
-  '................',
-  '.....OOOOOO.....',
-  '....OWWWWWO.....',
-  '...OWWEEWWWO....',
-  '...OWWWWWWWO....',
-  '....OWBWBWO.....',
-  '.....OWWWO......',
-  '.....OBBBO..K...',
-  '....OWBWBWOKK...',
-  '...OWBWBWBOK....',
-  '..OO..WB..O.....',
-  '......WB........',
-  '.....OWWO.......',
-  '....SSSSSS......',
-  '................',
-  '................',
-], palettes.skeleton)
-
-const DEMON = makeGrid([
-  '...H........H...',
-  '..HHH......HHH..',
-  '..HOODDDDDOOH...',
-  '...ODRRLLRRDO...',
-  '..ODRREEEERRDO..',
-  '..ODRLLLLLLRDO..',
-  '.OODRRDMMDRROO.',
-  '.OPDRRRMMRRDPO.',
-  'OPPDRRRRRRDDPPO',
-  'OPPDRPPPPPRDPPO',
-  '..ODRRRRRRDO...',
-  '..ODDRDDRDDO...',
-  '...ODD..DDO....',
-  '....SSSSSSS....',
-  '................',
-  '................',
-], palettes.demon)
-
 const SLIME_CRAWLER = makeGrid([
   '................',
   '.......OO.......',
@@ -280,7 +223,7 @@ function Sprite({ grid, size, boss = false }: { grid: Grid; size: number; boss?:
   )
 }
 
-const SHEET_SPRITES: Record<'orc' | 'slime', SheetConfig> = {
+const SHEET_SPRITES: Record<'orc' | 'slime' | 'skeleton' | 'goblin' | 'demon', SheetConfig> = {
   orc: {
     sheets: {
       idle:   { src: '/sprites/enemies/orc/Orc-Idle.png',     frames: 6, frameMs: 180, loop: true },
@@ -302,6 +245,39 @@ const SHEET_SPRITES: Record<'orc' | 'slime', SheetConfig> = {
     crop: { x: 0, y: 18, w: 100, h: 64 },
     unit: 18,
     minWidth: 78,
+  },
+  skeleton: {
+    sheets: {
+      idle:   { src: '/sprites/enemies/skeleton/Skeleton-Idle.png',     frames: 6, frameMs: 190, loop: true },
+      attack: { src: '/sprites/enemies/skeleton/Skeleton-Attack01.png', frames: 6, frameMs: 95,  loop: false },
+      hurt:   { src: '/sprites/enemies/skeleton/Skeleton-Hurt.png',     frames: 4, frameMs: 130, loop: false },
+      death:  { src: '/sprites/enemies/skeleton/Skeleton-Death.png',    frames: 4, frameMs: 150, loop: false },
+    },
+    crop: { x: 0, y: 10, w: 100, h: 82 },
+    unit: 18,
+    minWidth: 78,
+  },
+  goblin: {
+    sheets: {
+      idle:   { src: '/sprites/enemies/goblin/Goblin-Idle.png',     frames: 6, frameMs: 180, loop: true },
+      attack: { src: '/sprites/enemies/goblin/Goblin-Attack01.png', frames: 6, frameMs: 95,  loop: false },
+      hurt:   { src: '/sprites/enemies/goblin/Goblin-Hurt.png',     frames: 4, frameMs: 130, loop: false },
+      death:  { src: '/sprites/enemies/goblin/Goblin-Death.png',    frames: 4, frameMs: 150, loop: false },
+    },
+    crop: { x: 0, y: 10, w: 100, h: 82 },
+    unit: 18,
+    minWidth: 78,
+  },
+  demon: {
+    sheets: {
+      idle:   { src: '/sprites/enemies/demon/Demon-Idle.png',     frames: 6, frameMs: 190, loop: true },
+      attack: { src: '/sprites/enemies/demon/Demon-Attack01.png', frames: 6, frameMs: 100, loop: false },
+      hurt:   { src: '/sprites/enemies/demon/Demon-Hurt.png',     frames: 4, frameMs: 130, loop: false },
+      death:  { src: '/sprites/enemies/demon/Demon-Death.png',    frames: 4, frameMs: 170, loop: false },
+    },
+    crop: { x: 0, y: 4, w: 100, h: 92 },
+    unit: 19,
+    minWidth: 94,
   },
 }
 
@@ -417,9 +393,25 @@ export function EnemySprite({
         />
       )
     case 'goblin':
-      return <Sprite grid={GOBLIN} size={spriteSize} />
+      return (
+        <SheetSprite
+          config={SHEET_SPRITES.goblin}
+          size={size}
+          hp={hp}
+          enemyHitVersion={enemyHitVersion}
+          enemyAttackVersion={enemyAttackVersion}
+        />
+      )
     case 'skeleton':
-      return <Sprite grid={SKELETON} size={spriteSize} />
+      return (
+        <SheetSprite
+          config={SHEET_SPRITES.skeleton}
+          size={size}
+          hp={hp}
+          enemyHitVersion={enemyHitVersion}
+          enemyAttackVersion={enemyAttackVersion}
+        />
+      )
     case 'orc':
       return (
         <SheetSprite
@@ -431,7 +423,15 @@ export function EnemySprite({
         />
       )
     case 'demon':
-      return <Sprite grid={DEMON} size={spriteSize} boss />
+      return (
+        <SheetSprite
+          config={SHEET_SPRITES.demon}
+          size={size}
+          hp={hp}
+          enemyHitVersion={enemyHitVersion}
+          enemyAttackVersion={enemyAttackVersion}
+        />
+      )
     case 'slime crawler':
       return <Sprite grid={SLIME_CRAWLER} size={spriteSize} />
     case 'marrow bat':
@@ -441,6 +441,6 @@ export function EnemySprite({
     case 'spiked behemoth':
       return <Sprite grid={SPIKED_BEHEMOTH} size={spriteSize} boss />
     default:
-      return <Sprite grid={GOBLIN} size={spriteSize} />
+      return <Sprite grid={MARROW_BAT} size={spriteSize} />
   }
 }
