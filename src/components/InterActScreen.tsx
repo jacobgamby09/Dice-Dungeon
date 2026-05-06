@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Flame, FlaskConical, Swords, Shield, Heart, Skull, Droplets, Star, Shuffle } from 'lucide-react'
+import { Clock, Flame, FlaskConical, RefreshCw, Swords, Shield, Heart, Skull, Droplets, Star, Shuffle } from 'lucide-react'
 import { useGameStore, DIE_NAMES, UNIQUE_DIE_TYPES } from '../store/gameStore'
 import { dieTypeStyle, faceColor } from './DieCard'
 import type { DieFace } from '../store/gameStore'
@@ -17,7 +17,9 @@ function FaceIcon({ type, size = 13 }: { type: DieFace['type']; size?: number })
   if (type === 'wildcard')    return <Shuffle      size={size} color={color} strokeWidth={2.5} />
   if (type === 'poison')      return <FlaskConical size={size} color={color} strokeWidth={2.5} />
   if (type === 'seal')        return <Shield       size={size} color={color} strokeWidth={3} />
-  return <Heart size={size} color={color} strokeWidth={2.5} />
+  if (type === 'mirror')      return <RefreshCw    size={size} color={color} strokeWidth={2.5} />
+  if (type === 'heal')        return <Heart        size={size} color={color} strokeWidth={2.5} />
+  return null
 }
 
 export function InterActScreen() {
@@ -148,6 +150,17 @@ export function InterActScreen() {
                       <span style={{ fontSize: '0.6rem', fontWeight: 900, color: s.text }}>
                         {face.type === 'multiplier' ? `×${face.value}` : ''}
                       </span>
+                    ) : face.type === 'hot' ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <span style={{ fontSize: '0.58rem', fontWeight: 900, color: s.text, lineHeight: 1 }}>+{face.value}</span>
+                          <Heart size={8} color={faceColor.hot} strokeWidth={2.5} />
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <span style={{ fontSize: '0.48rem', fontWeight: 800, color: s.text, lineHeight: 1 }}>+{face.duration ?? 1}</span>
+                          <Clock size={7} color={faceColor.hot} strokeWidth={2.5} />
+                        </div>
+                      </div>
                     ) : face.type === 'purified_skull' ? (
                       <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <Skull size={13} color="#ffffff" strokeWidth={2.5} />

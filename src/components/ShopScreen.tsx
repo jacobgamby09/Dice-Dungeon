@@ -348,6 +348,11 @@ export function ShopScreen() {
       setTimeout(() => setMergeError(false), 1500)
       return
     }
+    if (UNIQUE_DIE_TYPES.has(die1.dieType) || UNIQUE_DIE_TYPES.has(die2.dieType)) {
+      setMergeError('Unique dice cannot be merged')
+      setTimeout(() => setMergeError(false), 1500)
+      return
+    }
     const level1 = die1.mergeLevel ?? 0
     const level2 = die2.mergeLevel ?? 0
     if (level1 !== level2) {
@@ -387,6 +392,7 @@ export function ShopScreen() {
       if (i >= j) return false
       if (d.dieType === 'cursed' || d2.dieType === 'cursed') return false
       if (d.dieType === 'vessel' || d2.dieType === 'vessel') return false
+      if (UNIQUE_DIE_TYPES.has(d.dieType) || UNIQUE_DIE_TYPES.has(d2.dieType)) return false
       const l1 = d.mergeLevel ?? 0
       const l2 = d2.mergeLevel ?? 0
       if (l1 !== l2) return false
@@ -403,6 +409,11 @@ export function ShopScreen() {
   const craftEligibleDice = inventory.filter((d) =>
     d.dieType !== 'cursed' &&
     d.faces.some((f) => isCraftEligibleFace(d, f))
+  )
+  const mergeEligibleDice = inventory.filter((d) =>
+    d.dieType !== 'cursed' &&
+    d.dieType !== 'vessel' &&
+    !UNIQUE_DIE_TYPES.has(d.dieType)
   )
 
   const subheaderText =
@@ -558,7 +569,7 @@ export function ShopScreen() {
         {/* Die selection — merge */}
         {activeAction === 'merge' && (
           <>
-            {inventory.filter((d) => d.dieType !== 'cursed' && d.dieType !== 'vessel' && !UNIQUE_DIE_TYPES.has(d.dieType)).map((die) => (
+            {mergeEligibleDice.map((die) => (
               <DiePickerRow
                 key={die.id}
                 die={die}
