@@ -306,8 +306,8 @@ export const DIE_TEMPLATES: Record<DieType, { sides: number; faces: DieFace[] }>
       { type: 'shield',      value: 3 },
       { type: 'shield_bash', value: 1 },
       { type: 'shield_bash', value: 1 },
+      { type: 'shield_bash', value: 1 },
       { type: 'skull',       value: 1 },
-      { type: 'blank',       value: 0 },
     ],
   },
 }
@@ -357,7 +357,7 @@ interface GameState {
   totalSouls: number
   totalPoison: number
   pendingHot: HotBuff | null
-  lastEffects: { heal: number; shield: number; souls: number }
+  lastEffects: { heal: number; shield: number; souls: number; hot?: HotBuff | null }
   turnPhase: TurnPhase
   enemyHitVersion: number
   playerHitVersion: number
@@ -667,7 +667,7 @@ export const useGameStore = create<GameState>()(
   totalSouls: 0,
   totalPoison: 0,
   pendingHot: null,
-  lastEffects: { heal: 0, shield: 0, souls: 0 },
+  lastEffects: { heal: 0, shield: 0, souls: 0, hot: null },
   turnPhase: 'loadout',
   enemyHitVersion: 0,
   playerHitVersion: 0,
@@ -904,7 +904,7 @@ export const useGameStore = create<GameState>()(
             totalShield: st.totalShield + sh2, totalSouls: st.totalSouls + s2,
             totalPoison: st.totalPoison + p2, skullCount: newSkullCount,
             activeMultiplier: 1, counterVersion: st.counterVersion + 1,
-            lastEffects: { heal: h2, shield: sh2, souls: s2 },
+            lastEffects: { heal: h2, shield: sh2, souls: s2, hot: null },
             ...(mult > 1 ? { multiplierFiredVersion: st.multiplierFiredVersion + 1 } : {}),
             ...(isSkull2 ? { skullRolledVersion: st.skullRolledVersion + 1 } : {}),
             ...(h2 > 0 || sh2 > 0 || s2 > 0 ? { playerEffectVersion: st.playerEffectVersion + 1 } : {}),
@@ -936,7 +936,7 @@ export const useGameStore = create<GameState>()(
         skullCount:  newSkullCount,
         activeMultiplier: 1,
         counterVersion: st.counterVersion + 1,
-        lastEffects: { heal: healGain, shield: shieldGain, souls: soulsGain },
+        lastEffects: { heal: healGain, shield: shieldGain, souls: soulsGain, hot: null },
         ...(multiplierFired ? { multiplierFiredVersion: st.multiplierFiredVersion + 1 } : {}),
         ...(isSkull ? { skullRolledVersion: st.skullRolledVersion + 1 } : {}),
         ...(healGain > 0 || shieldGain > 0 || soulsGain > 0
@@ -1103,7 +1103,7 @@ export const useGameStore = create<GameState>()(
             totalShield: st.totalShield + sh2, totalSouls: st.totalSouls + s2,
             totalPoison: st.totalPoison + p2, skullCount: newSkullCount,
             activeMultiplier: 1, counterVersion: st.counterVersion + 1,
-            lastEffects: { heal: h2, shield: sh2, souls: s2 },
+            lastEffects: { heal: h2, shield: sh2, souls: s2, hot: null },
             ...(mult2 > 1 ? { multiplierFiredVersion: st.multiplierFiredVersion + 1 } : {}),
             ...(isSkull2 ? { skullRolledVersion: st.skullRolledVersion + 1 } : {}),
             ...(h2 > 0 || sh2 > 0 || s2 > 0 ? { playerEffectVersion: st.playerEffectVersion + 1 } : {}),
@@ -1135,7 +1135,7 @@ export const useGameStore = create<GameState>()(
         skullCount:  newSkullCount,
         activeMultiplier: 1,
         counterVersion: st.counterVersion + 1,
-        lastEffects: { heal: healGain, shield: shieldGain, souls: soulsGain },
+        lastEffects: { heal: healGain, shield: shieldGain, souls: soulsGain, hot: null },
         ...(multiplierFired ? { multiplierFiredVersion: st.multiplierFiredVersion + 1 } : {}),
         ...(isSkull ? { skullRolledVersion: st.skullRolledVersion + 1 } : {}),
         ...(healGain > 0 || shieldGain > 0 || soulsGain > 0
@@ -1233,6 +1233,7 @@ export const useGameStore = create<GameState>()(
     let newEnemyShield = Math.max(0, (enemy.shield ?? 0) - enemyShieldAbsorb)
     let newPlayerHp   = Math.min(player.maxHp, player.hp + totalHeal)
     let newShield     = player.shield + totalShield
+    const committedHot = pendingHot ? addHot(player.hot, pendingHot.amount, pendingHot.turnsRemaining) : player.hot
 
     set((st) => ({
       playerAttackAnimTier: null,
@@ -1241,8 +1242,9 @@ export const useGameStore = create<GameState>()(
         ...st.player,
         hp: newPlayerHp,
         shield: newShield,
-        hot: pendingHot ? addHot(st.player.hot, pendingHot.amount, pendingHot.turnsRemaining) : st.player.hot,
+        hot: committedHot,
       },
+      lastEffects: { heal: totalHeal, shield: totalShield, souls: totalSouls, hot: pendingHot ? committedHot : null },
       playerEffectVersion: st.playerEffectVersion + 1,
     }))
 
@@ -1831,11 +1833,11 @@ export const useGameStore = create<GameState>()(
     }
 
     // 16 regular dice: force the newest synergy dice into the dev deck, then fill the rest.
-    const forcedTypes: DieType[] = ['warden', 'bulwark']
+    const forcedTypes: DieType[] = ['warden', 'bulwark', 'bulwark', 'bulwark']
     const regularTypes  = [
       ...forcedTypes,
       ...pickWithReplacement(STARTING_POOL, 7),
-      ...pickWithReplacement(ADVANCED_POOL, 7),
+      ...pickWithReplacement(ADVANCED_POOL, 5),
     ]
     const mergeCandidateIndices = [...Array(regularTypes.length).keys()].filter((i) => i >= forcedTypes.length)
     const mergeIndices  = new Set(shuffleArray(mergeCandidateIndices).slice(0, 3))

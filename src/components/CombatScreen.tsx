@@ -462,7 +462,7 @@ function IntentBadge({ intent, recoil = 0 }: { intent: EnemyIntent; recoil?: num
 // ── Floating effect popups ───────────────────────────────────────────────────
 type FloatItem = { id: number; label: string; color: string; shadow: string; offset: number }
 
-function FloatingEffects({ heal, shield, souls, version }: { heal: number; shield: number; souls: number; version: number }) {
+function FloatingEffects({ heal, shield, souls, hot, version }: { heal: number; shield: number; souls: number; hot?: { amount: number; turnsRemaining: number } | null; version: number }) {
   const [items, setItems] = useState<FloatItem[]>([])
   const prevVersion = useRef(version)
 
@@ -475,13 +475,14 @@ function FloatingEffects({ heal, shield, souls, version }: { heal: number; shiel
     if (heal > 0)   next.push({ id: now,     label: `♥ +${heal}`,   color: '#4ade80', shadow: '#15803d', offset: -36 })
     if (shield > 0) next.push({ id: now + 1, label: `⬡ +${shield}`, color: '#38bdf8', shadow: '#1e3a8a', offset:   0 })
     if (souls > 0)  next.push({ id: now + 2, label: `✦ +${souls} Souls`, color: '#a855f7', shadow: '#6d28d9', offset: 36 })
+    if (hot)        next.push({ id: now + 3, label: `+${hot.amount} HP / ${hot.turnsRemaining}T`, color: '#86efac', shadow: '#15803d', offset: 0 })
     if (!next.length) return
 
     setItems((prev) => [...prev, ...next])
     setTimeout(() => {
       setItems((prev) => prev.filter((i) => !next.find((n) => n.id === i.id)))
     }, 1150)
-  }, [version, heal, shield, souls])
+  }, [version, heal, shield, souls, hot])
 
   return (
     <AnimatePresence>
@@ -1255,6 +1256,7 @@ export function CombatScreen() {
           heal={lastEffects.heal}
           shield={lastEffects.shield}
           souls={lastEffects.souls}
+          hot={lastEffects.hot}
           version={playerEffectVersion}
         />
 
