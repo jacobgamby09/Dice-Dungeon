@@ -349,7 +349,7 @@ function SheetSprite({
     <div style={{
       width: displayWidth,
       height: displayHeight,
-      overflow: 'hidden',
+      overflow: 'visible',
       position: 'relative',
       transform: config.nudgeX ? `translateX(${config.nudgeX}px)` : undefined,
       filter: 'drop-shadow(2px 2px 0 #000)',
