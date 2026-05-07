@@ -227,7 +227,7 @@ function Sprite({ grid, size, boss = false }: { grid: Grid; size: number; boss?:
 const SHEET_SPRITES: Record<'orc' | 'slime' | 'skeleton' | 'goblin' | 'demon', SheetConfig> = {
   orc: {
     sheets: {
-      idle:   { src: '/sprites/enemies/orc/Orc-Idle.png',     frames: 6, frameMs: 180, loop: true },
+      idle:   { src: '/sprites/enemies/orc/Orc-Idle.png',     frames: 6, frameMs: 190, loop: true },
       attack: { src: '/sprites/enemies/orc/Orc-Attack01.png', frames: 6, frameMs: 95,  loop: false },
       hurt:   { src: '/sprites/enemies/orc/Orc-Hurt.png',     frames: 4, frameMs: 130, loop: false },
       death:  { src: '/sprites/enemies/orc/Orc-Death.png',    frames: 4, frameMs: 150, loop: false },
@@ -260,7 +260,7 @@ const SHEET_SPRITES: Record<'orc' | 'slime' | 'skeleton' | 'goblin' | 'demon', S
   },
   goblin: {
     sheets: {
-      idle:   { src: '/sprites/enemies/goblin/Goblin-Idle.png',     frames: 6, frameMs: 180, loop: true },
+      idle:   { src: '/sprites/enemies/goblin/Goblin-Idle.png',     frames: 6, frameMs: 190, loop: true },
       attack: { src: '/sprites/enemies/goblin/Goblin-Attack01.png', frames: 6, frameMs: 95,  loop: false },
       hurt:   { src: '/sprites/enemies/goblin/Goblin-Hurt.png',     frames: 4, frameMs: 130, loop: false },
       death:  { src: '/sprites/enemies/goblin/Goblin-Death.png',    frames: 4, frameMs: 150, loop: false },
