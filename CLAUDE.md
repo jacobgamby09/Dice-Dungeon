@@ -24,3 +24,13 @@ Always follow these rules when editing the Dice Dungeon codebase:
 - Use ONLY `runSouls` (lost on death, spent in-run).
 - Use ONLY `bankedSouls` (kept across runs, spent in Hub).
 - If you see lingering references or icons for 'gold' or 'coins', proactively flag or replace them with 'souls'.
+
+## 5. Enemy Sprite Asset Pipeline
+**Trigger:** Whenever adding or replacing animated enemy sprites.
+**Action:** Put sprite sheets under `public/sprites/enemies/<enemy>/` and update `EnemySprite.tsx`.
+- Expected sheets: `<Enemy>-Idle.png`, `<Enemy>-Attack01.png`, `<Enemy>-Hurt.png`, `<Enemy>-Death.png`.
+- Frames should be 100x100 cells on horizontal PNG sheets.
+- Remove magenta/chroma-key fringe before shipping.
+- Keep the enemy's feet/baseline and visual center stable across frames. Do not let idle or attack frames drift out of the enemy zone.
+- If generated frames drift too much, prefer a stable single-frame idle until a cleaner sheet is available.
+**Validation:** Run `npm run build`, then visually check idle, attack, hurt, and death in the local browser.

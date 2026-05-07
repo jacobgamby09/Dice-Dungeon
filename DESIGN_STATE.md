@@ -1,14 +1,16 @@
 # Dice Dungeon — Current Design State
 
-*Last updated: 2026-05-04. Read this before making design or balance changes.*
+*Last updated: 2026-05-07. Read this before making design or balance changes.*
 
 ---
 
 ## Current Focus
 
-- Act 2 balance pass (Venom limit tuning, boss rotation feel)
+- Act 2 balance pass (fixed Venom limit, boss rotation feel, Forge economy)
 - The Warden / Seal mechanic balance (how often Seal is useful vs. dead)
+- The Bulwark / Shield Bash combo feel and visibility
 - The Vessel as a Forge substrate — draft frequency and crafting identity
+- Enemy sprite polish and animation anchoring (especially Goblin/Orc)
 - Talent tree demo: validate 4-track structure and decide which demo nodes to implement
 - Rejuvenator tuning (still all-HoT, still no skulls)
 - Mirror dead-first-draw problem (still unaddressed)
@@ -35,7 +37,7 @@
 - Act 2 (Floors 16–30): primary modifier is Venom (overdraw punishment). Normal enemies (Slime Crawler, Marrow Bat, Toxic Creep) are plain attackers — no thorns/barbs/corrosive. The Act 2 boss (Spiked Behemoth) runs a 4-step intent cycle: shield → attack → thorns_activate → corrosive_strike, all floor-scaled from Floor 20.
 - **Act 2 intro modal:** Shown after The Culling, before Floor 16. Introduces Venom, the boss rotation, and the new Act 2 dice pool. (`showActIntroModal` flag; dismissed via `claimActIntro()`.)
 - **The Culling:** Cursed dice are excluded from the selectable list (`cullableDice = inventory.filter(d => d.dieType !== 'cursed')`). 7 non-Cursed dice are chosen, then 3 new Cursed dice are added automatically.
-- **Venom (Act 2):** Safe draw limit is 5 (floors 16–20) or 4 (floors 21–30). Each die over the limit adds player poison (+1 on floors 16–25; +2 on floors 26–30). Poison ticks after enemy physical attack, decrements by 1 per turn. Draw button turns red with warning label. Counter shown above action buttons on all Act 2 floors.
+- **Venom (Act 2):** Safe draw limit is 5 on all Act 2 floors. Each die over the limit adds player poison (+1 on floors 16–25; +2 on floors 26–30). Poison ticks after enemy physical attack, decrements by 1 per turn. Draw button turns red with warning label. Counter shown above action buttons on all Act 2 floors.
 - Flee the Depths: banks Run Souls → returns to Hub.
 - Death: all Run Souls lost.
 
@@ -72,6 +74,7 @@
 | The Joker | joker | Forge catalyst only; Wildcard faces do nothing in combat |
 | The Vessel | vessel | 6 × Blank — pure Forge substrate; cannot be merged |
 | The Warden | warden | Seal ×2, Shield 2, Shield 3, Damage 1, Skull ×1 |
+| The Bulwark | bulwark | Shield 2, Shield 3, Shield Bash ×3, Skull ×1 |
 
 **Act 1 draft pool (floors 1–15):**
 
@@ -101,7 +104,16 @@ Skill tree "New Dice" nodes (Priest, Jackpot, Vampire, Fortune Teller) still exi
 - **Mirror:** Copies the preceding played die's `currentFace` and re-executes it with the current `activeMultiplier`. Does nothing as the first die drawn.
 - **Multiplier stacking:** Multiplicative (`st.activeMultiplier * face.value`). Enables Multiplier → Mirror = ×9.
 - **Seal:** Retroactively removes up to N skull-faced dice from the already-played pile this turn, shuffling them back into the draw pile (without a face). Reduces `skullCount` accordingly. Does not cancel the current turn — it undoes past skulls. A `triggered: boolean` flag is set on the revealed Seal face to indicate whether any skulls were present to remove. Scales with `activeMultiplier`. Can be mirrored.
-- **HoT craftable:** `hot` is in `CRAFTABLE_FACES`; `mirror` and `seal` are not.
+- **Shield Bash:** Adds damage equal to current Shield plus Shield accumulated this turn. It does not spend Shield. Scales with `activeMultiplier`. The Bulwark is the first die using this face type.
+- **HoT craftable:** `hot` is in `CRAFTABLE_FACES`; `mirror`, `seal`, and `shield_bash` are not.
+
+### Enemy Sprite Assets
+
+- Animated enemy sprites are stored in `public/sprites/enemies/<enemy>/` as horizontal PNG sheets (`Idle`, `Attack01`, `Hurt`, `Death`).
+- `EnemySprite.tsx` is the authoritative mapping from enemy names to sheet configs, crop, unit size, and frame timing.
+- Current animated set: Slime, Goblin, Skeleton, Orc, Demon.
+- Asset rules: 100x100 frame cells, `image-rendering: pixelated`, no magenta/chroma-key fringe, stable feet/baseline, and no frame drift outside the enemy zone.
+- Current caveat: Orc idle uses a stable single-frame idle in `EnemySprite.tsx` because the generated idle strip drifts too much.
 
 ### Skill Tree (meta)
 Nodes are now organised into **4 named tracks** (plus a root node), each with a distinct colour and lane in the UI (`SkillTree.tsx`):
@@ -123,7 +135,7 @@ Nodes are now organised into **4 named tracks** (plus a root node), each with a 
 
 ## Known Mismatches (GDD vs. Code)
 
-- **GDD colour palette (§11)** for Rejuvenator, Mirror, Vessel, and Warden are placeholder values — actual `dieTypeStyle` values in `DieCard.tsx` are authoritative. Blight and Multiplier share the same colour in code (`#4d7c0f`) — may need visual disambiguation.
+- **GDD colour palette (§11)** can lag code after visual experiments — actual `dieTypeStyle` values in `DieCard.tsx` are authoritative. Blight and Multiplier share the same colour in code (`#4d7c0f`) — may need visual disambiguation.
 - **Skill tree "New Dice" nodes** (Priest, Jackpot, Vampire, Fortune Teller) exist but don't gate their dice — act-native pools are the sole gate. Open question: wire them or remove them.
 - **`GAME_ACTS[1].modifier`** is stored as `'thorns'` — Venom is implemented separately via floor checks. The `ActModifier` type doesn't have a `'venom'` value.
 - **Demo talent nodes** (`demo_soul_stash`, `demo_deep_pockets`, `demo_blank_canvas`, `demo_first_craft`, `demo_draft_lock`, `demo_reroll_insight`) are in the skill tree UI with costs and descriptions but their effects are not implemented. Players can see but not meaningfully unlock them.
@@ -136,7 +148,7 @@ Nodes are now organised into **4 named tracks** (plus a root node), each with a 
 - **Mirror is dead weight as the first draw:** With no preceding die, it does nothing. High variance — either useless or extremely strong (especially Multiplier → Mirror = ×9 on first two draws).
 - **Mirror + Multiplier combo** may be too swingy. Both dice are in their act pools and could co-exist in a bag.
 - **Gambler in Act 2:** 12-damage spike hits boss Thorns hard on the turn after thorns_activate. Either the Gambler needs a UI warning or Thorns tuning is needed.
-- **Venom tuning:** Limit of 5 on floors 16–20 may be too generous; +1 penalty may be too mild. Pending playtesting data.
+- **Venom tuning:** Limit is fixed at 5 for all Act 2 floors. +1 penalty may be too mild early, while +2 from Floor 26 may be the real pressure point. Pending playtesting data.
 - **Warden / Seal:** Seal is only useful when skulls have already been rolled. On early draws (no skulls in played pile) it is blank. Could feel like a dead face. Balance question: should Seal have a secondary effect when no skulls are present?
 - **Vessel draft value:** A 6-blank die is only valuable if the Forge is visited regularly and crafting resources exist. May feel like wasted draft slot in light-Forge runs.
 - **Demo talent nodes:** Players can see and attempt to unlock demo nodes — their cost is real but their effect is not. This may create confusion. Should these be hidden, grayed out, or labelled "Coming Soon" until implemented?
@@ -153,11 +165,15 @@ Nodes are now organised into **4 named tracks** (plus a root node), each with a 
 - No Gold / Materials / Coins — everything is Souls. All player-facing copy must reflect this.
 - Act 2 enemy base stats were reduced and scaling is now floor-relative (`baseHp + (floor - 16) * 4`; attack scaling `(floor - 16) * 0.45`) so Floor 16 starts at bare base stats. Act 1 scaling is unchanged.
 - Act 2 difficulty is Venom (primary, all floors) + boss 4-step rotation (Thorns + Corrosive Strike). Barbs and per-enemy Corrosive were removed from normal enemies.
+- Venom safe draw limit is fixed at 5 for all Act 2 floors; penalty remains +1 through Floor 25 and +2 from Floor 26 onward.
 - Act-native dice pools replace skill-tree gating: Global pool available both acts; Act 1 adds Paladin/Vampire/Rejuvenator/Mirror; Act 2 adds Blight/Fortune Teller/Priest/Multiplier/Jackpot.
+- The Bulwark was added to the global pool as the first Shield Bash die. Shield Bash converts current Shield into damage without spending the Shield.
 - The Mirror is a Unique die (one per run), same as The Multiplier.
 - HoT scales with `activeMultiplier` (`face.value * mult`) — treated as an output stat, not a status application.
 - HoT is buffered in `pendingHot` during the turn and only merged into `player.hot` at `bankAndAttack`; a bust clears `pendingHot` — HoT no longer persists on busted turns.
 - Seal retroactively removes skull-faced dice from the played pile this turn, shuffling them (without a face) back into the draw pile. A `triggered: boolean` flag on the resolved face records whether any skulls were present to remove. Scales with `activeMultiplier`. Cannot be crafted.
+- Warden visual identity is restored to dark iron/amber; Bulwark carries the more sophisticated blue gradient shield identity.
+- Animated enemy sprite sheets have replaced generated in-code sprites for the current Act 1 enemy set: Slime, Goblin, Skeleton, Orc, and Demon. Goblin/Orc sheets were re-anchored to reduce frame drift.
 - Talent tree reorganised into 4 named tracks: Extraction (purple), Forge (orange), Survival (green), Control (blue). Demo nodes (Soul Stash, Deep Pockets, Blank Canvas, First Craft, Draft Lock+, Reroll Insight) are visible with real costs but non-functional — they exist to explore the track structure.
 - QoL policy: Auto Roll and Scouting remain talent unlocks (players earn them via Banked Souls). Dice inspect, library view, and face descriptions are never talent-gated — always available.
 - Multiplier face now stacks multiplicatively on repeat rolls.
@@ -168,7 +184,7 @@ Nodes are now organised into **4 named tracks** (plus a root node), each with a 
 
 1. **Tune Rejuvenator faces** — add at least one skull or blank face to introduce push-your-luck risk.
 2. **Tune Mirror** — consider giving 1–2 faces a fallback effect (e.g. small shield) for when it's drawn first.
-3. **Tune Venom limits** — limit of 5 on floors 16–20 may be too generous; +1 penalty may be too mild. Revisit after playtesting.
+3. **Tune Venom penalty curve** — limit is now fixed at 5 for all Act 2 floors; test whether +1/+2 poison is the right pressure curve.
 4. **Wire "New Dice" skill tree nodes to pool gating** — currently non-functional. Decide whether to remove them from the tree, wire them, or formally replace with act gating.
 5. **Review Run Souls reward curve** — check that Forge costs are achievable given expected income per floor.
 6. **Review Forge costs vs. income** — Purify and Merge costs may need floor-scaling.
@@ -177,6 +193,8 @@ Nodes are now organised into **4 named tracks** (plus a root node), each with a 
 9. **Implement demo talent nodes** — Soul Stash, Deep Pockets, Blank Canvas, First Craft, Draft Lock+, Reroll Insight are visible with real costs but no effect. Implement, hide, or label "Coming Soon".
 10. **Decide Seal secondary effect** — Seal does nothing when no skulls are in the played pile (early draws). Consider a fallback effect (e.g. small shield) to reduce dead-face feel.
 11. **Clarify Vessel draft value** — A 6-blank die only pays off with regular Forge visits. Confirm players understand its role or add in-draft tooltip.
+12. **Sprite pass for Act 2 enemies** — create animated sheets for Slime Crawler, Marrow Bat, Toxic Creep, and Spiked Behemoth using the same stable-anchor pipeline.
+13. **Finalize Orc idle sheet** — current implementation uses a single stable idle frame; regenerate a cleaner multi-frame idle only if the feet/anchor stay locked.
 
 ---
 
@@ -185,8 +203,9 @@ Nodes are now organised into **4 named tracks** (plus a root node), each with a 
 - Run `npx tsc --noEmit` after every code change. Zero errors required before presenting a solution.
 - Adding a new die or face type: update `DIE_TEMPLATES`, `DIE_NAMES`, `dieTypeStyle`, `faceColor`, `faceShadow`, and all `FaceIcon` helpers across `DieCard.tsx`, `DiceLibrary.tsx`, `DiceInspectorModal.tsx`, `DraftScreen.tsx`, `LoadoutScreen.tsx`, `ShopScreen.tsx`, `diceDescriptions.ts`, `DiePresentationModal.tsx`, and (for Culling display) `InterActScreen.tsx`.
 - Adding a unique die: add to `UNIQUE_DIE_TYPES` — all 4 draft sites filter via this set automatically.
+- Adding or replacing enemy sprites: update `public/sprites/enemies/<enemy>/` and `EnemySprite.tsx`; keep 100x100 frame cells, remove magenta fringe, and verify stable feet/anchor in idle, attack, hurt, and death.
 - Player death always takes priority over enemy death in simultaneous-kill scenarios (Thorns, Poison).
 - Never rename `runSouls` / `bankedSouls` back to `gold` or any gold-adjacent term.
 - For design review tasks, do not edit code unless explicitly asked.
 - Keep changes scoped — do not refactor surrounding code while fixing a specific bug.
-- `hot` face is in `CRAFTABLE_FACES`; `mirror` and `seal` are not — do not add either to Forge craft options.
+- `hot` face is in `CRAFTABLE_FACES`; `mirror`, `seal`, and `shield_bash` are not — do not add those special faces to Forge craft options.

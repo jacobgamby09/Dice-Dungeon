@@ -141,7 +141,7 @@ function DiePickerRow({
     >
       <div style={{
         width: 18, height: 18, flexShrink: 0,
-        backgroundColor: s.bg, border: '2px solid #000', boxShadow: `2px 2px 0 ${s.shadow}`,
+        background: s.bg, border: '2px solid #000', boxShadow: `2px 2px 0 ${s.shadow}`,
       }} />
       <span style={{ fontWeight: 700, fontSize: '0.85rem', color: s.bg }}>
         {name}
@@ -195,7 +195,7 @@ function FacePickerGrid({
             disabled={!eligible}
             onClick={() => onFaceSelect(i, face)}
             style={{
-              backgroundColor: eligible ? s.bg : '#1a1a2e',
+              background: eligible ? s.bg : '#1a1a2e',
               border: `2px solid ${eligible ? '#000' : '#374151'}`,
               boxShadow: eligible ? `3px 3px 0 ${s.shadow}` : 'none',
               padding: '14px 4px',
@@ -610,7 +610,7 @@ export function ShopScreen() {
             }}>
               <div style={{
                 width: 16, height: 16, flexShrink: 0,
-                backgroundColor: dieTypeStyle[selectedDie.dieType].bg,
+                background: dieTypeStyle[selectedDie.dieType].bg,
                 border: '2px solid #000',
               }} />
               <span style={{

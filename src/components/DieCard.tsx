@@ -26,7 +26,7 @@ export const dieTypeStyle: Record<DieType, { bg: string; shadow: string; text: s
   mirror:        { bg: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 40%, #94a3b8 100%)', shadow: '#475569', text: '#0f172a' },
   vessel:        { bg: '#f8fafc', shadow: '#64748b',  text: '#0f172a' },
   warden:        { bg: '#1f2937', shadow: '#b45309',  text: '#d1d5db' },
-  bulwark:       { bg: '#1d4ed8', shadow: '#0f172a',  text: '#dbeafe' },
+  bulwark:       { bg: 'linear-gradient(135deg, #0f2747 0%, #1e3a8a 52%, #38bdf8 100%)', shadow: '#0f172a',  text: '#e0f2fe' },
 }
 
 // Custom loot dice use their die text color for all face content (monochrome)

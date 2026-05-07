@@ -41,7 +41,23 @@ src/
     HubScreen.tsx
     SkillTreeScreen.tsx
   App.tsx
+public/
+  sprites/
+    enemies/
+      <enemy>/             # Enemy animation sheets: Idle, Attack01, Hurt, Death
 ```
+
+## Enemy Sprite Assets
+
+Animated enemy sprites live under `public/sprites/enemies/<enemy>/` as horizontal PNG sprite sheets:
+
+- `<Enemy>-Idle.png`
+- `<Enemy>-Attack01.png`
+- `<Enemy>-Hurt.png`
+- `<Enemy>-Death.png`
+- optional `<Enemy>-GeneratedSource.png`
+
+`EnemySprite.tsx` maps enemy names to sheet configs. Keep frames in 100x100 cells, remove magenta/chroma-key fringe, and keep feet/anchor stable across frames. Current animated set: Slime, Goblin, Skeleton, Orc, Demon.
 
 ## Design Documents
 
@@ -58,3 +74,4 @@ src/
 - **Player death takes priority over enemy death** in simultaneous-kill scenarios (Thorns, Poison).
 - **Unique dice** (`unique`, `mirror`) — one per run; filtered at all 4 draft generation sites via `UNIQUE_DIE_TYPES`.
 - **Adding a new die** requires updates to: `DIE_TEMPLATES`, `DIE_NAMES`, `dieTypeStyle`, `faceColor`, `faceShadow`, and `FaceIcon` helpers in `DieCard.tsx`, `DiceLibrary.tsx`, `DiceInspectorModal.tsx`, `DraftScreen.tsx`, `LoadoutScreen.tsx`, `ShopScreen.tsx`, `diceDescriptions.ts`, `DiePresentationModal.tsx`, and (for Culling display) `InterActScreen.tsx`.
+- **Adding or replacing enemy sprites** requires updating `public/sprites/enemies/<enemy>/` and `EnemySprite.tsx`, then checking in-game that the sprite stays inside frame during idle, attack, hurt, and death animations.

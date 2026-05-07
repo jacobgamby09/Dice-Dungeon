@@ -107,6 +107,7 @@ Once combat begins, the bag is uncapped:
 | Mirror ★ | Re-executes the face of the previously-played die (scaled by current `activeMultiplier`). Does nothing as the first die drawn this turn |
 | Multiplier ★ | Multiplicatively increases `activeMultiplier` (base ×2; stacks ×2 → ×4 → ×8). The next die rolled applies its effect × that value. Resets at bank |
 | Seal | Retroactively removes up to N skull-faced dice from the already-played pile this turn, shuffling them back into the draw pile without a resolved face. Does nothing if no skulls have been played yet. Scales with `activeMultiplier`. A `triggered` flag records whether any skulls were present to remove. Cannot be crafted |
+| Shield Bash | Adds damage equal to current Shield plus Shield accumulated this turn. Does not spend Shield. Scales with `activeMultiplier`. Cannot be crafted |
 
 > **Note on Wildcard:** The Joker die has `wildcard` faces, but this face type has **no combat resolution** — The Joker is exclusively a **Forge catalyst** (universal merge material). Drawing it in combat produces no effect.
 
@@ -152,7 +153,7 @@ After The Culling and before Floor 16, the game displays an **Act 2 Intro Modal*
 
 #### Venom — Primary Act 2 Modifier
 
-Drawing too many dice in a single turn stacks Poison on the player. The safe draw limit is **5 draws on floors 16–20** and **4 draws on floors 21–30**. Each die drawn beyond the limit adds **+1 player poison** (floors 16–25) or **+2 player poison** (floors 26–30). Player poison ticks once per turn after the enemy's physical attack resolves, then decrements by 1. The draw button turns red and shows a warning label (`☠ DRAW +N VENOM`) when the next draw will trigger Venom. A styled draw counter (`X / Y draws`) is shown above the action buttons on all Act 2 floors with a hover tooltip.
+Drawing too many dice in a single turn stacks Poison on the player. The safe draw limit is **5 draws on all Act 2 floors**. Each die drawn beyond the limit adds **+1 player poison** (floors 16–25) or **+2 player poison** (floors 26–30). Player poison ticks once per turn after the enemy's physical attack resolves, then decrements by 1. The draw button turns red and shows a warning label (`☠ DRAW +N VENOM`) when the next draw will trigger Venom. A styled draw counter (`X / Y draws`) is shown above the action buttons on all Act 2 floors with a hover tooltip.
 
 **Strategic implication:** Reckless bag-emptying is punished. Players must find the sweet spot — draw enough to deal meaningful damage without stacking lethal Venom.
 
@@ -258,6 +259,7 @@ These are available in infinite supply from the Loadout screen. They are never o
 | The Joker | Wildcard × 6 | **Forge catalyst only** — universal merge material; Wildcard faces do nothing in combat |
 | The Vessel | Blank × 6 | Pure Forge substrate — 6 craftable blank faces; cannot be merged |
 | The Warden | Seal × 2, Shield 2, Shield 3, Damage 1, Skull × 1 | Retroactive skull control; Seal trades a face slot against the skulls already played this turn |
+| The Bulwark | Shield 2, Shield 3, Shield Bash × 3, Skull × 1 | Shield combo die; Shield Bash adds damage equal to current Shield without spending that Shield |
 
 ### Act 1 Draft Pool (Floors 1–15 only)
 
@@ -389,7 +391,7 @@ interface DieFace {
     | 'damage' | 'shield' | 'heal' | 'skull' | 'souls'
     | 'lifesteal' | 'choose_next' | 'wildcard'
     | 'blank' | 'purified_skull' | 'multiplier' | 'poison'
-    | 'hot' | 'mirror' | 'seal'
+    | 'hot' | 'mirror' | 'seal' | 'shield_bash'
   value: number
   duration?: number        // HoT only: how many turns the heal ticks
   triggered?: boolean      // Seal only: true if at least one skull was removed
@@ -504,8 +506,9 @@ Retro pixel-art with modern UI animation. Hard edges, no border-radius, chunky `
 | The Mirror ★ | `#1e3a5f` | `#0f2239` |
 | The Multiplier ★ | `#4d7c0f` | `#1a2e05` |
 | The Blight | `#4d7c0f` | `#1a2e05` |
-| The Vessel | placeholder | — (`dieTypeStyle` in `DieCard.tsx` is authoritative) |
-| The Warden | placeholder | — (`dieTypeStyle` in `DieCard.tsx` is authoritative) |
+| The Vessel | `#f8fafc` | `#64748b` |
+| The Warden | `#1f2937` | `#b45309` |
+| The Bulwark | `linear-gradient(135deg, #0f2747 0%, #1e3a8a 52%, #38bdf8 100%)` | `#0f172a` |
 
 ### Layout (Portrait, 384px max-width)
 
@@ -533,6 +536,10 @@ Retro pixel-art with modern UI animation. Hard edges, no border-radius, chunky `
 - Backgrounds: `#0a0a14`, `#1a1a2e`
 - Shadows: hard 2–5px offsets (`box-shadow: 4px 4px 0 #000`)
 - Animations: Framer Motion spring/ease for UI feedback only; no CSS transitions on layout
+- Animated enemy sprites live in `public/sprites/enemies/<enemy>/` as horizontal PNG sheets (`Idle`, `Attack01`, `Hurt`, `Death`)
+- Sprite sheets should use 100x100 frame cells, no magenta/chroma-key fringe, and stable feet/anchor positions across frames
+- `EnemySprite.tsx` is authoritative for sheet config, crop, unit size, frame timing, and enemy-name mapping
+- Current animated enemy set: Slime, Goblin, Skeleton, Orc, Demon
 
 ---
 
@@ -544,7 +551,7 @@ These decisions are open for playtesting or future design sessions. **Do not tre
 |----------|---------|
 | Is The Rejuvenator too safe? | All 6 faces are HoT — no skulls, no downside. Every draw is a free buff, which may undermine push-your-luck tension. |
 | Is the Mirror dead-weight dead-draw probability acceptable? | Mirror does nothing as the first die drawn. High variance but potentially too frustrating in Act 1. |
-| Should Venom limits be tightened? | Limit of 5 on floors 16–20 may be too generous; +1 penalty may be too mild to deter greedy draws. |
+| Should Venom penalties be tightened? | Limit is fixed at 5 for all Act 2 floors; +1 early penalty may be too mild to deter greedy draws, while +2 from Floor 26 may be enough. |
 | Should The Blight and The Multiplier share a colour palette? | Both use `#4d7c0f` — currently the code is this way but may need visual disambiguation. |
 | Should Seal have a secondary effect when no skulls are present? | On early draws (no skulls in the played pile) Seal does nothing — it may feel like a dead face. A fallback (e.g. small shield) could reduce that feel. |
 | Is Vessel draft value worth a slot in light-Forge runs? | A 6-blank die only pays off with regular Forge visits and available Run Souls. May feel like a wasted slot if the Forge is skipped. |
