@@ -94,16 +94,6 @@ const palettes = {
     E: '#052e16',
     P: '#a855f7',
   },
-  bat: {
-    O: common.outline,
-    S: common.shadow,
-    D: '#334155',
-    B: '#64748b',
-    L: '#94a3b8',
-    W: '#e5e7eb',
-    E: '#f87171',
-    R: '#7f1d1d',
-  },
   creep: {
     O: common.outline,
     S: common.shadow,
@@ -146,248 +136,6 @@ const SLIME_CRAWLER = makeGrid([
   '................',
   '................',
 ], palettes.crawler)
-
-const MARROW_BAT = makeGrid([
-  '................',
-  'O..............O',
-  'BO............OB',
-  'BBO....OO....OBB',
-  'BLLBOOWWWWOOBLLB',
-  'OBLLWEEWWEEWLLBO',
-  '.OBLLWWWWWWLLBO.',
-  '..OOBWWRRWWBOO..',
-  '....OBWWWWBO....',
-  '.....OBBBBO.....',
-  '....O..BB..O....',
-  '...O...BB...O...',
-  '....SSSSSSSS....',
-  '................',
-  '................',
-  '................',
-], palettes.bat)
-
-const MARROW_BAT_IDLE = [
-  MARROW_BAT,
-  makeGrid([
-    '................',
-    '.O............O.',
-    'OB............BO',
-    'OBBO...OO...OBBO',
-    '.BLLBOWWWWO BLLB'.replaceAll(' ', 'O'),
-    '.OBLLWEEWWEEWBO.',
-    '..OBLLWWWWLLBO..',
-    '...OBWWRRWWBO...',
-    '....OBWWWWBO....',
-    '....OOBBBBOO....',
-    '.....O.BB.O.....',
-    '....O..BB..O....',
-    '....SSSSSSSS....',
-    '................',
-    '................',
-    '................',
-  ], palettes.bat),
-  makeGrid([
-    '................',
-    '................',
-    'O..............O',
-    'BOO....OO....OOB',
-    'BLLBOOWWWWOOBLLB',
-    'OBLLWEEWWEEWLLBO',
-    '.OBLLWWWWWWLLBO.',
-    '..OOBWWRRWWBOO..',
-    '....OBWWWWBO....',
-    '.....OBBBBO.....',
-    '....O..BB..O....',
-    '...O...BB...O...',
-    '....SSSSSSSS....',
-    '................',
-    '................',
-    '................',
-  ], palettes.bat),
-]
-
-const MARROW_BAT_ATTACK = [
-  makeGrid([
-    '................',
-    '..O..........O..',
-    '.OB.........OB..',
-    '.OBBO..OO..OB...',
-    '..BLLBOWWWWOBO..',
-    '..OBLLWEEWWEO...',
-    '...OBLLWWWWBO...',
-    '....OBWWRRO....',
-    '....OBWWBO.....',
-    '...OOBBBBO.....',
-    '..OB..BB.......',
-    '.OB...BB.......',
-    '....SSSSSS.....',
-    '................',
-    '................',
-    '................',
-  ], palettes.bat),
-  makeGrid([
-    '................',
-    'O...............',
-    'BO..............',
-    'BBO....OO.......',
-    'BLLBOOWWWWO.....',
-    'OBLLWEEWWEEWO...',
-    '.OBLLWWWWWWOOR..',
-    '..OOBWWRRWWOORR.',
-    '....OBWWWWBO....',
-    '.....OBBBBO.....',
-    '....O..BB.......',
-    '...O...BB.......',
-    '....SSSSSSS.....',
-    '................',
-    '................',
-    '................',
-  ], palettes.bat),
-  makeGrid([
-    '................',
-    '..O............R',
-    '.OB.........RRR.',
-    '.OBBO..OO.RR....',
-    '..BLLBOWWRR.....',
-    '..OBLLWEEWWOO...',
-    '...OBLLWWWWBO...',
-    '....OBWWRRBO....',
-    '....OBWWWWBO....',
-    '.....OBBBBO.....',
-    '....O..BB..O....',
-    '...O...BB...O...',
-    '....SSSSSSSS....',
-    '................',
-    '................',
-    '................',
-  ], palettes.bat),
-  MARROW_BAT,
-]
-
-const MARROW_BAT_HURT = [
-  makeGrid([
-    '................',
-    'O.............O.',
-    'BO..........OB..',
-    'BBO....OO..OBB..',
-    'BLLBOOWWWWOOBL..',
-    'OBLLWRRWWRRWBO..',
-    '.OBLLWWWWWWBO...',
-    '..OOBWWRRWBO....',
-    '....OBWWWB.....',
-    '.....OBBBO.....',
-    '....O..BB......',
-    '...O...BB......',
-    '....SSSSSS.....',
-    '................',
-    '................',
-    '................',
-  ], palettes.bat),
-  makeGrid([
-    '................',
-    '..O..........O..',
-    '.OB........OB...',
-    '..OB....OOOB....',
-    '...OBOWRRWWO....',
-    '....OWRRRRWO....',
-    '....OBWWWWO.....',
-    '...OOBWRRBO.....',
-    '....OBWWBO......',
-    '.....OBBO.......',
-    '.....O.BB.......',
-    '......OB........',
-    '....SSSSS.......',
-    '................',
-    '................',
-    '................',
-  ], palettes.bat),
-  MARROW_BAT,
-]
-
-const MARROW_BAT_DEATH = [
-  MARROW_BAT,
-  makeGrid([
-    '................',
-    '................',
-    '.O............O.',
-    '.BO....OO....OB.',
-    '..BBOOWWWWOOBB..',
-    '..OBLWEEWWEEBO..',
-    '...OBLWWWWBO....',
-    '....OBWRRBO.....',
-    '.....BWWBO......',
-    '....OBBBBO......',
-    '...O..BB..O.....',
-    '......BB........',
-    '....SSSSSSS.....',
-    '................',
-    '................',
-    '................',
-  ], palettes.bat),
-  makeGrid([
-    '................',
-    '................',
-    '................',
-    '..O..........O..',
-    '...BO..OO..OB...',
-    '...OBOWWWWOBO...',
-    '....OBWWWWBO....',
-    '.....BWRRBO.....',
-    '....OBWWBO......',
-    '...OBBBBO.......',
-    '..O..BB..O......',
-    '.....BB.........',
-    '...SSSSSSSS.....',
-    '................',
-    '................',
-    '................',
-  ], palettes.bat),
-  makeGrid([
-    '................',
-    '................',
-    '................',
-    '................',
-    '....O......O....',
-    '..OB....OO..BO..',
-    '...OBOWWWWOBO...',
-    '.....OBRRBO.....',
-    '...OBBWWBBO.....',
-    '..OBB.BB.BBO....',
-    '.OB...BB...BO...',
-    '................',
-    '...SSSSSSSSS....',
-    '................',
-    '................',
-    '................',
-  ], palettes.bat),
-  makeGrid([
-    '................',
-    '................',
-    '................',
-    '................',
-    '................',
-    '...O........O...',
-    '.OB....OO....BO.',
-    '...OBBWWWWBBO...',
-    '..OBBWRRWWBBO...',
-    '.OB...BB...BO...',
-    '.....OBBO.......',
-    '................',
-    '...SSSSSSSSS....',
-    '................',
-    '................',
-    '................',
-  ], palettes.bat),
-]
-
-const GRID_ANIMATIONS: Record<'marrow bat', Record<SheetMode, { frames: Grid[]; frameMs: number; loop: boolean }>> = {
-  'marrow bat': {
-    idle: { frames: MARROW_BAT_IDLE, frameMs: 180, loop: true },
-    attack: { frames: MARROW_BAT_ATTACK, frameMs: 95, loop: false },
-    hurt: { frames: MARROW_BAT_HURT, frameMs: 120, loop: false },
-    death: { frames: MARROW_BAT_DEATH, frameMs: 145, loop: false },
-  },
-}
 
 const TOXIC_CREEP = makeGrid([
   '................',
@@ -447,7 +195,7 @@ function Sprite({ grid, size, boss = false }: { grid: Grid; size: number; boss?:
   )
 }
 
-const SHEET_SPRITES: Record<'orc' | 'slime' | 'skeleton' | 'goblin' | 'demon', SheetConfig> = {
+const SHEET_SPRITES: Record<'orc' | 'slime' | 'skeleton' | 'goblin' | 'demon' | 'marrowBat', SheetConfig> = {
   orc: {
     sheets: {
       idle:   { src: '/sprites/enemies/orc/Orc-Idle.png?v=7',     frames: 6, frameMs: 190, loop: true },
@@ -502,6 +250,17 @@ const SHEET_SPRITES: Record<'orc' | 'slime' | 'skeleton' | 'goblin' | 'demon', S
     crop: { x: 0, y: 4, w: 100, h: 92 },
     unit: 19,
     minWidth: 94,
+  },
+  marrowBat: {
+    sheets: {
+      idle:   { src: '/sprites/enemies/marrow-bat/MarrowBat-Idle.png',     frames: 4, frameMs: 180, loop: true },
+      attack: { src: '/sprites/enemies/marrow-bat/MarrowBat-Attack01.png', frames: 5, frameMs: 95,  loop: false },
+      hurt:   { src: '/sprites/enemies/marrow-bat/MarrowBat-Hurt.png',     frames: 3, frameMs: 120, loop: false },
+      death:  { src: '/sprites/enemies/marrow-bat/MarrowBat-Death.png',    frames: 6, frameMs: 145, loop: false },
+    },
+    crop: { x: 0, y: 0, w: 100, h: 100 },
+    unit: 17,
+    minWidth: 86,
   },
 }
 
@@ -591,66 +350,6 @@ function SheetSprite({
   )
 }
 
-function AnimatedGridSprite({
-  animations,
-  size,
-  hp,
-  enemyHitVersion = 0,
-  enemyAttackVersion = 0,
-}: {
-  animations: Record<SheetMode, { frames: Grid[]; frameMs: number; loop: boolean }>
-  size: number
-  hp?: number
-  enemyHitVersion?: number
-  enemyAttackVersion?: number
-}) {
-  const [mode, setMode] = useState<SheetMode>('idle')
-  const [frame, setFrame] = useState(0)
-  const prevHitVersion = useRef(enemyHitVersion)
-  const prevAttackVersion = useRef(enemyAttackVersion)
-  const isDead = hp !== undefined && hp <= 0
-
-  useEffect(() => {
-    if (isDead) {
-      setMode('death')
-      setFrame(0)
-    }
-  }, [isDead])
-
-  useEffect(() => {
-    if (enemyAttackVersion === prevAttackVersion.current) return
-    prevAttackVersion.current = enemyAttackVersion
-    if (isDead) return
-    setMode('attack')
-    setFrame(0)
-  }, [enemyAttackVersion, isDead])
-
-  useEffect(() => {
-    if (enemyHitVersion === prevHitVersion.current) return
-    prevHitVersion.current = enemyHitVersion
-    setMode(isDead ? 'death' : 'hurt')
-    setFrame(0)
-  }, [enemyHitVersion, isDead])
-
-  useEffect(() => {
-    const animation = animations[mode]
-    const id = window.setInterval(() => {
-      setFrame((current) => {
-        const next = current + 1
-        if (next < animation.frames.length) return next
-        if (animation.loop) return 0
-        if (mode === 'death') return animation.frames.length - 1
-        setMode('idle')
-        return 0
-      })
-    }, animation.frameMs)
-
-    return () => window.clearInterval(id)
-  }, [animations, mode])
-
-  return <Sprite grid={animations[mode].frames[frame]} size={size} />
-}
-
 export function EnemySprite({
   enemyName,
   size = 6,
@@ -721,9 +420,9 @@ export function EnemySprite({
       return <Sprite grid={SLIME_CRAWLER} size={spriteSize} />
     case 'marrow bat':
       return (
-        <AnimatedGridSprite
-          animations={GRID_ANIMATIONS['marrow bat']}
-          size={spriteSize}
+        <SheetSprite
+          config={SHEET_SPRITES.marrowBat}
+          size={size}
           hp={hp}
           enemyHitVersion={enemyHitVersion}
           enemyAttackVersion={enemyAttackVersion}
@@ -734,6 +433,6 @@ export function EnemySprite({
     case 'spiked behemoth':
       return <Sprite grid={SPIKED_BEHEMOTH} size={spriteSize} boss />
     default:
-      return <Sprite grid={MARROW_BAT} size={spriteSize} />
+      return <Sprite grid={SLIME_CRAWLER} size={spriteSize} />
   }
 }
