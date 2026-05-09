@@ -278,10 +278,10 @@ export function ShopScreen() {
   const unlockedNodes = useGameStore((s) => s.unlockedNodes)
   const currentFloor = useGameStore((s) => s.currentFloor)
   const isAct2Forge = currentFloor >= 16 && currentFloor <= 30
-  const healCost  = isAct2Forge ? (unlockedNodes.includes('7jutuf9h') ? 10 : 15) : (unlockedNodes.includes('7jutuf9h') ? 5 : 10)
-  const purifyCost = isAct2Forge ? 15 : 10
-  const craftCost = isAct2Forge ? 30 : 20
-  const mergeCost = isAct2Forge ? (unlockedNodes.includes('m1hjf9ac') ? 40 : 60) : (unlockedNodes.includes('m1hjf9ac') ? 25 : 40)
+  const healCost    = unlockedNodes.includes('7jutuf9h') ? 5 : 10
+  const purifyCost  = 10
+  const craftCost   = 20
+  const mergeCost   = unlockedNodes.includes('m1hjf9ac') ? 25 : 40
   const stabilizeCost = 25
 
   const [activeAction, setActiveAction]   = useState<ShopAction>(null)

@@ -1329,7 +1329,8 @@ export const useGameStore = create<GameState>()(
 
       const isBossFloor = currentFloor % 5 === 0
       const bountyBonus = (unlockedNodes.includes('r9v5wdgh') && isBossFloor) ? 10 : 0
-      const earned      = currentFloor * 5 + totalSouls + bountyBonus
+      const actFloor    = currentFloor > 15 ? currentFloor - 15 : currentFloor
+      const earned      = actFloor + 12 + totalSouls + bountyBonus
 
       // Thick Skin: heal 15% of max HP after defeating a boss
       const thickSkinHeal = (isBossFloor && unlockedNodes.includes('aw2b29dw'))
@@ -1433,7 +1434,8 @@ export const useGameStore = create<GameState>()(
 
         const isBossFloorP = currentFloor % 5 === 0
         const bountyBonusP = (unlockedNodes.includes('r9v5wdgh') && isBossFloorP) ? 10 : 0
-        const earnedP      = currentFloor * 5 + totalSouls + bountyBonusP
+        const actFloorP    = currentFloor > 15 ? currentFloor - 15 : currentFloor
+        const earnedP      = actFloorP + 12 + totalSouls + bountyBonusP
         const thickSkinP   = (isBossFloorP && unlockedNodes.includes('aw2b29dw'))
           ? Math.floor(player.maxHp * 0.15) : 0
 
@@ -2092,7 +2094,8 @@ async function handleBustEnemyVictory() {
   const { currentFloor, unlockedNodes, inventory, player, lockedDraftDice } = useGameStore.getState()
   const isBossFloor  = currentFloor % 5 === 0
   const bountyBonus  = (unlockedNodes.includes('r9v5wdgh') && isBossFloor) ? 10 : 0
-  const earned       = currentFloor * 5 + bountyBonus
+  const actFloor     = currentFloor > 15 ? currentFloor - 15 : currentFloor
+  const earned       = actFloor + 12 + bountyBonus
   const thickSkin    = (isBossFloor && unlockedNodes.includes('aw2b29dw'))
     ? Math.floor(player.maxHp * 0.15) : 0
   const resetFields = {
