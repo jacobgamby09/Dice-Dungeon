@@ -526,7 +526,7 @@ const ACT_1_BESTIARY: EnemyTemplate[] = [
   { name: 'Skeleton', baseHp: 50,  intentMin: 3,  intentMax: 7,  isBoss: false },
   { name: 'Orc',      baseHp: 60,  intentMin: 6,  intentMax: 9,  isBoss: false },
   {
-    name: 'Demon', baseHp: 70, intentMin: 4, intentMax: 7, isBoss: true,
+    name: 'Blood Orc', baseHp: 70, intentMin: 4, intentMax: 7, isBoss: true,
     intentCycle: [
       { type: 'attack', value: 7 },
       { type: 'wound',  value: 2 },

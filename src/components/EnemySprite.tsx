@@ -72,7 +72,7 @@ const palettes = {
     A: '#64748b',
     K: '#cbd5e1',
   },
-  demon: {
+  bloodOrc: {
     O: common.outline,
     S: common.shadow,
     D: '#7f1d1d',
@@ -195,7 +195,7 @@ function Sprite({ grid, size, boss = false }: { grid: Grid; size: number; boss?:
   )
 }
 
-const SHEET_SPRITES: Record<'orc' | 'slime' | 'skeleton' | 'goblin' | 'demon' | 'marrowBat', SheetConfig> = {
+const SHEET_SPRITES: Record<'orc' | 'slime' | 'skeleton' | 'goblin' | 'bloodOrc' | 'marrowBat', SheetConfig> = {
   orc: {
     sheets: {
       idle:   { src: '/sprites/enemies/orc/Orc-Idle.png?v=8',     frames: 6, frameMs: 190, loop: true },
@@ -240,7 +240,7 @@ const SHEET_SPRITES: Record<'orc' | 'slime' | 'skeleton' | 'goblin' | 'demon' | 
     unit: 18,
     minWidth: 78,
   },
-  demon: {
+  bloodOrc: {
     sheets: {
       idle:   { src: '/sprites/enemies/demon/Demon-Idle.png?v=6',     frames: 6, frameMs: 190, loop: true },
       attack: { src: '/sprites/enemies/demon/Demon-Attack01.png?v=6', frames: 6, frameMs: 100, loop: false },
@@ -408,10 +408,10 @@ export function EnemySprite({
           enemyAttackVersion={enemyAttackVersion}
         />
       )
-    case 'demon':
+    case 'blood orc':
       return (
         <SheetSprite
-          config={SHEET_SPRITES.demon}
+          config={SHEET_SPRITES.bloodOrc}
           size={size}
           hp={hp}
           enemyHitVersion={enemyHitVersion}
