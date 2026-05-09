@@ -1906,10 +1906,9 @@ async function runEnemyPhase() {
     const pl     = useGameStore.getState().player
     const hotHeal = applyWoundToHeal(curHot.amount, pl.woundTurns)
     const newHp  = Math.min(pl.maxHp, pl.hp + hotHeal)
-    const newAmt  = curHot.amount - 1
     const newTurns = curHot.turnsRemaining - 1
-    const newHot: { amount: number; turnsRemaining: number } | null = (newAmt > 0 && newTurns > 0)
-      ? { amount: newAmt, turnsRemaining: newTurns }
+    const newHot: { amount: number; turnsRemaining: number } | null = newTurns > 0
+      ? { amount: curHot.amount, turnsRemaining: newTurns }
       : null
     useGameStore.setState((st) => ({
       player: { ...st.player, hp: newHp, hot: newHot },
