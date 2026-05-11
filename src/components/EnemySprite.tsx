@@ -94,17 +94,6 @@ const palettes = {
     E: '#052e16',
     P: '#a855f7',
   },
-  behemoth: {
-    O: common.outline,
-    S: common.shadow,
-    D: '#4c1d95',
-    B: '#6d28d9',
-    L: '#a78bfa',
-    H: '#ddd6fe',
-    E: '#f87171',
-    K: '#f97316',
-    M: '#2e1065',
-  },
 }
 
 const SLIME_CRAWLER = makeGrid([
@@ -126,25 +115,6 @@ const SLIME_CRAWLER = makeGrid([
   '................',
 ], palettes.crawler)
 
-const SPIKED_BEHEMOTH = makeGrid([
-  '..K...K..K...K..',
-  '.KOK.OOOOO.KOK..',
-  '.ODODBBBBBODDO..',
-  'ODDBLLLLLLBDDO.',
-  'ODBBHEBBEHBBBO.',
-  'ODBBBBBBBBBBBO.',
-  'ODBBBMKKMBBBBO.',
-  'ODBBBBBBBBBBBO.',
-  'ODDBBLMMBLBBDO.',
-  '.ODBBBBBBBBBDO.',
-  '.ODDBBBBBBBDDO.',
-  '..ODDDBBBBDDO...',
-  '...ODD..DDO....',
-  '....SSSSSSSS....',
-  '................',
-  '................',
-], palettes.behemoth)
-
 function Sprite({ grid, size, boss = false }: { grid: Grid; size: number; boss?: boolean }) {
   const cols = grid[0].length
   const rows = grid.length
@@ -165,7 +135,7 @@ function Sprite({ grid, size, boss = false }: { grid: Grid; size: number; boss?:
   )
 }
 
-const SHEET_SPRITES: Record<'orc' | 'slime' | 'skeleton' | 'goblin' | 'bloodOrc' | 'marrowBat' | 'slimeCrawler' | 'toxicCreep', SheetConfig> = {
+const SHEET_SPRITES: Record<'orc' | 'slime' | 'skeleton' | 'goblin' | 'bloodOrc' | 'marrowBat' | 'slimeCrawler' | 'toxicCreep' | 'spikedBehemoth', SheetConfig> = {
   orc: {
     sheets: {
       idle:   { src: '/sprites/enemies/orc/Orc-Idle.png?v=8',     frames: 6, frameMs: 190, loop: true },
@@ -253,6 +223,17 @@ const SHEET_SPRITES: Record<'orc' | 'slime' | 'skeleton' | 'goblin' | 'bloodOrc'
     crop: { x: 0, y: 0, w: 100, h: 100 },
     unit: 18,
     minWidth: 82,
+  },
+  spikedBehemoth: {
+    sheets: {
+      idle:   { src: '/sprites/enemies/spiked-behemoth/SpikedBehemoth-Idle.png',     frames: 6, frameMs: 210, loop: true },
+      attack: { src: '/sprites/enemies/spiked-behemoth/SpikedBehemoth-Attack01.png', frames: 6, frameMs: 105, loop: false },
+      hurt:   { src: '/sprites/enemies/spiked-behemoth/SpikedBehemoth-Hurt.png',     frames: 4, frameMs: 135, loop: false },
+      death:  { src: '/sprites/enemies/spiked-behemoth/SpikedBehemoth-Death.png',    frames: 4, frameMs: 170, loop: false },
+    },
+    crop: { x: 0, y: 4, w: 100, h: 92 },
+    unit: 20,
+    minWidth: 118,
   },
 }
 
@@ -441,7 +422,15 @@ export function EnemySprite({
         />
       )
     case 'spiked behemoth':
-      return <Sprite grid={SPIKED_BEHEMOTH} size={spriteSize} boss />
+      return (
+        <SheetSprite
+          config={SHEET_SPRITES.spikedBehemoth}
+          size={size}
+          hp={hp}
+          enemyHitVersion={enemyHitVersion}
+          enemyAttackVersion={enemyAttackVersion}
+        />
+      )
     default:
       return <Sprite grid={SLIME_CRAWLER} size={spriteSize} />
   }
