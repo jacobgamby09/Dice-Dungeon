@@ -195,7 +195,7 @@ function Sprite({ grid, size, boss = false }: { grid: Grid; size: number; boss?:
   )
 }
 
-const SHEET_SPRITES: Record<'orc' | 'slime' | 'skeleton' | 'goblin' | 'bloodOrc' | 'marrowBat', SheetConfig> = {
+const SHEET_SPRITES: Record<'orc' | 'slime' | 'skeleton' | 'goblin' | 'bloodOrc' | 'marrowBat' | 'slimeCrawler', SheetConfig> = {
   orc: {
     sheets: {
       idle:   { src: '/sprites/enemies/orc/Orc-Idle.png?v=8',     frames: 6, frameMs: 190, loop: true },
@@ -257,6 +257,17 @@ const SHEET_SPRITES: Record<'orc' | 'slime' | 'skeleton' | 'goblin' | 'bloodOrc'
       attack: { src: '/sprites/enemies/marrow-bat/MarrowBat-Attack01.png', frames: 5, frameMs: 95,  loop: false },
       hurt:   { src: '/sprites/enemies/marrow-bat/MarrowBat-Hurt.png',     frames: 3, frameMs: 120, loop: false },
       death:  { src: '/sprites/enemies/marrow-bat/MarrowBat-Death.png',    frames: 6, frameMs: 145, loop: false },
+    },
+    crop: { x: 0, y: 0, w: 100, h: 100 },
+    unit: 17,
+    minWidth: 86,
+  },
+  slimeCrawler: {
+    sheets: {
+      idle:   { src: '/sprites/enemies/slime-crawler/SlimeCrawler-Idle.png',     frames: 6, frameMs: 190, loop: true },
+      attack: { src: '/sprites/enemies/slime-crawler/SlimeCrawler-Attack01.png', frames: 6, frameMs: 95,  loop: false },
+      hurt:   { src: '/sprites/enemies/slime-crawler/SlimeCrawler-Hurt.png',     frames: 4, frameMs: 130, loop: false },
+      death:  { src: '/sprites/enemies/slime-crawler/SlimeCrawler-Death.png',    frames: 4, frameMs: 150, loop: false },
     },
     crop: { x: 0, y: 0, w: 100, h: 100 },
     unit: 17,
@@ -419,7 +430,15 @@ export function EnemySprite({
         />
       )
     case 'slime crawler':
-      return <Sprite grid={SLIME_CRAWLER} size={spriteSize} />
+      return (
+        <SheetSprite
+          config={SHEET_SPRITES.slimeCrawler}
+          size={size}
+          hp={hp}
+          enemyHitVersion={enemyHitVersion}
+          enemyAttackVersion={enemyAttackVersion}
+        />
+      )
     case 'marrow bat':
       return (
         <SheetSprite
