@@ -94,17 +94,6 @@ const palettes = {
     E: '#052e16',
     P: '#a855f7',
   },
-  creep: {
-    O: common.outline,
-    S: common.shadow,
-    D: '#3f6212',
-    G: '#84cc16',
-    L: '#bef264',
-    H: '#ecfccb',
-    E: '#1a2e05',
-    P: '#7e22ce',
-    M: '#713f12',
-  },
   behemoth: {
     O: common.outline,
     S: common.shadow,
@@ -136,25 +125,6 @@ const SLIME_CRAWLER = makeGrid([
   '................',
   '................',
 ], palettes.crawler)
-
-const TOXIC_CREEP = makeGrid([
-  '................',
-  '.....OOOOOO.....',
-  '...OODGGGLVO....',
-  '..ODGLLHHLLGDO..',
-  '.ODGVEGLLGEVGO.',
-  '.OGGGLLLLGGGGO.',
-  '.OGGGGPPGGGGGO.',
-  '..OGGMMMMLGGO...',
-  '...ODGGGGGDO....',
-  '..OOOGDDGOOO....',
-  '.O...ODDO...O...',
-  '.....OPPO.......',
-  '....SSSSSSSS....',
-  '................',
-  '................',
-  '................',
-], palettes.creep)
 
 const SPIKED_BEHEMOTH = makeGrid([
   '..K...K..K...K..',
@@ -195,7 +165,7 @@ function Sprite({ grid, size, boss = false }: { grid: Grid; size: number; boss?:
   )
 }
 
-const SHEET_SPRITES: Record<'orc' | 'slime' | 'skeleton' | 'goblin' | 'bloodOrc' | 'marrowBat' | 'slimeCrawler', SheetConfig> = {
+const SHEET_SPRITES: Record<'orc' | 'slime' | 'skeleton' | 'goblin' | 'bloodOrc' | 'marrowBat' | 'slimeCrawler' | 'toxicCreep', SheetConfig> = {
   orc: {
     sheets: {
       idle:   { src: '/sprites/enemies/orc/Orc-Idle.png?v=8',     frames: 6, frameMs: 190, loop: true },
@@ -272,6 +242,17 @@ const SHEET_SPRITES: Record<'orc' | 'slime' | 'skeleton' | 'goblin' | 'bloodOrc'
     crop: { x: 0, y: 0, w: 100, h: 100 },
     unit: 17,
     minWidth: 86,
+  },
+  toxicCreep: {
+    sheets: {
+      idle:   { src: '/sprites/enemies/toxic-creep/ToxicCreep-Idle.png',     frames: 6, frameMs: 190, loop: true },
+      attack: { src: '/sprites/enemies/toxic-creep/ToxicCreep-Attack01.png', frames: 6, frameMs: 95,  loop: false },
+      hurt:   { src: '/sprites/enemies/toxic-creep/ToxicCreep-Hurt.png',     frames: 4, frameMs: 130, loop: false },
+      death:  { src: '/sprites/enemies/toxic-creep/ToxicCreep-Death.png',    frames: 4, frameMs: 155, loop: false },
+    },
+    crop: { x: 0, y: 0, w: 100, h: 100 },
+    unit: 18,
+    minWidth: 82,
   },
 }
 
@@ -450,7 +431,15 @@ export function EnemySprite({
         />
       )
     case 'toxic creep':
-      return <Sprite grid={TOXIC_CREEP} size={spriteSize} />
+      return (
+        <SheetSprite
+          config={SHEET_SPRITES.toxicCreep}
+          size={size}
+          hp={hp}
+          enemyHitVersion={enemyHitVersion}
+          enemyAttackVersion={enemyAttackVersion}
+        />
+      )
     case 'spiked behemoth':
       return <Sprite grid={SPIKED_BEHEMOTH} size={spriteSize} boss />
     default:
