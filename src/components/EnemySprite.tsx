@@ -182,14 +182,14 @@ const SHEET_SPRITES: Record<'orc' | 'slime' | 'skeleton' | 'goblin' | 'bloodOrc'
   },
   bloodOrc: {
     sheets: {
-      idle:   { src: '/sprites/enemies/demon/Demon-Idle.png?v=6',     frames: 6, frameMs: 190, loop: true },
-      attack: { src: '/sprites/enemies/demon/Demon-Attack01.png?v=6', frames: 6, frameMs: 100, loop: false },
-      hurt:   { src: '/sprites/enemies/demon/Demon-Hurt.png?v=6',     frames: 4, frameMs: 130, loop: false },
-      death:  { src: '/sprites/enemies/demon/Demon-Death.png?v=6',    frames: 4, frameMs: 170, loop: false },
+      idle:   { src: '/sprites/enemies/blood-orc/BloodOrc-Idle.png',     frames: 6, frameMs: 200, loop: true },
+      attack: { src: '/sprites/enemies/blood-orc/BloodOrc-Attack01.png', frames: 6, frameMs: 100, loop: false },
+      hurt:   { src: '/sprites/enemies/blood-orc/BloodOrc-Hurt.png',     frames: 4, frameMs: 130, loop: false },
+      death:  { src: '/sprites/enemies/blood-orc/BloodOrc-Death.png',    frames: 4, frameMs: 170, loop: false },
     },
     crop: { x: 0, y: 4, w: 100, h: 92 },
-    unit: 17,
-    minWidth: 104,
+    unit: 19,
+    minWidth: 112,
   },
   marrowBat: {
     sheets: {

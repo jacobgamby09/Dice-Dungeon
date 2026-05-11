@@ -1807,7 +1807,7 @@ export const useGameStore = create<GameState>()(
     const vitII  = unlockedNodes.includes('co2xusrh') ? 15 : 0
     const baseHp = 100 + vitI + vitII
 
-    const randomPool = shuffleArray([...GLOBAL_DICE_POOL, ...ACT_2_DICE_POOL]).slice(0, 3)
+    const randomPool = shuffleArray([...GLOBAL_DICE_POOL, ...ACT_1_DICE_POOL]).slice(0, 3)
     const baseTypes: DieType[] = ['white', 'blue', 'green', 'white']
     const regularDice: Die[] = [...baseTypes, ...randomPool].map((type) => ({
       ...createDie(type, uid()),
@@ -1824,8 +1824,8 @@ export const useGameStore = create<GameState>()(
       player:       { hp: baseHp, maxHp: baseHp, shield: 0, hot: null, poison: 0, woundTurns: 0 },
       inventory,
       runSouls:     25,
-      currentFloor: 20,
-      enemy:        spawnEnemy(20),
+      currentFloor: 15,
+      enemy:        spawnEnemy(15),
       drawPile:     shuffleArray(inventory),
       playedDice:   [],
       skullCount:   0,

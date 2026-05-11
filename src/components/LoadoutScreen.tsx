@@ -474,7 +474,7 @@ export function LoadoutScreen() {
           </button>
           <button
             onClick={devJumpToForge}
-            title="DEV: Start at Floor 20 / Spiked Behemoth with 3 random Global/Act 2 dice"
+            title="DEV: Start at Floor 15 / Blood Orc with 3 random Global/Act 1 dice"
             style={{
               width: 44, flexShrink: 0,
               background: '#1c1c2e', border: '2px dashed #4b5563', color: '#6b7280',
