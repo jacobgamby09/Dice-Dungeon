@@ -1038,6 +1038,8 @@ export function CombatScreen() {
 
   const expectedThorns   = Math.floor(totalDamage * (enemy?.thorns ?? 0))
   const expectedRecoil   = expectedThorns
+  const actRelativeFloor = ((currentFloor - 1) % 15) + 1
+  const enemyLevel       = Math.min(3, Math.ceil(actRelativeFloor / 5))
 
   const startAutoRoll = async () => {
     autoRollRef.current = true
@@ -1194,7 +1196,23 @@ export function CombatScreen() {
                 </motion.div>
               )}
             </div>
-            <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#d1d5db' }}>{enemy.hp} / {enemy.maxHp} HP</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#d1d5db' }}>{enemy.hp} / {enemy.maxHp} HP</span>
+              <span style={{
+                fontSize: '0.58rem',
+                fontWeight: 900,
+                letterSpacing: '0.12em',
+                textTransform: 'uppercase',
+                color: enemy.isBoss ? '#fecaca' : '#fca5a5',
+                background: enemy.isBoss ? '#450a0a' : '#1f1218',
+                border: `2px solid ${enemy.isBoss ? '#dc2626' : '#7f1d1d'}`,
+                padding: '2px 6px',
+                boxShadow: '2px 2px 0 #000',
+                lineHeight: 1,
+              }}>
+                LVL {enemyLevel}
+              </span>
+            </div>
             <HpBar hp={enemy.hp} maxHp={enemy.maxHp} color={enemy.isBoss ? '#b91c1c' : '#ef4444'} />
 
             {/* Enemy shield bar */}
