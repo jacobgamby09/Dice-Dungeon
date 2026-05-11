@@ -213,7 +213,7 @@ Combine two dice of the same type and merge level into one more powerful die.
 - Non-Skull/Blank/Purified faces scale by ×3 per merge level.
 - Merge Level is displayed as **+1**, **+2**, **+3**.
 - **The Joker** can merge with any die (Joker is consumed; the host die levels up).
-- Cursed dice, Unique (★) dice, and **The Vessel** cannot be merged. The Vessel exists as a pure Forge crafting substrate — all 6 faces are Blank and intended to be Crafted.
+- Cursed dice, Unique (★) dice, and **The Vessel** cannot be merged. The Vessel exists as a pure Forge crafting substrate — all 6 faces are Blank and intended to be Crafted. The Rejuvenator can be merged, but merge only scales HoT amount, not HoT duration.
 
 ### Craft
 
@@ -267,7 +267,7 @@ These are available in infinite supply from the Loadout screen. They are never o
 |-----|---------------|------|
 | The Paladin | Shield + Heal only | Pure sustain; zero offence |
 | The Vampire | Lifesteal 1–4 × 4, Skull × 1 | Sustain through offence |
-| The Rejuvenator | HoT × 6 | Stacking Healing over Time — no skulls, pure sustain |
+| The Rejuvenator | HoT 1/2 × 2, HoT 2/1, Shield 2, Blank × 2 | Stacking Healing over Time with craftable blanks; merge scales HoT amount only |
 | The Mirror ★ | Mirror × 6 | Re-executes previous die's face; powerful with Multiplier; useless as first draw |
 
 ### Act 2 Draft Pool (Floors 16–30 only)
@@ -549,7 +549,7 @@ These decisions are open for playtesting or future design sessions. **Do not tre
 
 | Question | Context |
 |----------|---------|
-| Is The Rejuvenator too safe? | All 6 faces are HoT — no skulls, no downside. Every draw is a free buff, which may undermine push-your-luck tension. |
+| Is The Rejuvenator still too safe? | Retuned from 6 HoT faces to 3 HoT faces, Shield 2, and 2 Blanks. It can merge, but merge scales HoT amount only, not duration. Watch whether multiple copies still stack too easily. |
 | Is the Mirror dead-weight dead-draw probability acceptable? | Mirror does nothing as the first die drawn. High variance but potentially too frustrating in Act 1. |
 | Should Venom penalties be tightened? | Limit is fixed at 5 for all Act 2 floors; +1 early penalty may be too mild to deter greedy draws, while +2 from Floor 26 may be enough. |
 | Should The Blight and The Multiplier share a colour palette? | Both use `#4d7c0f` — currently the code is this way but may need visual disambiguation. |

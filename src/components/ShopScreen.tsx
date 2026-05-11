@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Heart, Shield, Swords, Skull, Flame, FlaskConical, ArrowLeft, Droplets, Star, Shuffle, Clock, RefreshCw } from 'lucide-react'
-import { useGameStore, UNIQUE_DIE_TYPES, CRAFTABLE_FACES } from '../store/gameStore'
+import { useGameStore, UNIQUE_DIE_TYPES, NON_MERGEABLE_DIE_TYPES, CRAFTABLE_FACES } from '../store/gameStore'
 import { dieTypeStyle, faceColor } from './DieCard'
 import type { Die, DieFace } from '../store/gameStore'
 import { DiePresentationModal } from './DiePresentationModal'
@@ -354,8 +354,8 @@ export function ShopScreen() {
       setTimeout(() => setMergeError(false), 1500)
       return
     }
-    if (die1.dieType === 'vessel' || die2.dieType === 'vessel') {
-      setMergeError('The Vessel cannot be merged')
+    if (NON_MERGEABLE_DIE_TYPES.has(die1.dieType) || NON_MERGEABLE_DIE_TYPES.has(die2.dieType)) {
+      setMergeError(`${NON_MERGEABLE_DIE_TYPES.has(die1.dieType) ? die1.name : die2.name} cannot be merged`)
       setTimeout(() => setMergeError(false), 1500)
       return
     }
@@ -402,7 +402,7 @@ export function ShopScreen() {
     inventory.some((d, i) => inventory.some((d2, j) => {
       if (i >= j) return false
       if (d.dieType === 'cursed' || d2.dieType === 'cursed') return false
-      if (d.dieType === 'vessel' || d2.dieType === 'vessel') return false
+      if (NON_MERGEABLE_DIE_TYPES.has(d.dieType) || NON_MERGEABLE_DIE_TYPES.has(d2.dieType)) return false
       if (UNIQUE_DIE_TYPES.has(d.dieType) || UNIQUE_DIE_TYPES.has(d2.dieType)) return false
       const l1 = d.mergeLevel ?? 0
       const l2 = d2.mergeLevel ?? 0
@@ -423,7 +423,7 @@ export function ShopScreen() {
   )
   const mergeEligibleDice = inventory.filter((d) =>
     d.dieType !== 'cursed' &&
-    d.dieType !== 'vessel' &&
+    !NON_MERGEABLE_DIE_TYPES.has(d.dieType) &&
     !UNIQUE_DIE_TYPES.has(d.dieType)
   )
 

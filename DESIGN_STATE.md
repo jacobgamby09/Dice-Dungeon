@@ -12,7 +12,7 @@
 - The Vessel as a Forge substrate — draft frequency and crafting identity
 - Enemy sprite polish and animation anchoring (especially Goblin/Orc)
 - Talent tree demo: validate 4-track structure and decide which demo nodes to implement
-- Rejuvenator tuning (still all-HoT, still no skulls)
+- Rejuvenator retune (3 HoT faces, Shield 2, 2 Blanks; merge scales HoT amount only, not duration)
 - Mirror dead-first-draw problem (still unaddressed)
 
 ---
@@ -82,7 +82,7 @@
 |-----|------|-------|
 | The Paladin | paladin | |
 | The Vampire | vampire | |
-| The Rejuvenator | rejuvenator | All HoT faces; no skulls |
+| The Rejuvenator | rejuvenator | HoT 1/2, HoT 1/2, HoT 2/1, Shield 2, Blank, Blank; merge scales HoT amount only |
 | The Mirror ★ | mirror | Unique (one per run) |
 
 **Act 2 draft pool (floors 16–30):**
@@ -144,7 +144,7 @@ Nodes are now organised into **4 named tracks** (plus a root node), each with a 
 
 ## Current Balance Risks
 
-- **Rejuvenator may be too safe:** All 6 faces are HoT — no skulls, no blanks, no downside. Every draw is a free buff with no push-your-luck cost.
+- **Rejuvenator safety retuned:** It no longer has 6 HoT faces. It can still be merged, but merge only scales HoT amount, not duration. It still provides early sustain, but now has blanks/Shield turns and needs Forge crafting to become a stronger long-term piece.
 - **Mirror is dead weight as the first draw:** With no preceding die, it does nothing. High variance — either useless or extremely strong (especially Multiplier → Mirror = ×9 on first two draws).
 - **Mirror + Multiplier combo** may be too swingy. Both dice are in their act pools and could co-exist in a bag.
 - **Gambler in Act 2:** 12-damage spike hits boss Thorns hard on the turn after thorns_activate. Either the Gambler needs a UI warning or Thorns tuning is needed.
@@ -182,7 +182,7 @@ Nodes are now organised into **4 named tracks** (plus a root node), each with a 
 
 ## Next Recommended Design Work
 
-1. **Tune Rejuvenator faces** — add at least one skull or blank face to introduce push-your-luck risk.
+1. **Skull mitigation pass** — current bags can accumulate too many Skulls late in acts; add more non-Purify recovery tools before adding more skull-heavy dice.
 2. **Tune Mirror** — consider giving 1–2 faces a fallback effect (e.g. small shield) for when it's drawn first.
 3. **Tune Venom penalty curve** — limit is now fixed at 5 for all Act 2 floors; test whether +1/+2 poison is the right pressure curve.
 4. **Wire "New Dice" skill tree nodes to pool gating** — currently non-functional. Decide whether to remove them from the tree, wire them, or formally replace with act gating.

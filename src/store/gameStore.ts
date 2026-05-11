@@ -39,6 +39,7 @@ export interface Die {
 }
 
 export const UNIQUE_DIE_TYPES = new Set<DieType>(['unique', 'mirror'])
+export const NON_MERGEABLE_DIE_TYPES = new Set<DieType>(['vessel'])
 
 export const DIE_NAMES: Record<DieType, string> = {
   white:          'The Basic',
@@ -272,12 +273,12 @@ export const DIE_TEMPLATES: Record<DieType, { sides: number; faces: DieFace[] }>
   rejuvenator: {
     sides: 6,
     faces: [
-      { type: 'hot', value: 1, duration: 1 },
       { type: 'hot', value: 1, duration: 2 },
-      { type: 'hot', value: 1, duration: 3 },
-      { type: 'hot', value: 2, duration: 2 },
-      { type: 'hot', value: 2, duration: 3 },
-      { type: 'hot', value: 3, duration: 3 },
+      { type: 'hot', value: 1, duration: 2 },
+      { type: 'hot', value: 2, duration: 1 },
+      { type: 'shield', value: 2 },
+      { type: 'blank', value: 0 },
+      { type: 'blank', value: 0 },
     ],
   },
   mirror: {
@@ -1614,7 +1615,7 @@ export const useGameStore = create<GameState>()(
       const die2 = s.inventory.find((d) => d.id === die2Id)
       if (!die1 || !die2) return {}
       if (die1.dieType === 'cursed' || die2.dieType === 'cursed') return {}
-      if (die1.dieType === 'vessel' || die2.dieType === 'vessel') return {}
+      if (NON_MERGEABLE_DIE_TYPES.has(die1.dieType) || NON_MERGEABLE_DIE_TYPES.has(die2.dieType)) return {}
       if (UNIQUE_DIE_TYPES.has(die1.dieType) || UNIQUE_DIE_TYPES.has(die2.dieType)) return {}
       const level1 = die1.mergeLevel ?? 0
       const level2 = die2.mergeLevel ?? 0
