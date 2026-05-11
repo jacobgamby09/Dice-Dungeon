@@ -521,10 +521,10 @@ const STARTING_UNLOCKED_NODE_IDS = [
 
 
 const ACT_1_BESTIARY: EnemyTemplate[] = [
-  { name: 'Slime',    baseHp: 28,  intentMin: 2,  intentMax: 4,  isBoss: false },
-  { name: 'Goblin',   baseHp: 42,  intentMin: 4,  intentMax: 6,  isBoss: false },
-  { name: 'Skeleton', baseHp: 50,  intentMin: 3,  intentMax: 7,  isBoss: false },
-  { name: 'Orc',      baseHp: 60,  intentMin: 6,  intentMax: 9,  isBoss: false },
+  { name: 'Slime',    baseHp: 24,  intentMin: 2,  intentMax: 4,  isBoss: false },
+  { name: 'Goblin',   baseHp: 38,  intentMin: 4,  intentMax: 6,  isBoss: false },
+  { name: 'Skeleton', baseHp: 44,  intentMin: 3,  intentMax: 7,  isBoss: false },
+  { name: 'Orc',      baseHp: 54,  intentMin: 6,  intentMax: 9,  isBoss: false },
   {
     name: 'Blood Orc', baseHp: 70, intentMin: 4, intentMax: 7, isBoss: true,
     intentCycle: [
@@ -597,7 +597,7 @@ function spawnEnemy(floor: number): Enemy {
   const template    = isBossFloor ? bossT : nonBoss[(floor - 1) % nonBoss.length]
   const hp          = act.id >= 2
     ? template.baseHp + (floor - 16) * 4
-    : template.baseHp + (floor - 1) * 3
+    : template.baseHp + (floor - 1) * 2
   return {
     hp, maxHp: hp,
     name:        template.name,
