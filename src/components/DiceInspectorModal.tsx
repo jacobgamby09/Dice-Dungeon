@@ -150,11 +150,11 @@ export function DiceInspectorModal({ types, initialType, mergeLevel, faces, dieL
           flexDirection: 'column',
           gap: 5,
         }}>
-          <span style={{ fontSize: '0.78rem', lineHeight: 1.5, color: '#d1d5db' }}>
+          <span style={{ fontSize: '0.86rem', lineHeight: 1.6, color: '#d1d5db' }}>
             {DIE_ROLES[selected]}
           </span>
           {DIE_TIPS[selected] && (
-            <span style={{ fontSize: '0.72rem', lineHeight: 1.5, color: '#9ca3af' }}>
+            <span style={{ fontSize: '0.8rem', lineHeight: 1.55, color: '#aeb7c5' }}>
               {DIE_TIPS[selected]}
             </span>
           )}
@@ -239,13 +239,13 @@ export function DiceInspectorModal({ types, initialType, mergeLevel, faces, dieL
           {Array.from(new Set(displayFaces.map((face) => face.type))).map((type) => (
             <div key={type} style={{ display: 'flex', gap: 6, alignItems: 'flex-start' }}>
               <FaceIcon type={type} size={13} />
-              <span style={{ fontSize: '0.72rem', color: '#d1d5db', lineHeight: 1.5 }}>
+              <span style={{ fontSize: '0.8rem', color: '#d1d5db', lineHeight: 1.55 }}>
                 {FACE_DESCRIPTIONS[type]}
               </span>
             </div>
           ))}
           {displayFaces.some((face) => face.type === 'hot' || face.type === 'multiplier' || face.type === 'seal' || face.type === 'shield_bash') && (
-            <span style={{ fontSize: '0.68rem', color: '#9ca3af', lineHeight: 1.5 }}>
+            <span style={{ fontSize: '0.76rem', color: '#aeb7c5', lineHeight: 1.55 }}>
               {displayFaces
                 .filter((face) => face.type === 'hot' || face.type === 'multiplier' || face.type === 'seal' || face.type === 'shield_bash')
                 .map(describeFace)

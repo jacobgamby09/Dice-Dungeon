@@ -94,7 +94,7 @@ function DieChoiceCard({
           textAlign: 'left',
         }}
       >
-        <span style={{ fontSize: '0.72rem', color: '#d1d5db', lineHeight: 1.5 }}>
+        <span style={{ fontSize: '0.82rem', color: '#d1d5db', lineHeight: 1.55 }}>
           {DIE_ROLES[dieType]}
         </span>
         <span style={{

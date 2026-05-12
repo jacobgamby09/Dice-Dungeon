@@ -109,8 +109,8 @@ export function RelicHud() {
         }}>
           <img src={selected.icon} alt="" style={{ width: 38, height: 38, imageRendering: 'pixelated' }} />
           <div>
-            <div style={{ fontSize: '0.76rem', color: selected.accent, fontWeight: 900 }}>{selected.name}</div>
-            <div style={{ fontSize: '0.62rem', color: '#d1d5db', lineHeight: 1.35, marginTop: 3 }}>
+            <div style={{ fontSize: '0.8rem', color: selected.accent, fontWeight: 900 }}>{selected.name}</div>
+            <div style={{ fontSize: '0.78rem', color: '#d1d5db', lineHeight: 1.5, marginTop: 4 }}>
               {selected.description}
             </div>
           </div>

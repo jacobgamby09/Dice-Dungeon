@@ -37,7 +37,7 @@ export function RelicRewardModal() {
           <div style={{ fontSize: '1.05rem', color: '#fff7ed', fontWeight: 900, marginTop: 5 }}>
             CHOOSE 1 RELIC
           </div>
-          <div style={{ fontSize: '0.64rem', color: '#9ca3af', lineHeight: 1.35, marginTop: 4 }}>
+          <div style={{ fontSize: '0.72rem', color: '#aeb7c5', lineHeight: 1.45, marginTop: 4 }}>
             Relics last for this run. You can carry up to {MAX_RELICS}.
           </div>
         </div>
@@ -51,11 +51,11 @@ export function RelicRewardModal() {
             }}>
               <img src={pending.icon} alt="" style={{ width: 42, height: 42, imageRendering: 'pixelated' }} />
               <div>
-                <div style={{ fontSize: '0.82rem', color: pending.accent, fontWeight: 900 }}>{pending.name}</div>
-                <div style={{ fontSize: '0.62rem', color: '#d1d5db', lineHeight: 1.35 }}>{pending.description}</div>
+                <div style={{ fontSize: '0.86rem', color: pending.accent, fontWeight: 900 }}>{pending.name}</div>
+                <div style={{ fontSize: '0.78rem', color: '#d1d5db', lineHeight: 1.5 }}>{pending.description}</div>
               </div>
             </div>
-            <div style={{ fontSize: '0.65rem', color: '#fef3c7', lineHeight: 1.35 }}>
+            <div style={{ fontSize: '0.76rem', color: '#fef3c7', lineHeight: 1.45 }}>
               Your relic slots are full. Replace one relic, or skip this reward.
             </div>
             {activeRelics.map((id) => {
@@ -74,8 +74,8 @@ export function RelicRewardModal() {
                 >
                   <img src={relic.icon} alt="" style={{ width: 32, height: 32, imageRendering: 'pixelated', flexShrink: 0 }} />
                   <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <span style={{ fontSize: '0.72rem', color: relic.accent, fontWeight: 900 }}>REPLACE {relic.name}</span>
-                    <span style={{ fontSize: '0.56rem', color: '#9ca3af', lineHeight: 1.25 }}>{relic.description}</span>
+                    <span style={{ fontSize: '0.76rem', color: relic.accent, fontWeight: 900 }}>REPLACE {relic.name}</span>
+                    <span style={{ fontSize: '0.7rem', color: '#aeb7c5', lineHeight: 1.35 }}>{relic.description}</span>
                   </span>
                 </button>
               )
@@ -112,8 +112,8 @@ export function RelicRewardModal() {
                 >
                   <img src={relic.icon} alt="" style={{ width: 46, height: 46, imageRendering: 'pixelated' }} />
                   <span style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <span style={{ fontSize: '0.78rem', color: relic.accent, fontWeight: 900 }}>{relic.name}</span>
-                    <span style={{ fontSize: '0.62rem', color: '#d1d5db', lineHeight: 1.35 }}>{relic.description}</span>
+                    <span style={{ fontSize: '0.84rem', color: relic.accent, fontWeight: 900 }}>{relic.name}</span>
+                    <span style={{ fontSize: '0.76rem', color: '#d1d5db', lineHeight: 1.45 }}>{relic.description}</span>
                   </span>
                 </button>
               )
