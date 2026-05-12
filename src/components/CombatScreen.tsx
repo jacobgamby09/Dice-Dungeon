@@ -198,6 +198,36 @@ function RetaliationFloat({ trigger }: { trigger: RelicTrigger }) {
   )
 }
 
+function CarefulRhythmPreview() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9, y: 6 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.9, y: -6 }}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 8,
+        marginTop: 3,
+        background: '#1f1600',
+        border: '2px solid #facc15',
+        boxShadow: '2px 2px 0 #78350f',
+        padding: '4px 9px',
+        color: '#facc15',
+        fontSize: '0.78rem',
+        fontWeight: 900,
+        textShadow: '1px 1px 0 #78350f',
+      }}
+    >
+      <span>(+5</span>
+      <Swords size={13} color="#facc15" strokeWidth={2.8} />
+      <span>+5</span>
+      <Shield size={13} color="#facc15" strokeWidth={2.8} />
+      <span>)</span>
+    </motion.div>
+  )
+}
+
 // ── Skull tracker ─────────────────────────────────────────────────────────────
 function SkullTracker({ skullCount }: { skullCount: number }) {
   const isDanger = skullCount >= 2
@@ -1117,9 +1147,7 @@ export function CombatScreen() {
   const enemyLevel       = Math.min(3, Math.ceil(actRelativeFloor / 5))
   const carefulRhythmReady = activeRelics.includes('careful_rhythm') && playedDice.length === 4
   const carefulRhythmDamageBonus = carefulRhythmReady ? 5 : 0
-  const carefulRhythmShieldBonus = carefulRhythmReady ? 5 : 0
-  const ironMemoryCarryShield = activeRelics.includes('iron_memory') ? player.shield : 0
-  const showPlayerShieldByHp = player.shield > 0 && !activeRelics.includes('iron_memory')
+  const committedShieldForBadge = player.shield > 0 && (turnPhase === 'idle' || totalShield === 0) ? player.shield : 0
   const expectedThorns   = Math.floor((totalDamage + carefulRhythmDamageBonus) * (enemy?.thorns ?? 0))
   const expectedRecoil   = expectedThorns
 
@@ -1377,12 +1405,6 @@ export function CombatScreen() {
             <Heart size={18} color="#f472b6" strokeWidth={2.5} />
             <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#f9a8d4', textShadow: '1px 1px 0 #000' }}>{player.hp}</span>
             <span style={{ fontSize: '0.85rem', color: '#4b5563', fontWeight: 600 }}>/ {player.maxHp}</span>
-            {showPlayerShieldByHp && (
-              <>
-                <Shield size={16} color="#38bdf8" strokeWidth={2.5} style={{ marginLeft: 4 }} />
-                <span style={{ fontSize: '1.3rem', fontWeight: 800, color: '#7dd3fc', textShadow: '1px 1px 0 #000' }}>{player.shield}</span>
-              </>
-            )}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <Swords size={12} color="#6b7280" />
@@ -1472,12 +1494,14 @@ export function CombatScreen() {
           <div ref={damageRef}>
             <DamageCounter
               target={totalDamage}
-              bonus={carefulRhythmDamageBonus}
               rollStartVersion={rollStartVersion}
               counterVersion={counterVersion}
               attackTier={playerAttackAnimTier}
             />
           </div>
+          <AnimatePresence>
+            {carefulRhythmReady && <CarefulRhythmPreview />}
+          </AnimatePresence>
 
           {/* Stat badges — always reserve space to prevent layout shift */}
           <div style={{
@@ -1495,8 +1519,7 @@ export function CombatScreen() {
             </div>
             <div ref={shieldRef}>
               <StatBadge
-                target={totalShield + ironMemoryCarryShield}
-                bonus={carefulRhythmShieldBonus}
+                target={totalShield + committedShieldForBadge}
                 color="#38bdf8" shadow="#1e3a8a"
                 icon={<Shield size={14} color="#38bdf8" strokeWidth={2.5} />}
                 rollStartVersion={rollStartVersion}
