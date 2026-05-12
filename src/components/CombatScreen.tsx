@@ -5,7 +5,7 @@ const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
 import { Shield, ShieldOff, Heart, Swords, Skull, Flame, FlaskConical, Biohazard, Plus } from 'lucide-react'
 import { useGameStore, isVenomActive, getVenomLimit, getVenomPenalty } from '../store/gameStore'
 import { useShallow } from 'zustand/shallow'
-import type { Die, EnemyIntent, ResolvingPhase } from '../store/gameStore'
+import type { Die, EnemyIntent, ResolvingPhase, RelicTrigger } from '../store/gameStore'
 import { DieCard, faceColor, faceShadow, dieTypeStyle } from './DieCard'
 import { EnemySprite } from './EnemySprite'
 import { DiceInspectorModal } from './DiceInspectorModal'
@@ -44,8 +44,9 @@ function HpBar({ hp, maxHp, color }: { hp: number; maxHp: number; color: string 
 }
 
 // ── Damage counter ───────────────────────────────────────────────────────────
-function DamageCounter({ target, rollStartVersion, counterVersion, attackTier }: {
+function DamageCounter({ target, bonus = 0, rollStartVersion, counterVersion, attackTier }: {
   target: number; rollStartVersion: number; counterVersion: number
+  bonus?: number
   attackTier: 1 | 2 | 3 | null
 }) {
   const count = useMotionValue(0)
@@ -57,7 +58,7 @@ function DamageCounter({ target, rollStartVersion, counterVersion, attackTier }:
     if (counterVersion === 0) return
     const controls = animate(count, target, { duration: 0.15, ease: 'easeOut' })
     return controls.stop
-  }, [counterVersion])
+  }, [counterVersion, target])
 
   useEffect(() => {
     if (!spanScope.current || attackTier === null) return
@@ -72,24 +73,46 @@ function DamageCounter({ target, rollStartVersion, counterVersion, attackTier }:
   }, [attackTier])
 
   return (
-    <motion.span ref={spanScope} style={{
-      fontSize: '3.8rem',
-      fontWeight: 700,
-      color: '#fbbf24',
-      lineHeight: 1,
-      textShadow: '3px 3px 0 #78350f',
-      fontVariantNumeric: 'tabular-nums',
-    }}>
-      {rounded}
-    </motion.span>
+    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 8 }}>
+      <motion.span ref={spanScope} style={{
+        fontSize: '3.8rem',
+        fontWeight: 700,
+        color: '#fbbf24',
+        lineHeight: 1,
+        textShadow: '3px 3px 0 #78350f',
+        fontVariantNumeric: 'tabular-nums',
+      }}>
+        {rounded}
+      </motion.span>
+      <AnimatePresence>
+        {bonus > 0 && (
+          <motion.span
+            key={bonus}
+            initial={{ opacity: 0, scale: 0.8, y: 6 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: -6 }}
+            style={{
+              fontSize: '1.15rem',
+              fontWeight: 900,
+              color: '#facc15',
+              textShadow: '2px 2px 0 #78350f',
+              fontVariantNumeric: 'tabular-nums',
+            }}
+          >
+            (+{bonus})
+          </motion.span>
+        )}
+      </AnimatePresence>
+    </div>
   )
 }
 
 // ── Stat badge (heal / shield / souls secondary counter) ─────────────────────
 function StatBadge({
-  target, color, shadow, icon, rollStartVersion, counterVersion,
+  target, bonus = 0, color, shadow, icon, rollStartVersion, counterVersion,
 }: {
   target: number; color: string; shadow: string; icon: React.ReactNode
+  bonus?: number
   rollStartVersion: number; counterVersion: number
 }) {
   const count = useMotionValue(0)
@@ -100,9 +123,9 @@ function StatBadge({
     if (counterVersion === 0 || target === 0) return
     const controls = animate(count, target, { duration: 0.15, ease: 'easeOut' })
     return controls.stop
-  }, [counterVersion])
+  }, [counterVersion, target])
 
-  if (target === 0) return null
+  if (target === 0 && bonus === 0) return null
 
   return (
     <div style={{
@@ -121,7 +144,57 @@ function StatBadge({
       }}>
         {rounded}
       </motion.span>
+      <AnimatePresence>
+        {bonus > 0 && (
+          <motion.span
+            key={bonus}
+            initial={{ opacity: 0, scale: 0.85, y: 4 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.85, y: -4 }}
+            style={{
+              fontSize: '0.82rem',
+              fontWeight: 900,
+              color: '#facc15',
+              textShadow: '1px 1px 0 #78350f',
+              fontVariantNumeric: 'tabular-nums',
+            }}
+          >
+            (+{bonus})
+          </motion.span>
+        )}
+      </AnimatePresence>
     </div>
+  )
+}
+
+function RetaliationFloat({ trigger }: { trigger: RelicTrigger }) {
+  if (trigger?.id !== 'retaliation_plate' || trigger.kind !== 'damage' || !trigger.value) return null
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        key={trigger.version}
+        initial={{ opacity: 0, y: 10, scale: 0.8 }}
+        animate={{ opacity: [0, 1, 1, 0], y: [10, -8, -18, -28], scale: [0.8, 1.15, 1, 0.95] }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 1.05, ease: 'easeOut' }}
+        style={{
+          position: 'absolute',
+          left: 78,
+          top: 58,
+          zIndex: 20,
+          pointerEvents: 'none',
+          fontSize: '1rem',
+          fontWeight: 900,
+          color: '#fb923c',
+          textShadow: '2px 2px 0 #7c2d12, 0 0 8px #000',
+          letterSpacing: '0.04em',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        -{trigger.value} COUNTER
+      </motion.div>
+    </AnimatePresence>
   )
 }
 
@@ -898,6 +971,7 @@ export function CombatScreen() {
     player, enemy, skullCount, turnPhase, playerAttackAnimTier, lastEffects,
     secondWindTriggered, isChoosingNextDie, activeMultiplier,
     unlockedNodes, currentFloor, runSouls, fortuneTellerPicksRemaining,
+    activeRelics, lastRelicTrigger,
   } = useGameStore(
     useShallow(s => ({
       player:                      s.player,
@@ -913,6 +987,8 @@ export function CombatScreen() {
       currentFloor:                s.currentFloor,
       runSouls:                    s.runSouls,
       fortuneTellerPicksRemaining: s.fortuneTellerPicksRemaining,
+      activeRelics:                s.activeRelics,
+      lastRelicTrigger:            s.lastRelicTrigger,
     }))
   )
 
@@ -1037,10 +1113,15 @@ export function CombatScreen() {
   const hasAutoRoll = unlockedNodes.includes('w6bsuulh')
   const hasUtilityButtons = hasAutoRoll || hasScouting
 
-  const expectedThorns   = Math.floor(totalDamage * (enemy?.thorns ?? 0))
-  const expectedRecoil   = expectedThorns
   const actRelativeFloor = ((currentFloor - 1) % 15) + 1
   const enemyLevel       = Math.min(3, Math.ceil(actRelativeFloor / 5))
+  const carefulRhythmReady = activeRelics.includes('careful_rhythm') && playedDice.length === 4
+  const carefulRhythmDamageBonus = carefulRhythmReady ? 5 : 0
+  const carefulRhythmShieldBonus = carefulRhythmReady ? 5 : 0
+  const ironMemoryCarryShield = activeRelics.includes('iron_memory') ? player.shield : 0
+  const showPlayerShieldByHp = player.shield > 0 && !activeRelics.includes('iron_memory')
+  const expectedThorns   = Math.floor((totalDamage + carefulRhythmDamageBonus) * (enemy?.thorns ?? 0))
+  const expectedRecoil   = expectedThorns
 
   const startAutoRoll = async () => {
     autoRollRef.current = true
@@ -1139,6 +1220,7 @@ export function CombatScreen() {
       <div
         ref={enemyScope}
         style={{
+          position: 'relative',
           background: enemy.isBoss ? '#1a0505' : '#1a1a2e',
           padding: '6px 16px 8px',
           borderBottom: `3px solid ${enemy.isBoss ? '#7f1d1d' : '#000'}`,
@@ -1147,6 +1229,7 @@ export function CombatScreen() {
           overflow: 'hidden',
         }}
       >
+        <RetaliationFloat trigger={lastRelicTrigger} />
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
           <Label>Floor {currentFloor}</Label>
           {enemy.isBoss
@@ -1294,7 +1377,7 @@ export function CombatScreen() {
             <Heart size={18} color="#f472b6" strokeWidth={2.5} />
             <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#f9a8d4', textShadow: '1px 1px 0 #000' }}>{player.hp}</span>
             <span style={{ fontSize: '0.85rem', color: '#4b5563', fontWeight: 600 }}>/ {player.maxHp}</span>
-            {player.shield > 0 && (
+            {showPlayerShieldByHp && (
               <>
                 <Shield size={16} color="#38bdf8" strokeWidth={2.5} style={{ marginLeft: 4 }} />
                 <span style={{ fontSize: '1.3rem', fontWeight: 800, color: '#7dd3fc', textShadow: '1px 1px 0 #000' }}>{player.shield}</span>
@@ -1387,7 +1470,13 @@ export function CombatScreen() {
 
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <div ref={damageRef}>
-            <DamageCounter target={totalDamage} rollStartVersion={rollStartVersion} counterVersion={counterVersion} attackTier={playerAttackAnimTier} />
+            <DamageCounter
+              target={totalDamage}
+              bonus={carefulRhythmDamageBonus}
+              rollStartVersion={rollStartVersion}
+              counterVersion={counterVersion}
+              attackTier={playerAttackAnimTier}
+            />
           </div>
 
           {/* Stat badges — always reserve space to prevent layout shift */}
@@ -1406,7 +1495,8 @@ export function CombatScreen() {
             </div>
             <div ref={shieldRef}>
               <StatBadge
-                target={totalShield}
+                target={totalShield + ironMemoryCarryShield}
+                bonus={carefulRhythmShieldBonus}
                 color="#38bdf8" shadow="#1e3a8a"
                 icon={<Shield size={14} color="#38bdf8" strokeWidth={2.5} />}
                 rollStartVersion={rollStartVersion}

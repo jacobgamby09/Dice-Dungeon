@@ -351,7 +351,14 @@ export type RelicTurnFlags = {
   banishUsed: boolean
   emptyPromiseUsed: boolean
 }
-export type RelicTrigger = { id: RelicId; label: string; version: number } | null
+export type RelicTriggerKind = 'damage' | 'shield' | 'poison' | 'control'
+export type RelicTrigger = {
+  id: RelicId
+  label: string
+  version: number
+  value?: number
+  kind?: RelicTriggerKind
+} | null
 
 interface GameState {
   player: { hp: number; maxHp: number; shield: number; hot: HotBuff | null; poison: number; woundTurns: number }
@@ -452,10 +459,16 @@ const freshRelicTurnFlags = (): RelicTurnFlags => ({
   emptyPromiseUsed: false,
 })
 const hasRelic = (st: Pick<GameState, 'activeRelics'>, id: RelicId) => st.activeRelics.includes(id)
-const relicTrigger = (st: GameState, id: RelicId, label: string): RelicTrigger => ({
+const relicTrigger = (
+  st: GameState,
+  id: RelicId,
+  label: string,
+  details?: { value?: number; kind?: RelicTriggerKind }
+): RelicTrigger => ({
   id,
   label,
   version: (st.lastRelicTrigger?.version ?? 0) + 1,
+  ...details,
 })
 const chooseRelics = (activeRelics: RelicId[]) => (
   shuffleArray(RELIC_POOL.filter((id) => !activeRelics.includes(id))).slice(0, 3)
@@ -1078,7 +1091,11 @@ export const useGameStore = create<GameState>()(
       set((st) => ({
         turnPhase: 'player_attack',
         player: { ...st.player, shield: st.player.shield + bustShield + boneLedgerShield },
-        ...(boneLedgerShield > 0 ? { lastRelicTrigger: relicTrigger(st, 'bone_ledger', '+6 Shield') } : {}),
+        ...(boneLedgerShield > 0 ? {
+          lastRelicTrigger: relicTrigger(st, 'bone_ledger', '+6 Shield', { value: 6, kind: 'shield' }),
+          lastEffects: { heal: 0, shield: boneLedgerShield, souls: 0, hot: null },
+          playerEffectVersion: st.playerEffectVersion + 1,
+        } : {}),
       }))
       await sleep(400)
 
@@ -1289,7 +1306,11 @@ export const useGameStore = create<GameState>()(
       set((st) => ({
         turnPhase: 'player_attack',
         player: { ...st.player, shield: st.player.shield + bustShield + boneLedgerShield },
-        ...(boneLedgerShield > 0 ? { lastRelicTrigger: relicTrigger(st, 'bone_ledger', '+6 Shield') } : {}),
+        ...(boneLedgerShield > 0 ? {
+          lastRelicTrigger: relicTrigger(st, 'bone_ledger', '+6 Shield', { value: 6, kind: 'shield' }),
+          lastEffects: { heal: 0, shield: boneLedgerShield, souls: 0, hot: null },
+          playerEffectVersion: st.playerEffectVersion + 1,
+        } : {}),
       }))
       await sleep(400)
 
@@ -2187,7 +2208,10 @@ async function runEnemyPhase() {
     useGameStore.setState((st) => ({
       enemy: { ...st.enemy, hp: postRetaliationHp },
       enemyHitVersion: st.enemyHitVersion + 1,
-      lastRelicTrigger: relicTrigger(st, 'retaliation_plate', `${retaliationDamage} Counter`),
+      lastRelicTrigger: relicTrigger(st, 'retaliation_plate', `${retaliationDamage} Counter`, {
+        value: retaliationDamage,
+        kind: 'damage',
+      }),
     }))
     await sleep(260)
     if (postRetaliationHp <= 0) {
