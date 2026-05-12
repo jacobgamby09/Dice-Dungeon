@@ -1,22 +1,24 @@
+import { useState } from 'react'
 import { X, Swords, Shield, Heart, Skull, Flame, FlaskConical, Droplets, Star, Shuffle, Clock, RefreshCw } from 'lucide-react'
 import { DIE_TEMPLATES, UNIQUE_DIE_TYPES, DIE_NAMES } from '../store/gameStore'
 import type { DieType, DieFace } from '../store/gameStore'
 import { dieTypeStyle, faceColor } from './DieCard'
 import { DIE_ROLES, DIE_TIPS } from '../diceDescriptions'
+import { RELICS, RELIC_POOL } from '../relics'
 
 const LIBRARY_TYPES: DieType[] = ['white', 'blue', 'green', 'cursed', 'heavy', 'paladin', 'gambler', 'scavenger', 'wall', 'jackpot', 'vampire', 'priest', 'fortune_teller', 'joker', 'unique', 'blight', 'rejuvenator', 'mirror', 'vessel', 'warden', 'bulwark']
 
 function FaceIcon({ type, size = 11 }: { type: DieFace['type']; size?: number }) {
   const color = faceColor[type]
-  if (type === 'damage')    return <Swords   size={size} color={color} strokeWidth={2.5} />
-  if (type === 'shield')    return <Shield   size={size} color={color} strokeWidth={2.5} />
-  if (type === 'skull')     return <Skull    size={size} color={color} strokeWidth={2.5} />
-  if (type === 'souls')     return <Flame    size={size} color={color} strokeWidth={2.5} />
-  if (type === 'lifesteal')   return <Droplets size={size} color={color} strokeWidth={2.5} />
-  if (type === 'choose_next') return <Star     size={size} color={color} strokeWidth={2.5} />
-  if (type === 'wildcard')    return <Shuffle      size={size} color={color} strokeWidth={2.5} />
-  if (type === 'poison')      return <FlaskConical size={size} color={color} strokeWidth={2.5} />
-  if (type === 'seal')        return <MaelstromIcon size={size} color={color} />
+  if (type === 'damage') return <Swords size={size} color={color} strokeWidth={2.5} />
+  if (type === 'shield') return <Shield size={size} color={color} strokeWidth={2.5} />
+  if (type === 'skull') return <Skull size={size} color={color} strokeWidth={2.5} />
+  if (type === 'souls') return <Flame size={size} color={color} strokeWidth={2.5} />
+  if (type === 'lifesteal') return <Droplets size={size} color={color} strokeWidth={2.5} />
+  if (type === 'choose_next') return <Star size={size} color={color} strokeWidth={2.5} />
+  if (type === 'wildcard') return <Shuffle size={size} color={color} strokeWidth={2.5} />
+  if (type === 'poison') return <FlaskConical size={size} color={color} strokeWidth={2.5} />
+  if (type === 'seal') return <MaelstromIcon size={size} color={color} />
   if (type === 'shield_bash') return <ShieldBashIcon size={size} color={color} />
   return <Heart size={size} color={color} strokeWidth={2.5} />
 }
@@ -30,6 +32,8 @@ function ShieldBashIcon({ size, color }: { size: number; color: string }) {
 }
 
 export function DiceLibrary({ onClose }: { onClose: () => void }) {
+  const [activeTab, setActiveTab] = useState<'dice' | 'relics'>('dice')
+
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 40,
@@ -37,7 +41,6 @@ export function DiceLibrary({ onClose }: { onClose: () => void }) {
       display: 'flex', flexDirection: 'column',
       background: '#0a0a14',
     }}>
-      {/* Header */}
       <div style={{
         background: '#1a1a2e', padding: '12px 16px',
         borderBottom: '3px solid #000',
@@ -45,7 +48,7 @@ export function DiceLibrary({ onClose }: { onClose: () => void }) {
         flexShrink: 0,
       }}>
         <span style={{ fontWeight: 700, fontSize: '1rem', color: '#d1d5db', letterSpacing: '0.15em' }}>
-          ✦ DICE LIBRARY
+          {activeTab === 'dice' ? 'DICE LIBRARY' : 'RELIC LIBRARY'}
         </span>
         <button
           onClick={onClose}
@@ -55,9 +58,42 @@ export function DiceLibrary({ onClose }: { onClose: () => void }) {
         </button>
       </div>
 
-      {/* Scrollable list */}
+      <div style={{
+        background: '#12121f',
+        borderBottom: '3px solid #000',
+        padding: '10px 16px',
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: 8,
+        flexShrink: 0,
+      }}>
+        {([
+          { id: 'dice', label: 'DICE' },
+          { id: 'relics', label: 'RELICS' },
+        ] as const).map((tab) => {
+          const isActive = activeTab === tab.id
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className="pixel-btn"
+              style={{
+                height: 40,
+                fontSize: '0.72rem',
+                background: isActive ? '#4c1d95' : '#0a0a14',
+                color: isActive ? '#ede9fe' : '#9ca3af',
+                border: `3px solid ${isActive ? '#7c3aed' : '#000'}`,
+                boxShadow: `3px 3px 0 ${isActive ? '#2e1065' : '#000'}`,
+              }}
+            >
+              {tab.label}
+            </button>
+          )
+        })}
+      </div>
+
       <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {LIBRARY_TYPES.map((type) => {
+        {activeTab === 'dice' && LIBRARY_TYPES.map((type) => {
           const template = DIE_TEMPLATES[type]
           const s = dieTypeStyle[type]
           return (
@@ -71,7 +107,6 @@ export function DiceLibrary({ onClose }: { onClose: () => void }) {
                 display: 'flex', flexDirection: 'column', gap: 8,
               }}
             >
-              {/* Die header */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <div style={{
                   width: 16, height: 16, flexShrink: 0,
@@ -79,7 +114,7 @@ export function DiceLibrary({ onClose }: { onClose: () => void }) {
                   boxShadow: `2px 2px 0 ${s.shadow}`,
                 }} />
                 <span style={{ fontWeight: 700, fontSize: '0.85rem', color: s.bg, flex: 1 }}>
-                  {DIE_NAMES[type]}{UNIQUE_DIE_TYPES.has(type) ? ' ★' : ''}
+                  {DIE_NAMES[type]}{UNIQUE_DIE_TYPES.has(type) ? ' *' : ''}
                 </span>
                 <span style={{
                   fontSize: '0.55rem', color: '#6b7280',
@@ -107,7 +142,6 @@ export function DiceLibrary({ onClose }: { onClose: () => void }) {
                 )}
               </div>
 
-              {/* 6 faces in a row */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 4 }}>
                 {template.faces.map((face, i) => (
                   <div
@@ -125,7 +159,7 @@ export function DiceLibrary({ onClose }: { onClose: () => void }) {
                     {face.type === 'blank' ? null
                       : face.type === 'multiplier' ? (
                         <span style={{ fontSize: '0.75rem', fontWeight: 900, color: s.text, lineHeight: 1 }}>
-                          ×{face.value}
+                          x{face.value}
                         </span>
                       ) : face.type === 'mirror' ? (
                         <RefreshCw size={14} color="#334155" strokeWidth={2.5} />
@@ -156,9 +190,66 @@ export function DiceLibrary({ onClose }: { onClose: () => void }) {
             </div>
           )
         })}
+
+        {activeTab === 'relics' && RELIC_POOL.map((id) => {
+          const relic = RELICS[id]
+          return (
+            <div
+              key={id}
+              style={{
+                background: '#12121f',
+                border: '3px solid #000',
+                boxShadow: `4px 4px 0 ${relic.accent}`,
+                padding: '10px 12px',
+                display: 'grid',
+                gridTemplateColumns: '54px 1fr',
+                gap: 12,
+                alignItems: 'center',
+              }}
+            >
+              <div style={{
+                width: 50,
+                height: 50,
+                background: '#0a0a14',
+                border: `2px solid ${relic.accent}`,
+                boxShadow: '3px 3px 0 #000',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <img src={relic.icon} alt="" style={{ width: 42, height: 42, imageRendering: 'pixelated' }} />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontWeight: 900, fontSize: '0.88rem', color: relic.accent, flex: 1 }}>
+                    {relic.name}
+                  </span>
+                  <span style={{
+                    fontSize: '0.55rem',
+                    color: '#6b7280',
+                    letterSpacing: '0.1em',
+                    textTransform: 'uppercase',
+                  }}>
+                    Relic
+                  </span>
+                </div>
+
+                <div style={{
+                  background: '#0f0f1a',
+                  border: '2px solid #000',
+                  padding: '8px 9px',
+                }}>
+                  <span style={{ fontSize: '0.8rem', color: '#d1d5db', lineHeight: 1.5 }}>
+                    {relic.description}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )
+        })}
       </div>
 
-      {/* Footer */}
       <div style={{ background: '#1a1a2e', padding: '12px 16px', borderTop: '3px solid #000', flexShrink: 0 }}>
         <button onClick={onClose} className="pixel-btn" style={{ background: '#374151' }}>
           CLOSE
