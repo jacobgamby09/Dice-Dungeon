@@ -2089,7 +2089,7 @@ export const useGameStore = create<GameState>()(
         ]))
         return {
           ...currentState,
-          ...persisted,
+          bankedSouls: persisted?.bankedSouls ?? currentState.bankedSouls,
           unlockedNodes: mergedUnlocks,
         }
       },
