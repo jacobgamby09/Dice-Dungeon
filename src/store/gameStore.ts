@@ -608,6 +608,8 @@ const STARTING_UNLOCKED_NODE_IDS = [
   '60vc1fvg', // New Dice: The Vampire
   'dx6jq5y5', // New Dice: The Priest
   'qevchxm7', // New Dice: The Fortune Teller
+  'zmumocry', // Scouting enabled by default until the talent tree pass
+  'w6bsuulh', // Auto Roll enabled by default until the talent tree pass
 ]
 
 
