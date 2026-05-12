@@ -473,8 +473,8 @@ const relicTrigger = (
 const chooseRelics = (activeRelics: RelicId[]) => (
   shuffleArray(RELIC_POOL.filter((id) => !activeRelics.includes(id))).slice(0, 3)
 )
-const carryShieldAfterTurn = (shield: number, activeRelics: RelicId[]) => (
-  activeRelics.includes('iron_memory') ? Math.floor(shield * 0.5) : 0
+const carryShieldAfterTurn = (shield: number, activeRelics: RelicId[], enabled = true) => (
+  enabled && activeRelics.includes('iron_memory') ? Math.floor(shield * 0.5) : 0
 )
 const clearRelicRunState = {
   activeRelics: [] as RelicId[],
@@ -1090,6 +1090,7 @@ export const useGameStore = create<GameState>()(
       const boneLedgerShield = hasRelic(get(), 'bone_ledger') ? 6 : 0
       set((st) => ({
         turnPhase: 'player_attack',
+        totalShield: 0,
         player: { ...st.player, shield: st.player.shield + bustShield + boneLedgerShield },
         ...(boneLedgerShield > 0 ? {
           lastRelicTrigger: relicTrigger(st, 'bone_ledger', '+6 Shield', { value: 6, kind: 'shield' }),
@@ -1100,7 +1101,7 @@ export const useGameStore = create<GameState>()(
       await sleep(400)
 
       const bustDied1 = await applyBustPoisonTick()
-      if (bustDied1) { await handleBustEnemyVictory() } else { await runEnemyPhase() }
+      if (bustDied1) { await handleBustEnemyVictory() } else { await runEnemyPhase({ allowIronMemory: false }) }
       return
     }
 
@@ -1305,6 +1306,7 @@ export const useGameStore = create<GameState>()(
       const boneLedgerShield = hasRelic(get(), 'bone_ledger') ? 6 : 0
       set((st) => ({
         turnPhase: 'player_attack',
+        totalShield: 0,
         player: { ...st.player, shield: st.player.shield + bustShield + boneLedgerShield },
         ...(boneLedgerShield > 0 ? {
           lastRelicTrigger: relicTrigger(st, 'bone_ledger', '+6 Shield', { value: 6, kind: 'shield' }),
@@ -1315,7 +1317,7 @@ export const useGameStore = create<GameState>()(
       await sleep(400)
 
       const bustDied2 = await applyBustPoisonTick()
-      if (bustDied2) { await handleBustEnemyVictory() } else { await runEnemyPhase() }
+      if (bustDied2) { await handleBustEnemyVictory() } else { await runEnemyPhase({ allowIronMemory: false }) }
       return
     }
 
@@ -2097,7 +2099,7 @@ export const useGameStore = create<GameState>()(
 )
 
 // Extracted enemy phase — shared by bankAndAttack and bust
-async function runEnemyPhase() {
+async function runEnemyPhase({ allowIronMemory = true }: { allowIronMemory?: boolean } = {}) {
   // Tick HoT before enemy acts
   const curHot = useGameStore.getState().player.hot
   if (curHot !== null) {
@@ -2145,7 +2147,7 @@ async function runEnemyPhase() {
       const tmpl = allB.find(t => t.name === s.enemy.name) ?? ACT_1_BESTIARY[1]
       const nxPh = (s.enemy.intentPhase ?? 0) + 1
       const nxIn = rollIntent(tmpl, currentFloor, nxPh)
-      const carriedShield = carryShieldAfterTurn(s.player.shield, s.activeRelics)
+      const carriedShield = carryShieldAfterTurn(s.player.shield, s.activeRelics, allowIronMemory)
       return {
         turnPhase: 'idle',
         totalDamage: 0, totalHeal: 0, totalShield: 0, totalSouls: 0, totalPoison: 0, pendingHot: null,
@@ -2285,7 +2287,7 @@ async function runEnemyPhase() {
       drawPile: shuffleArray(equippedOnly(s.inventory)),
       playedDice: [],
       lastEffects: { heal: 0, shield: 0, souls: 0 },
-      player: { ...s.player, shield: carryShieldAfterTurn(s.player.shield, s.activeRelics), woundTurns: Math.max(0, s.player.woundTurns - 1) },
+      player: { ...s.player, shield: carryShieldAfterTurn(s.player.shield, s.activeRelics, allowIronMemory), woundTurns: Math.max(0, s.player.woundTurns - 1) },
       enemy: (() => {
         const allB = [...ACT_1_BESTIARY, ...ACT_2_BESTIARY]
         const tmpl = allB.find(t => t.name === s.enemy.name) ?? ACT_1_BESTIARY[1]
@@ -2297,8 +2299,8 @@ async function runEnemyPhase() {
       isChoosingNextDie: false,
       firstAttackThisEncounter: true,
       relicTurnFlags: freshRelicTurnFlags(),
-      ...(carryShieldAfterTurn(s.player.shield, s.activeRelics) > 0
-        ? { lastRelicTrigger: relicTrigger(s, 'iron_memory', `${carryShieldAfterTurn(s.player.shield, s.activeRelics)} Shield kept`) }
+      ...(carryShieldAfterTurn(s.player.shield, s.activeRelics, allowIronMemory) > 0
+        ? { lastRelicTrigger: relicTrigger(s, 'iron_memory', `${carryShieldAfterTurn(s.player.shield, s.activeRelics, allowIronMemory)} Shield kept`) }
         : {}),
       resolvingDieIndex: null, resolvingPhase: null,
     }))
