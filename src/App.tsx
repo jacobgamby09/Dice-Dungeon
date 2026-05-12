@@ -4,12 +4,14 @@ import { CombatScreen } from './components/CombatScreen'
 import { DraftScreen } from './components/DraftScreen'
 import { ShopScreen } from './components/ShopScreen'
 import { BossRewardModal } from './components/BossRewardModal'
+import { RelicRewardModal } from './components/RelicRewardModal'
 import { InterActScreen } from './components/InterActScreen'
 import { ActIntroModal } from './components/ActIntroModal'
 
 function App() {
   const turnPhase = useGameStore((s) => s.turnPhase)
   const showBossRewardModal = useGameStore((s) => s.showBossRewardModal)
+  const showRelicRewardModal = useGameStore((s) => s.showRelicRewardModal)
   const showGameOver = useGameStore((s) => s.showGameOver)
   const showActIntroModal = useGameStore((s) => s.showActIntroModal)
 
@@ -24,6 +26,7 @@ function App() {
     <>
       {screen}
       {showBossRewardModal && <BossRewardModal />}
+      {showRelicRewardModal && <RelicRewardModal />}
       {showActIntroModal && <ActIntroModal />}
       {showGameOver && (
         <div style={{

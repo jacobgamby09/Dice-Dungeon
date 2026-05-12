@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { MAX_RELICS, RELIC_POOL, type RelicId } from '../relics'
 
 // ── Core types ───────────────────────────────────────────────────────────────
 
@@ -344,6 +345,13 @@ export interface Enemy {
 }
 
 type HotBuff = { amount: number; turnsRemaining: number }
+export type RelicRewardContext = 'start' | 'boss' | null
+export type RelicTurnFlags = {
+  blackCandleUsed: boolean
+  banishUsed: boolean
+  emptyPromiseUsed: boolean
+}
+export type RelicTrigger = { id: RelicId; label: string; version: number } | null
 
 interface GameState {
   player: { hp: number; maxHp: number; shield: number; hot: HotBuff | null; poison: number; woundTurns: number }
@@ -388,11 +396,19 @@ interface GameState {
   justDefeatedBoss: boolean
   secondWindTriggered: boolean
   showBossRewardModal: boolean
+  showRelicRewardModal: boolean
+  relicRewardContext: RelicRewardContext
+  activeRelics: RelicId[]
+  relicChoices: RelicId[]
+  relicTurnFlags: RelicTurnFlags
+  lastRelicTrigger: RelicTrigger
   purifyUsesThisShop: number
   activeMultiplier: number
   multiplierFiredVersion: number
   maxEquippedDice: number
   claimBossReward: () => void
+  claimRelic: (relicId: RelicId, replaceId?: RelicId) => void
+  skipRelicReward: () => void
   claimActIntro: () => void
   toggleEquipDie: (dieUid: string) => void
   resetLoadout: () => void
@@ -430,6 +446,31 @@ const addHot = (base: HotBuff | null, amount: number, turnsRemaining: number): H
 const applyWoundToHeal = (amount: number, woundTurns: number) => (
   amount > 0 && woundTurns > 0 ? Math.max(1, Math.ceil(amount * 0.5)) : amount
 )
+const freshRelicTurnFlags = (): RelicTurnFlags => ({
+  blackCandleUsed: false,
+  banishUsed: false,
+  emptyPromiseUsed: false,
+})
+const hasRelic = (st: Pick<GameState, 'activeRelics'>, id: RelicId) => st.activeRelics.includes(id)
+const relicTrigger = (st: GameState, id: RelicId, label: string): RelicTrigger => ({
+  id,
+  label,
+  version: (st.lastRelicTrigger?.version ?? 0) + 1,
+})
+const chooseRelics = (activeRelics: RelicId[]) => (
+  shuffleArray(RELIC_POOL.filter((id) => !activeRelics.includes(id))).slice(0, 3)
+)
+const carryShieldAfterTurn = (shield: number, activeRelics: RelicId[]) => (
+  activeRelics.includes('iron_memory') ? Math.floor(shield * 0.5) : 0
+)
+const clearRelicRunState = {
+  activeRelics: [] as RelicId[],
+  relicChoices: [] as RelicId[],
+  showRelicRewardModal: false,
+  relicRewardContext: null as RelicRewardContext,
+  lastRelicTrigger: null as RelicTrigger,
+  relicTurnFlags: freshRelicTurnFlags(),
+}
 
 function temperVesselAfterCraft(die: Die): Die {
   if (die.dieType !== 'vessel') return die
@@ -464,6 +505,42 @@ function sealSkullsFromTurn(st: GameState, amount: number) {
     skullCount: Math.max(0, st.skullCount - sealedDice.length),
     sealed: sealedDice.length,
   }
+}
+
+async function resolveSkullRelics(face: DieFace, multiplier: number): Promise<boolean> {
+  if (face.type !== 'skull') return false
+
+  const snap = useGameStore.getState()
+  if (hasRelic(snap, 'black_candle') && !snap.relicTurnFlags.blackCandleUsed) {
+    useGameStore.setState((st) => ({
+      enemy: { ...st.enemy, poison: st.enemy.poison + 1 },
+      enemyHitVersion: st.enemyHitVersion + 1,
+      relicTurnFlags: { ...st.relicTurnFlags, blackCandleUsed: true },
+      lastRelicTrigger: relicTrigger(st, 'black_candle', '+1 Poison'),
+    }))
+    await sleep(90)
+  }
+
+  const afterCandle = useGameStore.getState()
+  if (hasRelic(afterCandle, 'banish') && !afterCandle.relicTurnFlags.banishUsed) {
+    useGameStore.setState((st) => {
+      const sealed = sealSkullsFromTurn(st, 1)
+      return {
+        playedDice: sealed.playedDice,
+        drawPile: sealed.drawPile,
+        skullCount: st.skullCount,
+        activeMultiplier: 1,
+        counterVersion: st.counterVersion + 1,
+        relicTurnFlags: { ...st.relicTurnFlags, banishUsed: true },
+        lastRelicTrigger: relicTrigger(st, 'banish', 'Skull Banished'),
+        ...(multiplier > 1 ? { multiplierFiredVersion: st.multiplierFiredVersion + 1 } : {}),
+      }
+    })
+    await sleep(120)
+    return true
+  }
+
+  return false
 }
 
 // ── Bestiary ─────────────────────────────────────────────────────────────────
@@ -696,6 +773,12 @@ export const useGameStore = create<GameState>()(
   justDefeatedBoss: false,
   secondWindTriggered: false,
   showBossRewardModal: false,
+  showRelicRewardModal: false,
+  relicRewardContext: null,
+  activeRelics: [],
+  relicChoices: [],
+  relicTurnFlags: freshRelicTurnFlags(),
+  lastRelicTrigger: null,
   showActIntroModal: false,
   showGameOver: false,
   purifyUsesThisShop: 0,
@@ -789,6 +872,12 @@ export const useGameStore = create<GameState>()(
       justDefeatedBoss: false,
       secondWindTriggered: false,
       showBossRewardModal: false,
+      showRelicRewardModal: true,
+      relicRewardContext: 'start',
+      activeRelics: [],
+      relicChoices: chooseRelics([]),
+      relicTurnFlags: freshRelicTurnFlags(),
+      lastRelicTrigger: null,
       showActIntroModal: false,
       purifyUsesThisShop: 0,
     }))
@@ -837,6 +926,11 @@ export const useGameStore = create<GameState>()(
     // Stage 4 — Tally
     const mult          = s.activeMultiplier
     let   newSkullCount = s.skullCount
+    const skullWasBanished = await resolveSkullRelics(face, mult)
+    if (skullWasBanished) {
+      set({ resolvingDieIndex: null, resolvingPhase: null, turnPhase: 'idle' })
+      return
+    }
 
     if (face.type === 'multiplier') {
       set((st) => ({ activeMultiplier: st.activeMultiplier * face.value, counterVersion: st.counterVersion + 1 }))
@@ -921,7 +1015,8 @@ export const useGameStore = create<GameState>()(
       const lifestealGain = face.type === 'lifesteal' ? face.value * mult : 0
       const rawHealGain   = face.type === 'heal'      ? face.value * mult : lifestealGain
       const healGain      = applyWoundToHeal(rawHealGain, get().player.woundTurns)
-      const shieldGain    = face.type === 'shield'    ? face.value * mult : 0
+      const emptyPromiseUsed = face.type === 'blank' && hasRelic(get(), 'empty_promise') && !get().relicTurnFlags.emptyPromiseUsed
+      const shieldGain    = (face.type === 'shield' ? face.value * mult : 0) + (emptyPromiseUsed ? 6 : 0)
       const bashGain      = face.type === 'shield_bash' ? (get().player.shield + get().totalShield) * mult : 0
       const damageGain    = (face.type === 'damage' || face.type === 'lifesteal') ? face.value * mult : bashGain
       const soulsGain      = face.type === 'souls'     ? face.value * mult : 0
@@ -938,6 +1033,10 @@ export const useGameStore = create<GameState>()(
         activeMultiplier: 1,
         counterVersion: st.counterVersion + 1,
         lastEffects: { heal: healGain, shield: shieldGain, souls: soulsGain, hot: null },
+        ...(emptyPromiseUsed ? {
+          relicTurnFlags: { ...st.relicTurnFlags, emptyPromiseUsed: true },
+          lastRelicTrigger: relicTrigger(st, 'empty_promise', '+6 Shield'),
+        } : {}),
         ...(multiplierFired ? { multiplierFiredVersion: st.multiplierFiredVersion + 1 } : {}),
         ...(isSkull ? { skullRolledVersion: st.skullRolledVersion + 1 } : {}),
         ...(healGain > 0 || shieldGain > 0 || soulsGain > 0
@@ -975,9 +1074,11 @@ export const useGameStore = create<GameState>()(
 
       // Brief player_attack phase: 0 damage, but keep accumulated shield
       const bustShield = get().totalShield
+      const boneLedgerShield = hasRelic(get(), 'bone_ledger') ? 6 : 0
       set((st) => ({
         turnPhase: 'player_attack',
-        player: { ...st.player, shield: st.player.shield + bustShield },
+        player: { ...st.player, shield: st.player.shield + bustShield + boneLedgerShield },
+        ...(boneLedgerShield > 0 ? { lastRelicTrigger: relicTrigger(st, 'bone_ledger', '+6 Shield') } : {}),
       }))
       await sleep(400)
 
@@ -1036,6 +1137,17 @@ export const useGameStore = create<GameState>()(
 
     const mult2          = s.activeMultiplier
     let   newSkullCount  = s.skullCount
+    const skullWasBanished = await resolveSkullRelics(face, mult2)
+    if (skullWasBanished) {
+      set({ resolvingDieIndex: null, resolvingPhase: null })
+      const picksLeft = get().fortuneTellerPicksRemaining
+      if (picksLeft > 1 && get().drawPile.length > 0) {
+        set({ turnPhase: 'idle', isChoosingNextDie: true, fortuneTellerPicksRemaining: picksLeft - 1 })
+      } else {
+        set({ turnPhase: 'idle', fortuneTellerPicksRemaining: 0 })
+      }
+      return
+    }
 
     if (face.type === 'multiplier') {
       set((st) => ({ activeMultiplier: st.activeMultiplier * face.value, counterVersion: st.counterVersion + 1 }))
@@ -1120,7 +1232,8 @@ export const useGameStore = create<GameState>()(
       const lifestealGain = face.type === 'lifesteal' ? face.value * mult2 : 0
       const rawHealGain   = face.type === 'heal'      ? face.value * mult2 : lifestealGain
       const healGain      = applyWoundToHeal(rawHealGain, get().player.woundTurns)
-      const shieldGain    = face.type === 'shield'    ? face.value * mult2 : 0
+      const emptyPromiseUsed = face.type === 'blank' && hasRelic(get(), 'empty_promise') && !get().relicTurnFlags.emptyPromiseUsed
+      const shieldGain    = (face.type === 'shield' ? face.value * mult2 : 0) + (emptyPromiseUsed ? 6 : 0)
       const bashGain      = face.type === 'shield_bash' ? (get().player.shield + get().totalShield) * mult2 : 0
       const damageGain    = (face.type === 'damage' || face.type === 'lifesteal') ? face.value * mult2 : bashGain
       const soulsGain      = face.type === 'souls'     ? face.value * mult2 : 0
@@ -1137,6 +1250,10 @@ export const useGameStore = create<GameState>()(
         activeMultiplier: 1,
         counterVersion: st.counterVersion + 1,
         lastEffects: { heal: healGain, shield: shieldGain, souls: soulsGain, hot: null },
+        ...(emptyPromiseUsed ? {
+          relicTurnFlags: { ...st.relicTurnFlags, emptyPromiseUsed: true },
+          lastRelicTrigger: relicTrigger(st, 'empty_promise', '+6 Shield'),
+        } : {}),
         ...(multiplierFired ? { multiplierFiredVersion: st.multiplierFiredVersion + 1 } : {}),
         ...(isSkull ? { skullRolledVersion: st.skullRolledVersion + 1 } : {}),
         ...(healGain > 0 || shieldGain > 0 || soulsGain > 0
@@ -1168,9 +1285,11 @@ export const useGameStore = create<GameState>()(
       await sleep(300)
 
       const bustShield = get().totalShield
+      const boneLedgerShield = hasRelic(get(), 'bone_ledger') ? 6 : 0
       set((st) => ({
         turnPhase: 'player_attack',
-        player: { ...st.player, shield: st.player.shield + bustShield },
+        player: { ...st.player, shield: st.player.shield + bustShield + boneLedgerShield },
+        ...(boneLedgerShield > 0 ? { lastRelicTrigger: relicTrigger(st, 'bone_ledger', '+6 Shield') } : {}),
       }))
       await sleep(400)
 
@@ -1202,11 +1321,14 @@ export const useGameStore = create<GameState>()(
     set({ activeMultiplier: 1 })
 
     const { totalDamage, totalHeal, totalShield, totalSouls, totalPoison, pendingHot, enemy, player,
-            currentFloor, inventory, unlockedNodes, firstAttackThisEncounter, playedDice } = get()
+            currentFloor, inventory, unlockedNodes, firstAttackThisEncounter, playedDice, activeRelics } = get()
 
     // First Blood: +1 damage on first bank of each encounter
     const firstBloodBonus = (unlockedNodes.includes('g1atjka6') && firstAttackThisEncounter) ? 1 : 0
-    const effectiveDamage = totalDamage + firstBloodBonus
+    const carefulRhythmActive = activeRelics.includes('careful_rhythm') && playedDice.length === 4
+    const carefulRhythmDamage = carefulRhythmActive ? 5 : 0
+    const carefulRhythmShield = carefulRhythmActive ? 5 : 0
+    const effectiveDamage = totalDamage + firstBloodBonus + carefulRhythmDamage
     if (firstAttackThisEncounter) set({ firstAttackThisEncounter: false })
 
     // Calculate max potential damage for animation tier
@@ -1233,7 +1355,7 @@ export const useGameStore = create<GameState>()(
     let newEnemyHp    = Math.max(0, enemy.hp - (effectiveDamage - enemyShieldAbsorb))
     let newEnemyShield = Math.max(0, (enemy.shield ?? 0) - enemyShieldAbsorb)
     let newPlayerHp   = Math.min(player.maxHp, player.hp + totalHeal)
-    let newShield     = player.shield + totalShield
+    let newShield     = player.shield + totalShield + carefulRhythmShield
     const committedHot = pendingHot ? addHot(player.hot, pendingHot.amount, pendingHot.turnsRemaining) : player.hot
 
     set((st) => ({
@@ -1245,8 +1367,9 @@ export const useGameStore = create<GameState>()(
         shield: newShield,
         hot: committedHot,
       },
-      lastEffects: { heal: totalHeal, shield: totalShield, souls: totalSouls, hot: pendingHot ? committedHot : null },
+      lastEffects: { heal: totalHeal, shield: totalShield + carefulRhythmShield, souls: totalSouls, hot: pendingHot ? committedHot : null },
       playerEffectVersion: st.playerEffectVersion + 1,
+      ...(carefulRhythmActive ? { lastRelicTrigger: relicTrigger(st, 'careful_rhythm', '+5 Damage / +5 Shield') } : {}),
     }))
 
     // Thorns / Barbs recoil — only when enemy survived the hit, poison exempt
@@ -1282,10 +1405,12 @@ export const useGameStore = create<GameState>()(
               resolvingDieIndex: null, resolvingPhase: null,
               rollStartVersion: st.rollStartVersion + 1,
               isChoosingNextDie: false, firstAttackThisEncounter: true,
+              relicTurnFlags: freshRelicTurnFlags(),
               enemy: { ...st.enemy, intent: nxIn, intentPhase: nxPh, thorns: tmpl.thorns ?? 0 },
             }))
           } else {
             set({
+              ...clearRelicRunState,
               showGameOver: true, runSouls: 0,
               player: { hp: 100, maxHp: 100, shield: 0, hot: null, poison: 0, woundTurns: 0 },
               enemy: spawnEnemy(1), currentFloor: 1,
@@ -1310,6 +1435,7 @@ export const useGameStore = create<GameState>()(
       // Double K.O.: player also at 0 — defeat takes priority over victory
       if (newPlayerHp <= 0) {
         set({
+          ...clearRelicRunState,
           showGameOver: true,
           runSouls: 0,
           player: { hp: 100, maxHp: 100, shield: 0, hot: null, poison: 0, woundTurns: 0 },
@@ -1361,6 +1487,9 @@ export const useGameStore = create<GameState>()(
           turnPhase: 'shop',
           justDefeatedBoss: true,
           showBossRewardModal: true,
+          showRelicRewardModal: false,
+          relicRewardContext: 'boss',
+          relicChoices: chooseRelics(st.activeRelics),
           purifyUsesThisShop: 0,
           player: { ...st.player, hp: Math.min(st.player.maxHp, st.player.hp + thickSkinHeal), hot: null, woundTurns: 0 },
           totalDamage: 0, totalHeal: 0, totalShield: 0, totalSouls: 0, totalPoison: 0, pendingHot: null,
@@ -1415,6 +1544,7 @@ export const useGameStore = create<GameState>()(
         // Double K.O.: player also at 0 — defeat takes priority
         if (newPlayerHp <= 0) {
           set({
+            ...clearRelicRunState,
             showGameOver: true,
             runSouls: 0,
             player: { hp: 100, maxHp: 100, shield: 0, hot: null, poison: 0, woundTurns: 0 },
@@ -1464,6 +1594,9 @@ export const useGameStore = create<GameState>()(
             turnPhase: 'shop',
             justDefeatedBoss: true,
             showBossRewardModal: true,
+            showRelicRewardModal: false,
+            relicRewardContext: 'boss',
+            relicChoices: chooseRelics(st.activeRelics),
             purifyUsesThisShop: 0,
             player: { ...st.player, hp: Math.min(st.player.maxHp, st.player.hp + thickSkinP), hot: null, woundTurns: 0 },
             totalDamage: 0, totalHeal: 0, totalShield: 0, totalSouls: 0, totalPoison: 0, pendingHot: null,
@@ -1535,11 +1668,47 @@ export const useGameStore = create<GameState>()(
       rollStartVersion: s.rollStartVersion + 1,
       isChoosingNextDie: false,
       firstAttackThisEncounter: true,
+      relicTurnFlags: freshRelicTurnFlags(),
       turnPhase:    'idle',
     }))
   },
 
-  claimBossReward: () => { set({ showBossRewardModal: false }) },
+  claimBossReward: () => {
+    const choices = get().relicChoices
+    set({
+      showBossRewardModal: false,
+      showRelicRewardModal: choices.length > 0,
+      relicRewardContext: choices.length > 0 ? 'boss' : null,
+    })
+  },
+
+  claimRelic: (relicId, replaceId) => {
+    if (!RELIC_POOL.includes(relicId)) return
+    set((s) => {
+      if (s.activeRelics.includes(relicId)) {
+        return { showRelicRewardModal: false, relicChoices: [], relicRewardContext: null }
+      }
+      let nextRelics = s.activeRelics
+      if (replaceId && s.activeRelics.includes(replaceId)) {
+        nextRelics = s.activeRelics.map((id) => id === replaceId ? relicId : id)
+      } else if (s.activeRelics.length < MAX_RELICS) {
+        nextRelics = [...s.activeRelics, relicId]
+      } else {
+        return {}
+      }
+      return {
+        activeRelics: nextRelics,
+        showRelicRewardModal: false,
+        relicChoices: [],
+        relicRewardContext: null,
+      }
+    })
+  },
+
+  skipRelicReward: () => {
+    set({ showRelicRewardModal: false, relicChoices: [], relicRewardContext: null })
+  },
+
   claimActIntro: () => { set({ showActIntroModal: false }) },
 
   rerollDraft: (lockedDieIds) => {
@@ -1577,6 +1746,7 @@ export const useGameStore = create<GameState>()(
       rollStartVersion: s.rollStartVersion + 1,
       isChoosingNextDie: false,
       firstAttackThisEncounter: true,
+      relicTurnFlags: freshRelicTurnFlags(),
       turnPhase:    'idle',
     }))
   },
@@ -1740,6 +1910,7 @@ export const useGameStore = create<GameState>()(
       justDefeatedBoss: false,
       secondWindTriggered: false,
       showBossRewardModal: false,
+      ...clearRelicRunState,
       showActIntroModal: false,
       purifyUsesThisShop: 0,
       turnPhase: 'loadout',
@@ -1774,6 +1945,7 @@ export const useGameStore = create<GameState>()(
       fortuneTellerPicksRemaining: 0,
       activeMultiplier: 1,
       firstAttackThisEncounter: true,
+      relicTurnFlags: freshRelicTurnFlags(),
       justDefeatedBoss: false,
       showActIntroModal: true,
       rollStartVersion: rollStartVersion + 1,
@@ -1797,6 +1969,7 @@ export const useGameStore = create<GameState>()(
       usedSecondWind: false,
       firstAttackThisEncounter: true,
       playerAttackAnimTier: null,
+      ...clearRelicRunState,
       showActIntroModal: false,
       turnPhase: 'loadout',
     })
@@ -1842,6 +2015,7 @@ export const useGameStore = create<GameState>()(
       justDefeatedBoss: false,
       secondWindTriggered: false,
       showBossRewardModal: false,
+      ...clearRelicRunState,
       showActIntroModal: false,
       purifyUsesThisShop: 0,
       activeMultiplier: 1,
@@ -1875,6 +2049,7 @@ export const useGameStore = create<GameState>()(
       rollStartVersion: s.rollStartVersion + 1,
       isChoosingNextDie: false,
       firstAttackThisEncounter: true,
+      relicTurnFlags: freshRelicTurnFlags(),
       turnPhase:    'idle',
     }))
   },
@@ -1908,18 +2083,21 @@ async function runEnemyPhase() {
     const pl     = useGameStore.getState().player
     const hotHeal = applyWoundToHeal(curHot.amount, pl.woundTurns)
     const newHp  = Math.min(pl.maxHp, pl.hp + hotHeal)
+    const actualHeal = Math.max(0, newHp - pl.hp)
+    const pulseShield = actualHeal > 0 && hasRelic(useGameStore.getState(), 'verdant_pulse') ? actualHeal : 0
     const newTurns = curHot.turnsRemaining - 1
     const newHot: { amount: number; turnsRemaining: number } | null = newTurns > 0
       ? { amount: curHot.amount, turnsRemaining: newTurns }
       : null
     useGameStore.setState((st) => ({
-      player: { ...st.player, hp: newHp, hot: newHot },
+      player: { ...st.player, hp: newHp, hot: newHot, shield: st.player.shield + pulseShield },
       playerEffectVersion: st.playerEffectVersion + 1,
+      ...(pulseShield > 0 ? { lastRelicTrigger: relicTrigger(st, 'verdant_pulse', `+${pulseShield} Shield`) } : {}),
     }))
     await sleep(200)
   }
 
-  const { enemy, player, currentFloor } = useGameStore.getState()
+  const { enemy, player, currentFloor, activeRelics } = useGameStore.getState()
 
   // ── Non-attack intents (shield buff, thorns activation) ──────────────────
   if (enemy.intent.type === 'shield' || enemy.intent.type === 'thorns_activate' || enemy.intent.type === 'wound') {
@@ -1946,6 +2124,7 @@ async function runEnemyPhase() {
       const tmpl = allB.find(t => t.name === s.enemy.name) ?? ACT_1_BESTIARY[1]
       const nxPh = (s.enemy.intentPhase ?? 0) + 1
       const nxIn = rollIntent(tmpl, currentFloor, nxPh)
+      const carriedShield = carryShieldAfterTurn(s.player.shield, s.activeRelics)
       return {
         turnPhase: 'idle',
         totalDamage: 0, totalHeal: 0, totalShield: 0, totalSouls: 0, totalPoison: 0, pendingHot: null,
@@ -1955,13 +2134,15 @@ async function runEnemyPhase() {
         lastEffects: { heal: 0, shield: 0, souls: 0 },
         player: {
           ...s.player,
-          shield: 0,
+          shield: carriedShield,
           woundTurns: enemy.intent.type === 'wound' ? s.player.woundTurns : Math.max(0, s.player.woundTurns - 1),
         },
         enemy: { ...s.enemy, intent: nxIn, intentPhase: nxPh },
         rollStartVersion: s.rollStartVersion + 1,
         isChoosingNextDie: false,
         firstAttackThisEncounter: true,
+        relicTurnFlags: freshRelicTurnFlags(),
+        ...(carriedShield > 0 ? { lastRelicTrigger: relicTrigger(s, 'iron_memory', `${carriedShield} Shield kept`) } : {}),
         resolvingDieIndex: null, resolvingPhase: null,
       }
     })
@@ -1971,6 +2152,10 @@ async function runEnemyPhase() {
   // ── Attack intent ────────────────────────────────────────────────────────
   const eShield   = player.shield
   const rawDamage = enemy.intent.value
+  const retaliationDamage = activeRelics.includes('retaliation_plate') &&
+    enemy.intent.type !== 'corrosive_strike' && !enemy.corrosive && rawDamage > 0 && eShield >= rawDamage
+      ? Math.ceil(rawDamage * 0.5)
+      : 0
   let postHp: number
   let postShield: number
   if (enemy.corrosive || enemy.intent.type === 'corrosive_strike') {
@@ -1996,6 +2181,20 @@ async function runEnemyPhase() {
   }))
 
   await sleep(210)
+
+  if (retaliationDamage > 0) {
+    const postRetaliationHp = Math.max(0, useGameStore.getState().enemy.hp - retaliationDamage)
+    useGameStore.setState((st) => ({
+      enemy: { ...st.enemy, hp: postRetaliationHp },
+      enemyHitVersion: st.enemyHitVersion + 1,
+      lastRelicTrigger: relicTrigger(st, 'retaliation_plate', `${retaliationDamage} Counter`),
+    }))
+    await sleep(260)
+    if (postRetaliationHp <= 0) {
+      await handleBustEnemyVictory()
+      return
+    }
+  }
 
   // ── Tick player Venom poison (after physical damage, before death check) ──
   const _playerPoison = useGameStore.getState().player.poison
@@ -2026,6 +2225,7 @@ async function runEnemyPhase() {
         rollStartVersion: st.rollStartVersion + 1,
         isChoosingNextDie: false,
         firstAttackThisEncounter: true,
+        relicTurnFlags: freshRelicTurnFlags(),
         enemy: (() => {
           const allB = [...ACT_1_BESTIARY, ...ACT_2_BESTIARY]
           const tmpl = allB.find(t => t.name === st.enemy.name) ?? ACT_1_BESTIARY[1]
@@ -2037,6 +2237,7 @@ async function runEnemyPhase() {
       return
     }
     useGameStore.setState({
+      ...clearRelicRunState,
       showGameOver: true,
       runSouls: 0,
       player: { hp: 100, maxHp: 100, shield: 0, hot: null, poison: 0, woundTurns: 0 },
@@ -2060,7 +2261,7 @@ async function runEnemyPhase() {
       drawPile: shuffleArray(equippedOnly(s.inventory)),
       playedDice: [],
       lastEffects: { heal: 0, shield: 0, souls: 0 },
-      player: { ...s.player, shield: 0, woundTurns: Math.max(0, s.player.woundTurns - 1) },
+      player: { ...s.player, shield: carryShieldAfterTurn(s.player.shield, s.activeRelics), woundTurns: Math.max(0, s.player.woundTurns - 1) },
       enemy: (() => {
         const allB = [...ACT_1_BESTIARY, ...ACT_2_BESTIARY]
         const tmpl = allB.find(t => t.name === s.enemy.name) ?? ACT_1_BESTIARY[1]
@@ -2071,6 +2272,10 @@ async function runEnemyPhase() {
       rollStartVersion: s.rollStartVersion + 1,
       isChoosingNextDie: false,
       firstAttackThisEncounter: true,
+      relicTurnFlags: freshRelicTurnFlags(),
+      ...(carryShieldAfterTurn(s.player.shield, s.activeRelics) > 0
+        ? { lastRelicTrigger: relicTrigger(s, 'iron_memory', `${carryShieldAfterTurn(s.player.shield, s.activeRelics)} Shield kept`) }
+        : {}),
       resolvingDieIndex: null, resolvingPhase: null,
     }))
   }
@@ -2121,7 +2326,9 @@ async function handleBustEnemyVictory() {
       ...resetFields,
       inventory: [...st.inventory, { ...createDie('cursed', curseId), isEquipped: true as const }],
       runSouls: st.runSouls + earned, lastSoulsEarned: earned,
-      turnPhase: 'shop', justDefeatedBoss: true, showBossRewardModal: true, purifyUsesThisShop: 0,
+      turnPhase: 'shop', justDefeatedBoss: true, showBossRewardModal: true,
+      showRelicRewardModal: false, relicRewardContext: 'boss', relicChoices: chooseRelics(st.activeRelics),
+      purifyUsesThisShop: 0,
       player: { ...st.player, hp: Math.min(st.player.maxHp, st.player.hp + thickSkin), hot: null, woundTurns: 0 },
     }))
   } else {

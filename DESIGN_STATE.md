@@ -1,6 +1,6 @@
 # Dice Dungeon — Current Design State
 
-*Last updated: 2026-05-07. Read this before making design or balance changes.*
+*Last updated: 2026-05-12. Read this before making design or balance changes.*
 
 ---
 
@@ -13,6 +13,7 @@
 - Enemy sprite polish and animation anchoring (especially Goblin/Orc)
 - Talent tree demo: validate 4-track structure and decide which demo nodes to implement
 - Rejuvenator retune (3 HoT faces, Shield 2, 2 Blanks; merge scales HoT amount only, not duration)
+- Relic MVP: run-only relic rewards, 3-slot cap, and skull-mitigation relic balance
 - Mirror dead-first-draw problem (still unaddressed)
 
 ---
@@ -40,6 +41,7 @@
 - **Venom (Act 2):** Safe draw limit is 5 on all Act 2 floors. Each die over the limit adds player poison (+1 on floors 16–25; +2 on floors 26–30). Poison ticks after enemy physical attack, decrements by 1 per turn. Draw button turns red with warning label. Counter shown above action buttons on all Act 2 floors.
 - Flee the Depths: banks Run Souls → returns to Hub.
 - Death: all Run Souls lost.
+- **Relics:** Run-only passive modifiers. Player chooses 1 relic before the first combat after descending, then can earn another relic after boss reward flow (after Cursed die modal, before Forge). Max 3 active relics, no duplicates; if slots are full, choosing a new relic requires replacing an active one or skipping. Relics are not persisted.
 
 ### Economy
 - `runSouls` — at-risk in-run currency (spent at Forge, lost on death).
@@ -106,6 +108,7 @@ Skill tree "New Dice" nodes (Priest, Jackpot, Vampire, Fortune Teller) still exi
 - **Seal:** Retroactively removes up to N skull-faced dice from the already-played pile this turn, shuffling them back into the draw pile (without a face). Reduces `skullCount` accordingly. Does not cancel the current turn — it undoes past skulls. A `triggered: boolean` flag is set on the revealed Seal face to indicate whether any skulls were present to remove. Scales with `activeMultiplier`. Can be mirrored.
 - **Shield Bash:** Adds damage equal to current Shield plus Shield accumulated this turn. It does not spend Shield. Scales with `activeMultiplier`. The Bulwark is the first die using this face type.
 - **HoT craftable:** `hot` is in `CRAFTABLE_FACES`; `mirror`, `seal`, and `shield_bash` are not.
+- **Relics MVP:** Implemented via `src/relics.ts`, `RelicRewardModal.tsx`, `RelicHud.tsx`, and run-state fields in `gameStore.ts`. Current relics: Bone Ledger (bust -> +6 Shield), Black Candle (first Skull each turn -> +1 enemy Poison), Banish (first Skull each turn returns to bag and does not count toward bust), Iron Memory (keep 50% unused Shield), Verdant Pulse (HoT actual healing also grants Shield), Retaliation Plate (full block counters for 50% enemy attack), Empty Promise (first Blank -> +6 Shield), Careful Rhythm (Attack with exactly 4 dice -> +5 Damage/+5 Shield).
 
 ### Enemy Sprite Assets
 
@@ -151,6 +154,7 @@ Nodes are now organised into **4 named tracks** (plus a root node), each with a 
 - **Venom tuning:** Limit is fixed at 5 for all Act 2 floors. +1 penalty may be too mild early, while +2 from Floor 26 may be the real pressure point. Pending playtesting data.
 - **Warden / Seal:** Seal is only useful when skulls have already been rolled. On early draws (no skulls in played pile) it is blank. Could feel like a dead face. Balance question: should Seal have a secondary effect when no skulls are present?
 - **Vessel draft value:** A 6-blank die is only valuable if the Forge is visited regularly and crafting resources exist. May feel like wasted draft slot in light-Forge runs.
+- **Relic power ceiling:** Relics are intentionally strong because of the 3-slot cap, but Banish/Iron Memory/Retaliation Plate may dramatically reduce late-run danger when combined with defensive dice. Needs playtesting.
 - **Demo talent nodes:** Players can see and attempt to unlock demo nodes — their cost is real but their effect is not. This may create confusion. Should these be hidden, grayed out, or labelled "Coming Soon" until implemented?
 
 ---
@@ -177,24 +181,27 @@ Nodes are now organised into **4 named tracks** (plus a root node), each with a 
 - Talent tree reorganised into 4 named tracks: Extraction (purple), Forge (orange), Survival (green), Control (blue). Demo nodes (Soul Stash, Deep Pockets, Blank Canvas, First Craft, Draft Lock+, Reroll Insight) are visible with real costs but non-functional — they exist to explore the track structure.
 - QoL policy: Auto Roll and Scouting remain talent unlocks (players earn them via Banked Souls). Dice inspect, library view, and face descriptions are never talent-gated — always available.
 - Multiplier face now stacks multiplicatively on repeat rolls.
+- Relic system MVP added: 3 active relic slots, start-of-run relic choice, boss relic rewards before Forge, replacement flow when full, compact combat HUD, and unique pixel assets in `public/sprites/relics/`.
+- Relics are run-only and intentionally excluded from Zustand `persist` partialize; only `bankedSouls` and `unlockedNodes` persist.
 
 ---
 
 ## Next Recommended Design Work
 
-1. **Skull mitigation pass** — current bags can accumulate too many Skulls late in acts; add more non-Purify recovery tools before adding more skull-heavy dice.
-2. **Tune Mirror** — consider giving 1–2 faces a fallback effect (e.g. small shield) for when it's drawn first.
-3. **Tune Venom penalty curve** — limit is now fixed at 5 for all Act 2 floors; test whether +1/+2 poison is the right pressure curve.
-4. **Wire "New Dice" skill tree nodes to pool gating** — currently non-functional. Decide whether to remove them from the tree, wire them, or formally replace with act gating.
-5. **Review Run Souls reward curve** — check that Forge costs are achievable given expected income per floor.
-6. **Review Forge costs vs. income** — Purify and Merge costs may need floor-scaling.
-7. **Add a balance test checklist** for the Act 1 → Act 2 transition (target stats, expected bag size, soul balance).
-8. **Disambiguate Blight/Multiplier colour** — both use `#4d7c0f`; may cause visual confusion in the dice tray.
-9. **Implement demo talent nodes** — Soul Stash, Deep Pockets, Blank Canvas, First Craft, Draft Lock+, Reroll Insight are visible with real costs but no effect. Implement, hide, or label "Coming Soon".
-10. **Decide Seal secondary effect** — Seal does nothing when no skulls are in the played pile (early draws). Consider a fallback effect (e.g. small shield) to reduce dead-face feel.
-11. **Clarify Vessel draft value** — A 6-blank die only pays off with regular Forge visits. Confirm players understand its role or add in-draft tooltip.
-12. **Sprite pass for Act 2 enemies** — create animated sheets for Slime Crawler, Marrow Bat, Toxic Creep, and Spiked Behemoth using the same stable-anchor pipeline.
-13. **Finalize Orc idle sheet** — current implementation uses a single stable idle frame; regenerate a cleaner multi-frame idle only if the feet/anchor stay locked.
+1. **Relic balance test pass** — verify whether Banish, Iron Memory, and Retaliation Plate are too strong in 3-slot builds, especially with Shield-heavy bags.
+2. **Skull mitigation pass** — current bags can accumulate too many Skulls late in acts; relics help, but dice/Forge mitigation still needs review.
+3. **Tune Mirror** — consider giving 1–2 faces a fallback effect (e.g. small shield) for when it's drawn first.
+4. **Tune Venom penalty curve** — limit is now fixed at 5 for all Act 2 floors; test whether +1/+2 poison is the right pressure curve.
+5. **Wire "New Dice" skill tree nodes to pool gating** — currently non-functional. Decide whether to remove them from the tree, wire them, or formally replace with act gating.
+6. **Review Run Souls reward curve** — check that Forge costs are achievable given expected income per floor.
+7. **Review Forge costs vs. income** — Purify and Merge costs may need floor-scaling.
+8. **Add a balance test checklist** for the Act 1 → Act 2 transition (target stats, expected bag size, soul balance).
+9. **Disambiguate Blight/Multiplier colour** — both use `#4d7c0f`; may cause visual confusion in the dice tray.
+10. **Implement demo talent nodes** — Soul Stash, Deep Pockets, Blank Canvas, First Craft, Draft Lock+, Reroll Insight are visible with real costs but no effect. Implement, hide, or label "Coming Soon".
+11. **Decide Seal secondary effect** — Seal does nothing when no skulls are in the played pile (early draws). Consider a fallback effect (e.g. small shield) to reduce dead-face feel.
+12. **Clarify Vessel draft value** — A 6-blank die only pays off with regular Forge visits. Confirm players understand its role or add in-draft tooltip.
+13. **Sprite pass for Act 2 enemies** — create animated sheets for Slime Crawler, Marrow Bat, Toxic Creep, and Spiked Behemoth using the same stable-anchor pipeline.
+14. **Finalize Orc idle sheet** — current implementation uses a single stable idle frame; regenerate a cleaner multi-frame idle only if the feet/anchor stay locked.
 
 ---
 
@@ -203,6 +210,7 @@ Nodes are now organised into **4 named tracks** (plus a root node), each with a 
 - Run `npx tsc --noEmit` after every code change. Zero errors required before presenting a solution.
 - Adding a new die or face type: update `DIE_TEMPLATES`, `DIE_NAMES`, `dieTypeStyle`, `faceColor`, `faceShadow`, and all `FaceIcon` helpers across `DieCard.tsx`, `DiceLibrary.tsx`, `DiceInspectorModal.tsx`, `DraftScreen.tsx`, `LoadoutScreen.tsx`, `ShopScreen.tsx`, `diceDescriptions.ts`, `DiePresentationModal.tsx`, and (for Culling display) `InterActScreen.tsx`.
 - Adding a unique die: add to `UNIQUE_DIE_TYPES` — all 4 draft sites filter via this set automatically.
+- Adding a relic: update `src/relics.ts`, add a unique asset in `public/sprites/relics/`, wire any combat hook in `gameStore.ts`, and verify the reward modal + HUD.
 - Adding or replacing enemy sprites: update `public/sprites/enemies/<enemy>/` and `EnemySprite.tsx`; keep 100x100 frame cells, remove magenta fringe, and verify stable feet/anchor in idle, attack, hurt, and death.
 - Player death always takes priority over enemy death in simultaneous-kill scenarios (Thorns, Poison).
 - Never rename `runSouls` / `bankedSouls` back to `gold` or any gold-adjacent term.

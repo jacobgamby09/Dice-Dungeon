@@ -9,6 +9,7 @@ import type { Die, EnemyIntent, ResolvingPhase } from '../store/gameStore'
 import { DieCard, faceColor, faceShadow, dieTypeStyle } from './DieCard'
 import { EnemySprite } from './EnemySprite'
 import { DiceInspectorModal } from './DiceInspectorModal'
+import { RelicHud } from './RelicHud'
 
 // ── Label ────────────────────────────────────────────────────────────────────
 function Label({ children }: { children: React.ReactNode }) {
@@ -1454,6 +1455,8 @@ export function CombatScreen() {
         soulsRef={soulsRef}
         poisonRef={poisonRef}
       />
+
+      <RelicHud />
 
       {/* Zone C — Played Dice Tray */}
       <div style={{

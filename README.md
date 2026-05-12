@@ -34,6 +34,8 @@ src/
     LoadoutScreen.tsx     # Pre-run bag setup
     InterActScreen.tsx    # The Culling (Act 1 → Act 2 transition)
     ActIntroModal.tsx     # Act 2 intro overlay (Venom + boss briefing)
+    RelicRewardModal.tsx  # Run-only relic draft / replacement modal
+    RelicHud.tsx          # Active relic shelf in combat
     DieCard.tsx           # Die rendering + faceColor / dieTypeStyle maps
     DiceInspectorModal.tsx
     DiceLibrary.tsx
@@ -45,6 +47,7 @@ public/
   sprites/
     enemies/
       <enemy>/             # Enemy animation sheets: Idle, Attack01, Hurt, Death
+    relics/                # Unique pixel-art relic icons
 ```
 
 ## Enemy Sprite Assets
@@ -73,5 +76,7 @@ Animated enemy sprites live under `public/sprites/enemies/<enemy>/` as horizonta
 - **Mobile-first portrait, 384px max-width** — inline styles only, no Tailwind, no border-radius.
 - **Player death takes priority over enemy death** in simultaneous-kill scenarios (Thorns, Poison).
 - **Unique dice** (`unique`, `mirror`) — one per run; filtered at all 4 draft generation sites via `UNIQUE_DIE_TYPES`.
+- **Relics** are run-only, max 3 active, and must never be added to Zustand persistence.
 - **Adding a new die** requires updates to: `DIE_TEMPLATES`, `DIE_NAMES`, `dieTypeStyle`, `faceColor`, `faceShadow`, and `FaceIcon` helpers in `DieCard.tsx`, `DiceLibrary.tsx`, `DiceInspectorModal.tsx`, `DraftScreen.tsx`, `LoadoutScreen.tsx`, `ShopScreen.tsx`, `diceDescriptions.ts`, `DiePresentationModal.tsx`, and (for Culling display) `InterActScreen.tsx`.
+- **Adding a new relic** requires updates to `src/relics.ts`, a unique asset in `public/sprites/relics/`, any needed combat hooks in `gameStore.ts`, and UI verification in `RelicRewardModal.tsx` / `RelicHud.tsx`.
 - **Adding or replacing enemy sprites** requires updating `public/sprites/enemies/<enemy>/` and `EnemySprite.tsx`, then checking in-game that the sprite stays inside frame during idle, attack, hurt, and death animations.

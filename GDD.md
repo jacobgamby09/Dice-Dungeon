@@ -310,12 +310,40 @@ Enemies appear sequentially per floor. Boss fights occur every 5 floors (Floors 
 ### Boss Rewards
 
 - A Cursed die is forced into the bag.
+- The player chooses one run-only Relic reward (or replaces/skips if all 3 slots are full).
 - The player enters the Forge.
 - The extraction decision follows.
 
 ---
 
-## 9. Meta-Progression (Skill Tree)
+## 9. Relics
+
+Relics are run-only passive modifiers that sit between dice and meta-progression. They are meant to create run-defining wrinkles without permanently solving the game. Relics are **not persisted** between delves.
+
+### Acquisition
+
+| Moment | Rule |
+|--------|------|
+| Start of run | After descending, choose 1 of 3 relics before the first combat turn. |
+| Boss reward | After the Cursed die reward modal and before The Forge, choose 1 of 3 relics. |
+| Slots full | Max 3 active relics. A new relic must replace an active relic or be skipped. |
+
+### Current Relic Pool
+
+| Relic | Effect |
+|-------|--------|
+| Bone Ledger | When you bust, gain +6 Shield before the enemy attacks. |
+| Black Candle | The first Skull rolled each turn applies +1 Poison to the enemy. |
+| Banish | The first Skull rolled each turn is returned to the bag and does not count toward bust. |
+| Iron Memory | After the enemy acts, keep 50% of unused Shield for the next turn. |
+| Verdant Pulse | Whenever HoT actually heals you, gain Shield equal to the HP healed. |
+| Retaliation Plate | If Shield fully blocks an enemy attack, deal damage equal to 50% of that attack. |
+| Empty Promise | The first Blank rolled each turn gives +6 Shield. |
+| Careful Rhythm | If you Attack after drawing exactly 4 dice, gain +5 Damage and +5 Shield before resolving. |
+
+---
+
+## 10. Meta-Progression (Skill Tree)
 
 Between delves, players spend **Banked Souls** on permanent passive upgrades. Nodes are organised into **4 named tracks** (plus a root node), each with a distinct colour and lane in the tree UI.
 
@@ -366,7 +394,7 @@ Auto Roll and Scouting are talent unlocks — players earn them by spending Bank
 
 ---
 
-## 10. Technical Architecture
+## 11. Technical Architecture
 
 ### Tech Stack
 
@@ -461,6 +489,12 @@ interface GameState {
   runSouls: number         // Total Run Souls held this delve
   draftChoices: Die[]
 
+  // Relics (run-only, not persisted)
+  activeRelics: RelicId[]
+  relicChoices: RelicId[]
+  showRelicRewardModal: boolean
+  relicRewardContext: 'start' | 'boss' | null
+
   // Meta (persisted)
   bankedSouls: number      // Safe, permanent — persisted between sessions
   unlockedNodes: string[]
@@ -478,7 +512,7 @@ interface SkillNode {
 
 ---
 
-## 11. Visual Style
+## 12. Visual Style
 
 ### Aesthetic
 
@@ -543,7 +577,7 @@ Retro pixel-art with modern UI animation. Hard edges, no border-radius, chunky `
 
 ---
 
-## 12. Open Design Questions
+## 13. Open Design Questions
 
 These decisions are open for playtesting or future design sessions. **Do not treat the following as implemented.**
 
