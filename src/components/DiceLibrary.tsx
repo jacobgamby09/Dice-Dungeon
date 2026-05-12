@@ -61,10 +61,10 @@ export function DiceLibrary({ onClose }: { onClose: () => void }) {
       <div style={{
         background: '#12121f',
         borderBottom: '3px solid #000',
-        padding: '10px 16px',
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: 8,
+        padding: '10px 24px',
+        display: 'flex',
+        justifyContent: 'center',
+        gap: 10,
         flexShrink: 0,
       }}>
         {([
@@ -78,8 +78,13 @@ export function DiceLibrary({ onClose }: { onClose: () => void }) {
               onClick={() => setActiveTab(tab.id)}
               className="pixel-btn"
               style={{
+                flex: '0 1 150px',
                 height: 40,
                 fontSize: '0.72rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textAlign: 'center',
                 background: isActive ? '#4c1d95' : '#0a0a14',
                 color: isActive ? '#ede9fe' : '#9ca3af',
                 border: `3px solid ${isActive ? '#7c3aed' : '#000'}`,

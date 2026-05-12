@@ -126,6 +126,10 @@ export function RelicRewardModal() {
                 background: '#3f3f46',
                 height: 44,
                 fontSize: '0.72rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textAlign: 'center',
               }}
             >
               SKIP RELIC
