@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useGameStore } from './store/gameStore'
 import { LoadoutScreen } from './components/LoadoutScreen'
 import { CombatScreen } from './components/CombatScreen'
@@ -7,6 +8,14 @@ import { BossRewardModal } from './components/BossRewardModal'
 import { RelicRewardModal } from './components/RelicRewardModal'
 import { InterActScreen } from './components/InterActScreen'
 import { ActIntroModal } from './components/ActIntroModal'
+import { RELICS } from './relics'
+
+function preloadRelicIcons() {
+  Object.values(RELICS).forEach((relic) => {
+    const img = new Image()
+    img.src = relic.icon
+  })
+}
 
 function App() {
   const turnPhase = useGameStore((s) => s.turnPhase)
@@ -14,6 +23,10 @@ function App() {
   const showRelicRewardModal = useGameStore((s) => s.showRelicRewardModal)
   const showGameOver = useGameStore((s) => s.showGameOver)
   const showActIntroModal = useGameStore((s) => s.showActIntroModal)
+
+  useEffect(() => {
+    preloadRelicIcons()
+  }, [])
 
   let screen: React.ReactNode
   if (turnPhase === 'loadout')        screen = <LoadoutScreen />
