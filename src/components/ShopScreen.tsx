@@ -38,17 +38,33 @@ type ShopAction = 'purify' | 'craft' | 'merge' | null
 
 // ── Craft option generator ────────────────────────────────────────────────────
 
-// Face types that carry no numeric value (displayed without a number)
-const VALUELESS_FACE_TYPES = new Set<DieFace['type']>(['choose_next', 'wildcard'])
+const SCALING_CRAFT_FACE_TYPES = new Set<DieFace['type']>([
+  'damage', 'shield', 'heal', 'lifesteal', 'poison', 'souls', 'hot',
+])
+
+const FIXED_CRAFT_FACES: Partial<Record<DieFace['type'], DieFace>> = {
+  choose_next:  { type: 'choose_next', value: 1 },
+  multiplier:   { type: 'multiplier', value: 3 },
+  mirror:       { type: 'mirror', value: 0 },
+  seal:         { type: 'seal', value: 1 },
+  shield_bash:  { type: 'shield_bash', value: 1 },
+}
+
+const VALUELESS_FACE_TYPES = new Set<DieFace['type']>([
+  'choose_next', 'wildcard', 'mirror', 'seal', 'shield_bash',
+])
 
 function generateCraftOptions(mergeLevel: number): DieFace[] {
   const multiplier = Math.pow(3, mergeLevel)
   const shuffled = [...CRAFTABLE_FACES].sort(() => Math.random() - 0.5)
   return shuffled.slice(0, 3).map((type): DieFace => {
+    const fixedFace = FIXED_CRAFT_FACES[type]
+    if (fixedFace) return fixedFace
     if (type === 'hot') {
       return { type, value: (Math.floor(Math.random() * 3) + 1) * multiplier, duration: Math.floor(Math.random() * 3) + 1 }
     }
-    return { type, value: VALUELESS_FACE_TYPES.has(type) ? 0 : (Math.floor(Math.random() * 6) + 1) * multiplier }
+    const value = Math.floor(Math.random() * 6) + 1
+    return { type, value: SCALING_CRAFT_FACE_TYPES.has(type) ? value * multiplier : value }
   })
 }
 
@@ -66,6 +82,10 @@ const FACE_LABELS: Partial<Record<DieFace['type'], string>> = {
   souls:       'Souls',
   choose_next: 'Fortune',
   hot:         'HoT',
+  multiplier:  'Multiplier',
+  mirror:      'Mirror',
+  seal:        'Seal',
+  shield_bash: 'Shield Bash',
 }
 
 // ── Action card ───────────────────────────────────────────────────────────────

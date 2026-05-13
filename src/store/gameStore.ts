@@ -13,12 +13,26 @@ export interface DieFace {
   craftLevel?: number
 }
 
-// IMPORTANT: All future non-unique die faces MUST be added to this array to appear
-// in the Forge crafting pool. Do NOT add unique faces (like multiplier) or penalty
-// faces (like skull, blank, or purified_skull) to this list.
+// Forge craft pool. Penalty/inert faces stay out; utility faces are allowed but
+// keep their fixed behavior instead of scaling with merge level.
 export const CRAFTABLE_FACES: Array<DieFace['type']> = [
   'damage', 'shield', 'heal', 'lifesteal', 'poison', 'souls', 'choose_next', 'hot',
+  'multiplier', 'mirror', 'seal', 'shield_bash',
 ]
+
+const MERGE_SCALING_FACE_TYPES = new Set<DieFace['type']>([
+  'damage', 'shield', 'heal', 'souls', 'lifesteal', 'poison', 'hot',
+])
+
+function scaleFaceForMerge(face: DieFace): DieFace {
+  if (!MERGE_SCALING_FACE_TYPES.has(face.type)) return face
+  return { ...face, value: face.value * 3 }
+}
+
+function chooseNextPickCount(face: DieFace, multiplier: number): number {
+  const basePicks = face.type === 'choose_next' && face.value > 0 ? face.value : 1
+  return basePicks * multiplier
+}
 
 export type DieType = 'white' | 'blue' | 'green' | 'cursed'
                     | 'heavy' | 'paladin' | 'gambler' | 'scavenger' | 'wall'
@@ -1109,8 +1123,7 @@ export const useGameStore = create<GameState>()(
 
     // Fortune Teller: open the choose-next modal if draw pile has dice remaining
     if (face.type === 'choose_next' && get().drawPile.length > 0) {
-      const ftLimit = (drawn.mergeLevel ?? 0) + 1
-      const picks   = Math.min(ftLimit * mult, get().drawPile.length)
+      const picks   = Math.min(chooseNextPickCount(face, mult), get().drawPile.length)
       set({ turnPhase: 'idle', isChoosingNextDie: true, fortuneTellerPicksRemaining: picks, activeMultiplier: 1 })
     } else {
       set({ turnPhase: 'idle' })
@@ -1325,8 +1338,7 @@ export const useGameStore = create<GameState>()(
 
     // Chained Fortune Teller: drawn die itself is a choose_next — start a fresh sequence
     if (face.type === 'choose_next' && get().drawPile.length > 0) {
-      const ftLimit = (drawn.mergeLevel ?? 0) + 1
-      const picks   = Math.min(ftLimit * mult2, get().drawPile.length)
+      const picks   = Math.min(chooseNextPickCount(face, mult2), get().drawPile.length)
       set({ turnPhase: 'idle', isChoosingNextDie: true, fortuneTellerPicksRemaining: picks, activeMultiplier: 1 })
       return
     }
@@ -1836,11 +1848,7 @@ export const useGameStore = create<GameState>()(
             ...d,
             isMerged: true,
             mergeLevel: level1 + 1,
-            faces: d.faces.map((f) =>
-              (f.type === 'skull' || f.type === 'blank' || f.type === 'purified_skull')
-                ? f
-                : { ...f, value: f.value * 3 }
-            ),
+            faces: d.faces.map(scaleFaceForMerge),
           }
         })
       return { runSouls: s.runSouls - cost, inventory: newInventory }
