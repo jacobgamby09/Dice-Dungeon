@@ -219,7 +219,8 @@ function CarefulRhythmPreview() {
         textShadow: '1px 1px 0 #78350f',
       }}
     >
-      <span>(+5</span>
+      <span>(</span>
+      <span>+5</span>
       <Swords size={13} color="#facc15" strokeWidth={2.8} />
       <span>+5</span>
       <Shield size={13} color="#facc15" strokeWidth={2.8} />
@@ -252,7 +253,8 @@ function RetaliationPlatePreview({ damage }: { damage: number }) {
         textShadow: '1px 1px 0 #831843',
       }}
     >
-      <span>(+{damage}</span>
+      <span>(</span>
+      <span>+{damage}</span>
       <Swords size={13} color="#fda4af" strokeWidth={2.8} />
       <span>)</span>
     </motion.div>
