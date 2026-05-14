@@ -752,6 +752,15 @@ const GLOBAL_DICE_POOL: DieType[] = ['heavy', 'scavenger', 'wall', 'gambler', 'j
 const ACT_1_DICE_POOL: DieType[] = ['paladin', 'vampire', 'rejuvenator', 'mirror']
 const ACT_2_DICE_POOL: DieType[] = ['blight', 'fortune_teller', 'priest', 'unique', 'jackpot']
 
+export function getDiePoolLabel(type: DieType): string {
+  if (type === 'white' || type === 'blue' || type === 'green') return 'Base'
+  if (type === 'cursed') return 'Cursed'
+  if (GLOBAL_DICE_POOL.includes(type)) return 'Global'
+  if (ACT_1_DICE_POOL.includes(type)) return 'Act 1'
+  if (ACT_2_DICE_POOL.includes(type)) return 'Act 2'
+  return 'Unknown'
+}
+
 function getDiceLootPool(floor: number): DieType[] {
   const actId = getCurrentAct(floor).id
   if (actId === 1) return [...GLOBAL_DICE_POOL, ...ACT_1_DICE_POOL]

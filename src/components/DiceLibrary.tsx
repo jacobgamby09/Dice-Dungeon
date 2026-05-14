@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { X, Swords, Shield, Heart, Skull, Flame, FlaskConical, Droplets, Star, Shuffle, Clock, RefreshCw } from 'lucide-react'
-import { DIE_TEMPLATES, UNIQUE_DIE_TYPES, DIE_NAMES } from '../store/gameStore'
+import { DIE_TEMPLATES, UNIQUE_DIE_TYPES, DIE_NAMES, getDiePoolLabel } from '../store/gameStore'
 import type { DieType, DieFace } from '../store/gameStore'
 import { dieTypeStyle, faceColor } from './DieCard'
 import { DIE_ROLES, DIE_TIPS } from '../diceDescriptions'
@@ -101,6 +101,7 @@ export function DiceLibrary({ onClose }: { onClose: () => void }) {
         {activeTab === 'dice' && LIBRARY_TYPES.map((type) => {
           const template = DIE_TEMPLATES[type]
           const s = dieTypeStyle[type]
+          const poolLabel = getDiePoolLabel(type)
           return (
             <div
               key={type}
@@ -122,10 +123,17 @@ export function DiceLibrary({ onClose }: { onClose: () => void }) {
                   {DIE_NAMES[type]}{UNIQUE_DIE_TYPES.has(type) ? ' *' : ''}
                 </span>
                 <span style={{
-                  fontSize: '0.55rem', color: '#6b7280',
+                  fontSize: '0.62rem',
+                  color: s.text,
+                  background: s.shadow,
+                  border: '2px solid #000',
+                  boxShadow: '2px 2px 0 #000',
+                  padding: '3px 6px',
                   letterSpacing: '0.1em', textTransform: 'uppercase',
+                  fontWeight: 900,
+                  lineHeight: 1,
                 }}>
-                  {template.sides}d
+                  {poolLabel}
                 </span>
               </div>
 
