@@ -229,6 +229,36 @@ function CarefulRhythmPreview() {
 }
 
 // ── Skull tracker ─────────────────────────────────────────────────────────────
+function RetaliationPlatePreview({ damage }: { damage: number }) {
+  if (damage <= 0) return null
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9, y: 6 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.9, y: -6 }}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
+        marginTop: 3,
+        background: '#2a0713',
+        border: '2px solid #fb7185',
+        boxShadow: '2px 2px 0 #831843',
+        padding: '4px 9px',
+        color: '#fda4af',
+        fontSize: '0.78rem',
+        fontWeight: 900,
+        textShadow: '1px 1px 0 #831843',
+      }}
+    >
+      <span>(+{damage}</span>
+      <Swords size={13} color="#fda4af" strokeWidth={2.8} />
+      <span>)</span>
+    </motion.div>
+  )
+}
+
 function SkullTracker({ skullCount }: { skullCount: number }) {
   const isDanger = skullCount >= 2
   const icons = (
@@ -1147,6 +1177,12 @@ export function CombatScreen() {
   const enemyLevel       = Math.min(3, Math.ceil(actRelativeFloor / 5))
   const carefulRhythmReady = activeRelics.includes('careful_rhythm') && playedDice.length === 4
   const carefulRhythmDamageBonus = carefulRhythmReady ? 5 : 0
+  const carefulRhythmShieldBonus = carefulRhythmReady ? 5 : 0
+  const shieldAfterAttack = player.shield + totalShield + carefulRhythmShieldBonus
+  const retaliationPreviewDamage = activeRelics.includes('retaliation_plate') &&
+    enemy.intent.type === 'attack' && !enemy.corrosive && enemy.intent.value > 0 && shieldAfterAttack >= enemy.intent.value
+      ? Math.ceil(enemy.intent.value * 0.5)
+      : 0
   const committedShieldForBadge = player.shield > 0 && (turnPhase === 'idle' || totalShield === 0) ? player.shield : 0
   const expectedThorns   = Math.floor((totalDamage + carefulRhythmDamageBonus) * (enemy?.thorns ?? 0))
   const expectedRecoil   = expectedThorns
@@ -1501,6 +1537,7 @@ export function CombatScreen() {
           </div>
           <AnimatePresence>
             {carefulRhythmReady && <CarefulRhythmPreview />}
+            {retaliationPreviewDamage > 0 && <RetaliationPlatePreview damage={retaliationPreviewDamage} />}
           </AnimatePresence>
 
           {/* Stat badges — always reserve space to prevent layout shift */}
