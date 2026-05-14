@@ -8,6 +8,15 @@ import { RELICS, RELIC_POOL } from '../relics'
 
 const LIBRARY_TYPES: DieType[] = ['white', 'blue', 'green', 'cursed', 'heavy', 'paladin', 'gambler', 'scavenger', 'wall', 'jackpot', 'vampire', 'priest', 'fortune_teller', 'joker', 'unique', 'blight', 'rejuvenator', 'mirror', 'vessel', 'warden', 'bulwark']
 
+const POOL_BADGE_STYLE: Record<string, { bg: string; border: string; color: string }> = {
+  Base:    { bg: '#e5e7eb', border: '#6b7280', color: '#111827' },
+  Cursed:  { bg: '#6d28d9', border: '#a78bfa', color: '#f5f3ff' },
+  Global:  { bg: '#0891b2', border: '#67e8f9', color: '#ecfeff' },
+  'Act 1': { bg: '#d97706', border: '#fbbf24', color: '#fffbeb' },
+  'Act 2': { bg: '#4d7c0f', border: '#a3e635', color: '#f7fee7' },
+  Unknown: { bg: '#374151', border: '#9ca3af', color: '#f9fafb' },
+}
+
 function FaceIcon({ type, size = 11 }: { type: DieFace['type']; size?: number }) {
   const color = faceColor[type]
   if (type === 'damage') return <Swords size={size} color={color} strokeWidth={2.5} />
@@ -102,6 +111,7 @@ export function DiceLibrary({ onClose }: { onClose: () => void }) {
           const template = DIE_TEMPLATES[type]
           const s = dieTypeStyle[type]
           const poolLabel = getDiePoolLabel(type)
+          const poolBadge = POOL_BADGE_STYLE[poolLabel] ?? POOL_BADGE_STYLE.Unknown
           return (
             <div
               key={type}
@@ -124,9 +134,9 @@ export function DiceLibrary({ onClose }: { onClose: () => void }) {
                 </span>
                 <span style={{
                   fontSize: '0.62rem',
-                  color: s.text,
-                  background: s.shadow,
-                  border: '2px solid #000',
+                  color: poolBadge.color,
+                  background: poolBadge.bg,
+                  border: `2px solid ${poolBadge.border}`,
                   boxShadow: '2px 2px 0 #000',
                   padding: '3px 6px',
                   letterSpacing: '0.1em', textTransform: 'uppercase',
