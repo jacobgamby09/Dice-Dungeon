@@ -94,16 +94,6 @@ const palettes = {
     E: '#052e16',
     P: '#a855f7',
   },
-  cultist: {
-    O: common.outline,
-    S: common.shadow,
-    R: '#991b1b',
-    M: '#450a0a',
-    P: '#7c3aed',
-    L: '#c084fc',
-    F: '#f8fafc',
-    E: '#facc15',
-  },
   shieldbearer: {
     O: common.outline,
     S: common.shadow,
@@ -115,25 +105,6 @@ const palettes = {
     R: '#7f1d1d',
   },
 }
-
-const CULTIST = makeGrid([
-  '................',
-  '......OOOO......',
-  '.....OPLLPO.....',
-  '....OPFEEFPO....',
-  '....OPLFFLPO....',
-  '.....OPPPPO.....',
-  '....OOMMMMO.....',
-  '...OMRMMMRMO....',
-  '..OMMRPPPRMMO...',
-  '..OMMRMMMRMMO...',
-  '...OOMMMMO......',
-  '....OR..RO......',
-  '...OOR..ROO.....',
-  '....SSSSSS......',
-  '................',
-  '................',
-], palettes.cultist)
 
 const SHIELDBEARER = makeGrid([
   '................',
@@ -193,7 +164,7 @@ function Sprite({ grid, size, boss = false }: { grid: Grid; size: number; boss?:
   )
 }
 
-const SHEET_SPRITES: Record<'orc' | 'slime' | 'skeleton' | 'goblin' | 'bloodOrc' | 'marrowBat' | 'slimeCrawler' | 'toxicCreep' | 'spikedBehemoth', SheetConfig> = {
+const SHEET_SPRITES: Record<'orc' | 'slime' | 'skeleton' | 'goblin' | 'bloodOrc' | 'cultist' | 'marrowBat' | 'slimeCrawler' | 'toxicCreep' | 'spikedBehemoth', SheetConfig> = {
   orc: {
     sheets: {
       idle:   { src: '/sprites/enemies/orc/Orc-Idle.png?v=8',     frames: 6, frameMs: 190, loop: true },
@@ -248,6 +219,17 @@ const SHEET_SPRITES: Record<'orc' | 'slime' | 'skeleton' | 'goblin' | 'bloodOrc'
     crop: { x: 0, y: 4, w: 100, h: 92 },
     unit: 19,
     minWidth: 112,
+  },
+  cultist: {
+    sheets: {
+      idle:   { src: '/sprites/enemies/cultist/Cultist-Idle.png',     frames: 6, frameMs: 190, loop: true },
+      attack: { src: '/sprites/enemies/cultist/Cultist-Attack01.png', frames: 6, frameMs: 95,  loop: false },
+      hurt:   { src: '/sprites/enemies/cultist/Cultist-Hurt.png',     frames: 4, frameMs: 130, loop: false },
+      death:  { src: '/sprites/enemies/cultist/Cultist-Death.png',    frames: 4, frameMs: 155, loop: false },
+    },
+    crop: { x: 0, y: 2, w: 100, h: 94 },
+    unit: 17,
+    minWidth: 82,
   },
   marrowBat: {
     sheets: {
@@ -450,7 +432,15 @@ export function EnemySprite({
         />
       )
     case 'cultist':
-      return <Sprite grid={CULTIST} size={spriteSize} />
+      return (
+        <SheetSprite
+          config={SHEET_SPRITES.cultist}
+          size={size}
+          hp={hp}
+          enemyHitVersion={enemyHitVersion}
+          enemyAttackVersion={enemyAttackVersion}
+        />
+      )
     case 'shieldbearer':
       return <Sprite grid={SHIELDBEARER} size={spriteSize} />
     case 'slime crawler':
