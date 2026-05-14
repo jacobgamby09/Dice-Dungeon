@@ -352,7 +352,7 @@ function shuffleArray<T>(arr: T[]): T[] {
 
 // ── Store ────────────────────────────────────────────────────────────────────
 
-export interface EnemyIntent { type: 'attack' | 'shield' | 'thorns_activate' | 'corrosive_strike' | 'wound'; value: number }
+export interface EnemyIntent { type: 'attack' | 'shield' | 'shield_slam' | 'thorns_activate' | 'corrosive_strike' | 'wound'; value: number }
 export interface Enemy {
   hp: number; maxHp: number; name: string; intent: EnemyIntent; isBoss: boolean; poison: number
   thorns?: number; barbs?: number; corrosive?: boolean; shield?: number; intentPhase?: number
@@ -633,6 +633,24 @@ const ACT_1_BESTIARY: EnemyTemplate[] = [
   { name: 'Skeleton', baseHp: 44,  intentMin: 3,  intentMax: 7,  isBoss: false },
   { name: 'Orc',      baseHp: 54,  intentMin: 6,  intentMax: 9,  isBoss: false },
   {
+    name: 'Cultist', baseHp: 42, intentMin: 3, intentMax: 5, isBoss: false,
+    intentCycleStartFloor: 6,
+    intentCycle: [
+      { type: 'attack', value: 4 },
+      { type: 'attack', value: 5 },
+      { type: 'wound',  value: 1 },
+    ],
+  },
+  {
+    name: 'Shieldbearer', baseHp: 50, intentMin: 4, intentMax: 6, isBoss: false,
+    intentCycleStartFloor: 6,
+    intentCycle: [
+      { type: 'shield',      value: 7 },
+      { type: 'shield_slam', value: 4 },
+      { type: 'attack',      value: 6 },
+    ],
+  },
+  {
     name: 'Blood Orc', baseHp: 70, intentMin: 4, intentMax: 7, isBoss: true,
     intentCycle: [
       { type: 'attack', value: 7 },
@@ -678,7 +696,7 @@ function rollIntent(template: EnemyTemplate, floor: number, intentPhase = 0): En
       : null
   if (activeIntentCycle) {
     const def = activeIntentCycle[intentPhase % activeIntentCycle.length]
-    if (def.type === 'attack' || def.type === 'corrosive_strike') {
+    if (def.type === 'attack' || def.type === 'shield_slam' || def.type === 'corrosive_strike') {
       return { type: def.type, value: def.value + floorScaling }
     }
     if (template.isBoss && def.type === 'shield') {
@@ -701,7 +719,14 @@ function spawnEnemy(floor: number): Enemy {
   const bestiary    = act.id >= 2 ? ACT_2_BESTIARY : ACT_1_BESTIARY
   const bossT       = bestiary.find(t => t.isBoss)!
   const nonBoss     = bestiary.filter(t => !t.isBoss)
-  const template    = isBossFloor ? bossT : nonBoss[(floor - 1) % nonBoss.length]
+  const act1Early   = nonBoss.filter(t => !['Cultist', 'Shieldbearer'].includes(t.name))
+  const act1Mid     = [
+    nonBoss.find(t => t.name === 'Cultist'),
+    nonBoss.find(t => t.name === 'Shieldbearer'),
+    ...act1Early,
+  ].filter((t): t is EnemyTemplate => Boolean(t))
+  const activePool  = act.id === 1 && floor >= 6 ? act1Mid : act.id === 1 ? act1Early : nonBoss
+  const template    = isBossFloor ? bossT : activePool[(act.id === 1 && floor >= 6 ? floor - 6 : floor - 1) % activePool.length]
   const hp          = act.id >= 2
     ? template.baseHp + (floor - 16) * 4
     : template.baseHp + (floor - 1) * 2
@@ -2040,8 +2065,8 @@ export const useGameStore = create<GameState>()(
       player:       { hp: baseHp, maxHp: baseHp, shield: 0, hot: null, poison: 0, woundTurns: 0 },
       inventory,
       runSouls:     25,
-      currentFloor: 15,
-      enemy:        spawnEnemy(15),
+      currentFloor: 6,
+      enemy:        spawnEnemy(6),
       drawPile:     shuffleArray(inventory),
       playedDice:   [],
       skullCount:   0,
@@ -2193,7 +2218,8 @@ async function runEnemyPhase({ allowIronMemory = true }: { allowIronMemory?: boo
 
   // ── Attack intent ────────────────────────────────────────────────────────
   const eShield   = player.shield
-  const rawDamage = enemy.intent.value
+  const shieldSlamBonus = enemy.intent.type === 'shield_slam' ? (enemy.shield ?? 0) : 0
+  const rawDamage = enemy.intent.value + shieldSlamBonus
   const retaliationDamage = activeRelics.includes('retaliation_plate') &&
     enemy.intent.type !== 'corrosive_strike' && !enemy.corrosive && rawDamage > 0 && eShield >= rawDamage
       ? Math.ceil(rawDamage * 0.5)
@@ -2219,6 +2245,7 @@ async function runEnemyPhase({ allowIronMemory = true }: { allowIronMemory?: boo
 
   useGameStore.setState((st) => ({
     player: { ...st.player, hp: postHp, shield: postShield },
+    enemy: enemy.intent.type === 'shield_slam' ? { ...st.enemy, shield: 0 } : st.enemy,
     playerHitVersion: st.playerHitVersion + 1,
   }))
 

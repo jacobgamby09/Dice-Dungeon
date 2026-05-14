@@ -518,8 +518,9 @@ function EnemyOrbLayer({ enemyAttackVersion, enemyEl, playerHpRef }: {
 }
 
 // ── Intent badge ──────────────────────────────────────────────────────────────
-function IntentBadge({ intent, recoil = 0 }: { intent: EnemyIntent; recoil?: number }) {
+function IntentBadge({ intent, recoil = 0, enemyShield = 0 }: { intent: EnemyIntent; recoil?: number; enemyShield?: number }) {
   const [showPierceInfo, setShowPierceInfo] = useState(false)
+  const [showSlamInfo, setShowSlamInfo] = useState(false)
 
   if (intent.type === 'shield') {
     return (
@@ -577,6 +578,53 @@ function IntentBadge({ intent, recoil = 0 }: { intent: EnemyIntent; recoil?: num
         <span style={{ fontSize: '1.05rem', fontWeight: 900, color: '#fb7185', textShadow: '1px 1px 0 #000' }}>
           WOUND {intent.value}
         </span>
+      </div>
+    )
+  }
+  if (intent.type === 'shield_slam') {
+    const shieldBonus = enemyShield
+    const slamDamage = intent.value + shieldBonus
+    return (
+      <div
+        style={{
+          position: 'relative',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 4,
+          cursor: 'help',
+          background: '#10182d',
+          border: '2px solid #2563eb',
+          padding: '2px 5px',
+          boxShadow: '2px 2px 0 #000',
+        }}
+        onMouseEnter={() => setShowSlamInfo(true)}
+        onMouseLeave={() => setShowSlamInfo(false)}
+        onClick={() => setShowSlamInfo(!showSlamInfo)}
+      >
+        <Swords size={15} color="#f87171" strokeWidth={2.5} />
+        <span style={{ fontSize: '0.9rem', fontWeight: 900, color: '#fca5a5', textShadow: '1px 1px 0 #000' }}>
+          {intent.value}
+        </span>
+        <span style={{ fontSize: '0.8rem', fontWeight: 900, color: '#93c5fd' }}>+</span>
+        <Shield size={14} color="#38bdf8" strokeWidth={2.5} />
+        <span style={{ fontSize: '0.9rem', fontWeight: 900, color: '#7dd3fc', textShadow: '1px 1px 0 #000' }}>
+          {shieldBonus}
+        </span>
+        <span style={{ fontSize: '0.8rem', fontWeight: 900, color: '#e5e7eb' }}>=</span>
+        <span style={{ fontSize: '1rem', fontWeight: 900, color: '#fff', textShadow: '1px 1px 0 #000' }}>
+          {slamDamage}
+        </span>
+        {showSlamInfo && (
+          <div style={{
+            position: 'absolute', top: 'calc(100% + 5px)', right: 0,
+            background: '#08111f', border: '2px solid #2563eb',
+            padding: '7px 8px', width: 210, zIndex: 70,
+            fontSize: '0.64rem', color: '#dbeafe', lineHeight: 1.35,
+            pointerEvents: 'none', textAlign: 'left',
+          }}>
+            Shield Slam adds all current enemy Shield to its attack, then spends all enemy Shield.
+          </div>
+        )}
       </div>
     )
   }
@@ -1181,9 +1229,11 @@ export function CombatScreen() {
   const carefulRhythmDamageBonus = carefulRhythmReady ? 5 : 0
   const carefulRhythmShieldBonus = carefulRhythmReady ? 5 : 0
   const shieldAfterAttack = player.shield + totalShield + carefulRhythmShieldBonus
+  const enemyIntentDamage = enemy.intent.value + (enemy.intent.type === 'shield_slam' ? (enemy.shield ?? 0) : 0)
   const retaliationPreviewDamage = activeRelics.includes('retaliation_plate') &&
-    enemy.intent.type === 'attack' && !enemy.corrosive && enemy.intent.value > 0 && shieldAfterAttack >= enemy.intent.value
-      ? Math.ceil(enemy.intent.value * 0.5)
+    (enemy.intent.type === 'attack' || enemy.intent.type === 'shield_slam') &&
+    !enemy.corrosive && enemyIntentDamage > 0 && shieldAfterAttack >= enemyIntentDamage
+      ? Math.ceil(enemyIntentDamage * 0.5)
       : 0
   const committedShieldForBadge = player.shield > 0 && (turnPhase === 'idle' || totalShield === 0) ? player.shield : 0
   const expectedThorns   = Math.floor((totalDamage + carefulRhythmDamageBonus) * (enemy?.thorns ?? 0))
@@ -1324,7 +1374,7 @@ export function CombatScreen() {
               }}>
                 {enemy.name}
               </span>
-              <IntentBadge intent={enemy.intent} recoil={expectedRecoil} />
+              <IntentBadge intent={enemy.intent} recoil={expectedRecoil} enemyShield={enemy.shield ?? 0} />
               {enemy.poison > 0 && (
                 <motion.div
                   animate={{

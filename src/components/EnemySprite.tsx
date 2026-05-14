@@ -94,7 +94,65 @@ const palettes = {
     E: '#052e16',
     P: '#a855f7',
   },
+  cultist: {
+    O: common.outline,
+    S: common.shadow,
+    R: '#991b1b',
+    M: '#450a0a',
+    P: '#7c3aed',
+    L: '#c084fc',
+    F: '#f8fafc',
+    E: '#facc15',
+  },
+  shieldbearer: {
+    O: common.outline,
+    S: common.shadow,
+    B: '#1e3a8a',
+    L: '#60a5fa',
+    M: '#94a3b8',
+    W: '#e5e7eb',
+    E: '#facc15',
+    R: '#7f1d1d',
+  },
 }
+
+const CULTIST = makeGrid([
+  '................',
+  '......OOOO......',
+  '.....OPLLPO.....',
+  '....OPFEEFPO....',
+  '....OPLFFLPO....',
+  '.....OPPPPO.....',
+  '....OOMMMMO.....',
+  '...OMRMMMRMO....',
+  '..OMMRPPPRMMO...',
+  '..OMMRMMMRMMO...',
+  '...OOMMMMO......',
+  '....OR..RO......',
+  '...OOR..ROO.....',
+  '....SSSSSS......',
+  '................',
+  '................',
+], palettes.cultist)
+
+const SHIELDBEARER = makeGrid([
+  '................',
+  '.....OOOO.......',
+  '....OMWWMO......',
+  '....OWEEWO......',
+  '.....OMMO.......',
+  '...OOOBBBO......',
+  '..OBBBLLBBO.....',
+  '.OBBMLLLMBBO....',
+  '.OBBMLWLMBBO....',
+  '..OBBMLMBBO.....',
+  '...OOBBBO.......',
+  '....OB..BO......',
+  '...OOR..RO......',
+  '....SSSSSS......',
+  '................',
+  '................',
+], palettes.shieldbearer)
 
 const SLIME_CRAWLER = makeGrid([
   '................',
@@ -391,6 +449,10 @@ export function EnemySprite({
           enemyAttackVersion={enemyAttackVersion}
         />
       )
+    case 'cultist':
+      return <Sprite grid={CULTIST} size={spriteSize} />
+    case 'shieldbearer':
+      return <Sprite grid={SHIELDBEARER} size={spriteSize} />
     case 'slime crawler':
       return (
         <SheetSprite
