@@ -94,36 +94,7 @@ const palettes = {
     E: '#052e16',
     P: '#a855f7',
   },
-  shieldbearer: {
-    O: common.outline,
-    S: common.shadow,
-    B: '#1e3a8a',
-    L: '#60a5fa',
-    M: '#94a3b8',
-    W: '#e5e7eb',
-    E: '#facc15',
-    R: '#7f1d1d',
-  },
 }
-
-const SHIELDBEARER = makeGrid([
-  '................',
-  '.....OOOO.......',
-  '....OMWWMO......',
-  '....OWEEWO......',
-  '.....OMMO.......',
-  '...OOOBBBO......',
-  '..OBBBLLBBO.....',
-  '.OBBMLLLMBBO....',
-  '.OBBMLWLMBBO....',
-  '..OBBMLMBBO.....',
-  '...OOBBBO.......',
-  '....OB..BO......',
-  '...OOR..RO......',
-  '....SSSSSS......',
-  '................',
-  '................',
-], palettes.shieldbearer)
 
 const SLIME_CRAWLER = makeGrid([
   '................',
@@ -164,7 +135,7 @@ function Sprite({ grid, size, boss = false }: { grid: Grid; size: number; boss?:
   )
 }
 
-const SHEET_SPRITES: Record<'orc' | 'slime' | 'skeleton' | 'goblin' | 'bloodOrc' | 'cultist' | 'marrowBat' | 'slimeCrawler' | 'toxicCreep' | 'spikedBehemoth', SheetConfig> = {
+const SHEET_SPRITES: Record<'orc' | 'slime' | 'skeleton' | 'goblin' | 'bloodOrc' | 'cultist' | 'shieldbearer' | 'marrowBat' | 'slimeCrawler' | 'toxicCreep' | 'spikedBehemoth', SheetConfig> = {
   orc: {
     sheets: {
       idle:   { src: '/sprites/enemies/orc/Orc-Idle.png?v=8',     frames: 6, frameMs: 190, loop: true },
@@ -226,6 +197,17 @@ const SHEET_SPRITES: Record<'orc' | 'slime' | 'skeleton' | 'goblin' | 'bloodOrc'
       attack: { src: '/sprites/enemies/cultist/Cultist-Attack01.png', frames: 6, frameMs: 95,  loop: false },
       hurt:   { src: '/sprites/enemies/cultist/Cultist-Hurt.png',     frames: 4, frameMs: 130, loop: false },
       death:  { src: '/sprites/enemies/cultist/Cultist-Death.png',    frames: 4, frameMs: 155, loop: false },
+    },
+    crop: { x: 0, y: 2, w: 100, h: 94 },
+    unit: 17,
+    minWidth: 82,
+  },
+  shieldbearer: {
+    sheets: {
+      idle:   { src: '/sprites/enemies/shieldbearer/Shieldbearer-Idle.png',     frames: 6, frameMs: 190, loop: true },
+      attack: { src: '/sprites/enemies/shieldbearer/Shieldbearer-Attack01.png', frames: 6, frameMs: 95,  loop: false },
+      hurt:   { src: '/sprites/enemies/shieldbearer/Shieldbearer-Hurt.png',     frames: 4, frameMs: 130, loop: false },
+      death:  { src: '/sprites/enemies/shieldbearer/Shieldbearer-Death.png',    frames: 4, frameMs: 155, loop: false },
     },
     crop: { x: 0, y: 2, w: 100, h: 94 },
     unit: 17,
@@ -442,7 +424,15 @@ export function EnemySprite({
         />
       )
     case 'shieldbearer':
-      return <Sprite grid={SHIELDBEARER} size={spriteSize} />
+      return (
+        <SheetSprite
+          config={SHEET_SPRITES.shieldbearer}
+          size={size}
+          hp={hp}
+          enemyHitVersion={enemyHitVersion}
+          enemyAttackVersion={enemyAttackVersion}
+        />
+      )
     case 'slime crawler':
       return (
         <SheetSprite
